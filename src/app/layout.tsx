@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <body className={`${plusJakartaSans.variable} font-sans`}>
-        <div className="flex min-h-screen bg-slate-50">
+        <div className="flex min-h-screen bg-background">
           <Sidebar />
           <div className="flex-1 flex flex-col">
             <MobileHeader />

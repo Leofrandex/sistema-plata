@@ -31,9 +31,9 @@ export function Sidebar() {
   const [adminOpen, setAdminOpen] = useState(pathname.startsWith('/admin'))
 
   return (
-    <aside className="hidden md:flex w-56 flex-col border-r bg-white h-screen sticky top-0">
-      <div className="p-4 border-b">
-        <span className="font-bold text-lg text-slate-800">Hospimed</span>
+    <aside className="hidden md:flex w-56 flex-col border-r border-sidebar-border bg-sidebar h-screen sticky top-0">
+      <div className="p-4 border-b border-sidebar-border">
+        <span className="font-bold text-lg text-sidebar-foreground">Hospimed</span>
       </div>
       <nav className="flex-1 p-3 space-y-1">
         {TOP_NAV.map(({ href, label, icon: Icon }) => (
@@ -43,8 +43,8 @@ export function Sidebar() {
             className={cn(
               'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
               pathname.startsWith(href)
-                ? 'bg-slate-100 text-slate-900'
-                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
             )}
           >
             <Icon className="h-4 w-4" />
@@ -58,8 +58,8 @@ export function Sidebar() {
             className={cn(
               'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
               pathname.startsWith('/register')
-                ? 'bg-slate-100 text-slate-900'
-                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
             )}
           >
             <ClipboardList className="h-4 w-4" />
@@ -75,8 +75,8 @@ export function Sidebar() {
                   className={cn(
                     'block px-3 py-1.5 rounded-md text-sm transition-colors',
                     pathname === href
-                      ? 'bg-blue-50 text-blue-700 font-medium'
-                      : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                      ? 'bg-sidebar-primary/20 text-sidebar-primary font-medium'
+                      : 'text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/60'
                   )}
                 >
                   {label}
@@ -92,8 +92,8 @@ export function Sidebar() {
             className={cn(
               'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
               pathname.startsWith('/admin')
-                ? 'bg-slate-100 text-slate-900'
-                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
             )}
           >
             <Settings className="h-4 w-4" />
@@ -109,8 +109,8 @@ export function Sidebar() {
                   className={cn(
                     'block px-3 py-1.5 rounded-md text-sm transition-colors',
                     pathname === href
-                      ? 'bg-blue-50 text-blue-700 font-medium'
-                      : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                      ? 'bg-sidebar-primary/20 text-sidebar-primary font-medium'
+                      : 'text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/60'
                   )}
                 >
                   {label}

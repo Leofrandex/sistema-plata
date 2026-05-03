@@ -20,8 +20,8 @@ export function MobileHeader() {
   const title = PAGE_TITLES[pathname] ?? 'Hospimed'
 
   return (
-    <header className="md:hidden flex items-center h-14 border-b bg-white px-4 sticky top-0 z-10">
-      <span className="font-semibold text-slate-800">{title}</span>
+    <header className="md:hidden flex items-center h-14 border-b bg-sidebar border-sidebar-border px-4 sticky top-0 z-10">
+      <span className="font-semibold text-sidebar-foreground">{title}</span>
     </header>
   )
 }
