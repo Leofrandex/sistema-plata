@@ -7,10 +7,10 @@ export function useOfflineSync() {
   const [pendingCount, setPendingCount] = useState(0)
   const [isOnline, setIsOnline] = useState(true)
 
-  async function refreshCount() {
+  const refreshCount = useCallback(async () => {
     const count = await getQueueCount()
     setPendingCount(count)
-  }
+  }, [])
 
   const sync = useCallback(async () => {
     const items = await dequeueAll()
@@ -40,7 +40,7 @@ export function useOfflineSync() {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
-  }, [sync])
+  }, [sync, refreshCount])
 
   return { isOnline, pendingCount, refreshCount }
 }

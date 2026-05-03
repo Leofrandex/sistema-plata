@@ -77,7 +77,7 @@ export function ContainerForm({ clients, onSubmit, onCancel }: Props) {
       </div>
       <div className="space-y-2">
         <label className="text-sm font-medium">Tamaño</label>
-        <Select value={String(size)} onValueChange={(v) => setSize(Number(v ?? 0) as ContainerSize)}>
+        <Select value={String(size)} onValueChange={(v) => setSize((v ? Number(v) : '') as ContainerSize | '')}>
           <SelectTrigger><SelectValue placeholder="Seleccionar tamaño" /></SelectTrigger>
           <SelectContent>
             {SIZE_OPTIONS.map((o) => (

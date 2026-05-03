@@ -4,15 +4,11 @@ import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/button'
 import { Download, Loader2 } from 'lucide-react'
 import type { Batch, Client, Container, ContainerReception, Photo } from '@/lib/types'
+import { BatchReportDocument } from './batch-report-document'
 
 const PDFDownloadLink = dynamic(
   () => import('@react-pdf/renderer').then((mod) => mod.PDFDownloadLink),
   { ssr: false, loading: () => <Button disabled><Loader2 className="h-4 w-4 animate-spin mr-2" />Preparando...</Button> }
-)
-
-const BatchReportDocumentDynamic = dynamic(
-  () => import('./batch-report-document').then((mod) => mod.BatchReportDocument),
-  { ssr: false }
 )
 
 interface ContainerReportData {
@@ -43,7 +39,7 @@ export function ReportPreview({ batch, client, containerData }: Props) {
       </div>
       <PDFDownloadLink
         document={
-          <BatchReportDocumentDynamic batch={batch} client={client} containerData={containerData} />
+          <BatchReportDocument batch={batch} client={client} containerData={containerData} />
         }
         fileName={filename}
       >

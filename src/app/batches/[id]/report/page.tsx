@@ -20,11 +20,14 @@ export default function BatchReportPage({ params }: Props) {
   const batch = batches.find((b) => b.id === id)
   if (!batch) notFound()
 
-  const client = clients.find((c) => c.id === batch.client_id)!
+  const clientOrNull = clients.find((c) => c.id === batch.client_id)
+  if (!clientOrNull) notFound()
+  const client = clientOrNull
 
   const containerData = useMemo(() => {
     return batch.container_ids.map((cid) => {
-      const container = containers.find((c) => c.id === cid)!
+      const container = containers.find((c) => c.id === cid)
+      if (!container) return null
 
       const reception: ContainerReception | null = [...receptions]
         .filter((r) => r.container_id === cid && r.batch_id === batch.id)
@@ -50,7 +53,7 @@ export default function BatchReportPage({ params }: Props) {
         weighingPhotos: getPhotos(weighingPhotoIds),
         storagePhotos: getPhotos(storagePhotoIds),
       }
-    })
+    }).filter((d): d is NonNullable<typeof d> => d !== null)
   }, [batch, containers, exchangeEvents, receptions, storageEvents, photos])
 
   return (

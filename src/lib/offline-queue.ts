@@ -11,14 +11,19 @@ export interface QueuedEvent {
   queued_at: string
 }
 
-async function getDB(): Promise<IDBPDatabase> {
-  return openDB(DB_NAME, DB_VERSION, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true })
-      }
-    },
-  })
+let dbPromise: ReturnType<typeof openDB> | null = null
+
+function getDB() {
+  if (!dbPromise) {
+    dbPromise = openDB(DB_NAME, DB_VERSION, {
+      upgrade(db) {
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true })
+        }
+      },
+    })
+  }
+  return dbPromise
 }
 
 export async function enqueue(event: Omit<QueuedEvent, 'id' | 'queued_at'>): Promise<void> {
