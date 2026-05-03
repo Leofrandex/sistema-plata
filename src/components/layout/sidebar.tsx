@@ -43,8 +43,8 @@ export function Sidebar() {
             className={cn(
               'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
               pathname.startsWith(href)
-                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
+                ? 'bg-sidebar-primary text-white'
+                : 'text-white/70 hover:bg-white/10 hover:text-white'
             )}
           >
             <Icon className="h-4 w-4" />
@@ -58,8 +58,8 @@ export function Sidebar() {
             className={cn(
               'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
               pathname.startsWith('/register')
-                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
+                ? 'bg-sidebar-primary text-white'
+                : 'text-white/70 hover:bg-white/10 hover:text-white'
             )}
           >
             <ClipboardList className="h-4 w-4" />
@@ -75,8 +75,8 @@ export function Sidebar() {
                   className={cn(
                     'block px-3 py-1.5 rounded-md text-sm transition-colors',
                     pathname === href
-                      ? 'bg-sidebar-primary/20 text-sidebar-primary font-medium'
-                      : 'text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/60'
+                      ? 'text-white font-semibold border-l-2 border-sidebar-primary pl-2'
+                      : 'text-white/55 hover:text-white hover:bg-white/10'
                   )}
                 >
                   {label}
@@ -92,8 +92,8 @@ export function Sidebar() {
             className={cn(
               'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
               pathname.startsWith('/admin')
-                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
+                ? 'bg-sidebar-primary text-white'
+                : 'text-white/70 hover:bg-white/10 hover:text-white'
             )}
           >
             <Settings className="h-4 w-4" />
@@ -109,8 +109,8 @@ export function Sidebar() {
                   className={cn(
                     'block px-3 py-1.5 rounded-md text-sm transition-colors',
                     pathname === href
-                      ? 'bg-sidebar-primary/20 text-sidebar-primary font-medium'
-                      : 'text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/60'
+                      ? 'text-white font-semibold border-l-2 border-sidebar-primary pl-2'
+                      : 'text-white/55 hover:text-white hover:bg-white/10'
                   )}
                 >
                   {label}
