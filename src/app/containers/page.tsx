@@ -1,0 +1,73 @@
+'use client'
+
+import { useState, useMemo } from 'react'
+import { ContainerFilters } from '@/components/containers/container-filters'
+import { ContainerTable } from '@/components/containers/container-table'
+import { useStore } from '@/lib/store'
+import { buildContainerWithPhase } from '@/lib/data/containers'
+import type { ContainerFilters as Filters } from '@/components/containers/container-filters'
+import type { ContainerWithPhase, ContainerSize, WasteType } from '@/lib/types'
+
+const DEFAULT_FILTERS: Filters = {
+  search: '',
+  clientId: 'all',
+  wasteType: 'all',
+  size: 'all',
+}
+
+export default function ContainersPage() {
+  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
+  const {
+    containers, clients, exchangeEvents, receptions,
+    storageEvents, treatmentRuns, externalTransfers, locations,
+  } = useStore()
+
+  const allContainersWithPhase: ContainerWithPhase[] = useMemo(() => {
+    return containers
+      .filter((c) => c.status === 'active')
+      .map((container) => {
+        const exchangeIds = exchangeEvents
+          .filter((e) => e.dirty_containers_received.includes(container.id))
+          .map((e) => e.id)
+        const reception = [...receptions]
+          .filter((r) => r.container_id === container.id)
+          .sort((a, b) => new Date(b.arrived_at).getTime() - new Date(a.arrived_at).getTime())[0] ?? null
+        const storage = [...storageEvents]
+          .filter((s) => s.container_id === container.id)
+          .sort((a, b) => new Date(b.entry_at).getTime() - new Date(a.entry_at).getTime())[0] ?? null
+        const treatment = treatmentRuns.find((t) => t.container_id === container.id && !t.completed_at)
+          ?? externalTransfers.find((t) => t.container_id === container.id && !t.transferred_at)
+          ?? null
+        const containerLocations = locations.filter((l) => l.container_id === container.id)
+        return buildContainerWithPhase(container, exchangeIds, reception, storage, treatment, containerLocations)
+      })
+  }, [containers, exchangeEvents, receptions, storageEvents, treatmentRuns, externalTransfers, locations])
+
+  const filtered = useMemo(() => {
+    return allContainersWithPhase.filter((c) => {
+      if (filters.search && !c.id.toLowerCase().includes(filters.search.toLowerCase())) return false
+      if (filters.clientId !== 'all' && c.client_id !== filters.clientId) return false
+      if (filters.wasteType !== 'all' && c.waste_type !== filters.wasteType) return false
+      if (filters.size !== 'all' && c.size_liters !== filters.size) return false
+      return true
+    })
+  }, [allContainersWithPhase, filters])
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-slate-800">Inventario de Envases</h1>
+        <span className="text-sm text-slate-500">{filtered.length} envases</span>
+      </div>
+      <ContainerFilters
+        filters={filters}
+        clients={clients}
+        onChange={setFilters}
+      />
+      <ContainerTable
+        containers={filtered}
+        clients={clients.map((c) => ({ id: c.id, name: c.name }))}
+      />
+    </div>
+  )
+}
