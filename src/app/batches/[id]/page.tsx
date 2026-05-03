@@ -3,7 +3,7 @@
 import { use, useMemo } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { BatchContainersList } from '@/components/batches/batch-containers-list'
 import { useStore } from '@/lib/store'
@@ -55,10 +55,16 @@ export default function BatchDetailPage({ params }: Props) {
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <div>
+        <div className="flex-1">
           <h1 className="text-xl font-bold text-slate-800">{client.name}</h1>
           <p className="text-sm text-slate-500">Lote {batch.date} · {batchContainers.length} envases</p>
         </div>
+        <Link href={`/batches/${batch.id}/report`}>
+          <Button variant="outline" size="sm" className="gap-2">
+            <FileText className="h-4 w-4" />
+            Generar reporte
+          </Button>
+        </Link>
       </div>
       <BatchContainersList containers={batchContainers} />
     </div>
