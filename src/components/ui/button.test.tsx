@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { Button } from './button'
 
 describe('Button', () => {
@@ -24,10 +25,10 @@ describe('Button', () => {
     expect(screen.getByRole('button')).toBeDisabled()
   })
 
-  it('calls onClick when clicked', () => {
+  it('calls onClick when clicked', async () => {
     const handleClick = vi.fn()
     render(<Button onClick={handleClick}>Guardar</Button>)
-    screen.getByRole('button').click()
+    await userEvent.click(screen.getByRole('button'))
     expect(handleClick).toHaveBeenCalledTimes(1)
   })
 
