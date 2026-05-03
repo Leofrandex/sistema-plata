@@ -9,6 +9,7 @@ interface InputFieldProps extends React.ComponentProps<'input'> {
 
 export function InputField({ label, error, className, ...rest }: InputFieldProps) {
   const id = useId()
+  const errorId = error ? `${id}-error` : undefined
   return (
     <div className="flex flex-col gap-1">
       <label
@@ -20,11 +21,12 @@ export function InputField({ label, error, className, ...rest }: InputFieldProps
       <Input
         id={id}
         aria-invalid={error ? true : undefined}
+        aria-describedby={errorId}
         className={cn(className)}
         {...rest}
       />
       {error && (
-        <span className="text-xs text-destructive">{error}</span>
+        <span id={errorId} className="text-xs text-destructive">{error}</span>
       )}
     </div>
   )
