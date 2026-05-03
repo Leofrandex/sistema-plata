@@ -15,15 +15,20 @@ const REGISTER_LINKS = [
   { href: '/register/location', label: 'Ubicación' },
 ]
 
+const ADMIN_LINKS = [
+  { href: '/admin/containers', label: 'Envases' },
+  { href: '/admin/clients', label: 'Clientes' },
+]
+
 const TOP_NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/containers', label: 'Envases', icon: Package },
-  { href: '/admin/containers', label: 'Admin', icon: Settings },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
   const [registerOpen, setRegisterOpen] = useState(pathname.startsWith('/register'))
+  const [adminOpen, setAdminOpen] = useState(pathname.startsWith('/admin'))
 
   return (
     <aside className="hidden md:flex w-56 flex-col border-r bg-white h-screen sticky top-0">
@@ -64,6 +69,40 @@ export function Sidebar() {
           {registerOpen && (
             <div className="ml-7 mt-1 space-y-0.5">
               {REGISTER_LINKS.map(({ href, label }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    'block px-3 py-1.5 rounded-md text-sm transition-colors',
+                    pathname === href
+                      ? 'bg-blue-50 text-blue-700 font-medium'
+                      : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                  )}
+                >
+                  {label}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <button
+            onClick={() => setAdminOpen((o) => !o)}
+            className={cn(
+              'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+              pathname.startsWith('/admin')
+                ? 'bg-slate-100 text-slate-900'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+            )}
+          >
+            <Settings className="h-4 w-4" />
+            <span className="flex-1 text-left">Admin</span>
+            <ChevronDown className={cn('h-3 w-3 transition-transform', adminOpen && 'rotate-180')} />
+          </button>
+          {adminOpen && (
+            <div className="ml-7 mt-1 space-y-0.5">
+              {ADMIN_LINKS.map(({ href, label }) => (
                 <Link
                   key={href}
                   href={href}
