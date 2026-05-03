@@ -6,10 +6,7 @@
 
 @layer base {
   .theme {
-
     --font-heading: var(--font-sans);
-
-    --font-sans: var(--font-sans)
   }
   :root {
 
