@@ -75,8 +75,8 @@ export function Sidebar() {
                   className={cn(
                     'block px-3 py-1.5 rounded-md text-sm transition-colors',
                     pathname === href
-                      ? 'text-white font-semibold border-l-2 border-sidebar-primary pl-2'
-                      : 'text-white/55 hover:text-white hover:bg-white/10'
+                      ? 'bg-sidebar-primary text-white font-medium'
+                      : 'text-white/55 hover:bg-white/10 hover:text-white'
                   )}
                 >
                   {label}
@@ -109,8 +109,8 @@ export function Sidebar() {
                   className={cn(
                     'block px-3 py-1.5 rounded-md text-sm transition-colors',
                     pathname === href
-                      ? 'text-white font-semibold border-l-2 border-sidebar-primary pl-2'
-                      : 'text-white/55 hover:text-white hover:bg-white/10'
+                      ? 'bg-sidebar-primary text-white font-medium'
+                      : 'text-white/55 hover:bg-white/10 hover:text-white'
                   )}
                 >
                   {label}
