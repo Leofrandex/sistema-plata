@@ -66,11 +66,13 @@ export function ContainerTable({ containers, clients }: Props) {
               <tr
                 key={c.id}
                 tabIndex={0}
-                role="link"
                 aria-label={`Ver envase ${c.id}`}
-                onClick={() => router.push(href)}
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.getSelection()?.toString()) return
+                  router.push(href)
+                }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
+                  if (e.key === 'Enter') {
                     e.preventDefault()
                     router.push(href)
                   }
