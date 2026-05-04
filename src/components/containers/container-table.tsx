@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import type { ContainerWithPhase, ContainerPhase } from '@/lib/types'
@@ -27,23 +28,28 @@ interface Props {
 }
 
 export function ContainerTable({ containers, clients }: Props) {
+  const router = useRouter()
   const clientMap = Object.fromEntries(clients.map((c) => [c.id, c.name]))
 
   if (containers.length === 0) {
-    return <div className="text-center py-12 text-slate-400">No se encontraron envases.</div>
+    return (
+      <div className="rounded-xl bg-card p-12 text-center text-muted-foreground ring-1 ring-foreground/10">
+        No se encontraron envases.
+      </div>
+    )
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border bg-white">
+    <div className="overflow-x-auto rounded-xl bg-card ring-1 ring-foreground/10">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b bg-slate-50 text-slate-500 text-left">
-            <th className="px-4 py-3 font-medium">Envase</th>
-            <th className="px-4 py-3 font-medium">Cliente</th>
-            <th className="px-4 py-3 font-medium">Tipo</th>
-            <th className="px-4 py-3 font-medium">Tamaño</th>
-            <th className="px-4 py-3 font-medium">Fase actual</th>
-            <th className="px-4 py-3 font-medium">Ubicación actual</th>
+          <tr className="border-b text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <th className="px-4 py-3">Envase</th>
+            <th className="px-4 py-3">Cliente</th>
+            <th className="px-4 py-3">Tipo</th>
+            <th className="px-4 py-3">Tamaño</th>
+            <th className="px-4 py-3">Fase actual</th>
+            <th className="px-4 py-3">Ubicación actual</th>
           </tr>
         </thead>
         <tbody className="divide-y">
@@ -54,24 +60,39 @@ export function ContainerTable({ containers, clients }: Props) {
                 ? `${clientMap[loc.client_id ?? ''] ?? ''} · Piso ${loc.floor} — ${loc.area}`
                 : loc.location_type.replace('_', ' ')
               : '—'
+            const href = `/containers/${c.id}`
 
             return (
-              <tr key={c.id} className="hover:bg-slate-50 transition-colors">
+              <tr
+                key={c.id}
+                tabIndex={0}
+                role="link"
+                aria-label={`Ver envase ${c.id}`}
+                onClick={() => router.push(href)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    router.push(href)
+                  }
+                }}
+                className="cursor-pointer transition-colors outline-none hover:bg-accent/5 focus-visible:bg-accent/10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+              >
                 <td className="px-4 py-3">
                   <Link
-                    href={`/containers/${c.id}`}
-                    className="font-mono font-semibold text-blue-600 hover:underline"
+                    href={href}
+                    onClick={(e) => e.stopPropagation()}
+                    className="font-mono font-semibold text-accent hover:underline"
                   >
                     {c.id}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-slate-600">{clientMap[c.client_id] ?? '—'}</td>
-                <td className="px-4 py-3 text-slate-600">{WASTE_LABELS[c.waste_type]}</td>
-                <td className="px-4 py-3 text-slate-600">{c.size_liters} L</td>
+                <td className="px-4 py-3 text-foreground/80">{clientMap[c.client_id] ?? '—'}</td>
+                <td className="px-4 py-3 text-foreground/80">{WASTE_LABELS[c.waste_type]}</td>
+                <td className="px-4 py-3 text-foreground/80">{c.size_liters} L</td>
                 <td className="px-4 py-3">
                   <Badge variant="outline">{PHASE_LABELS[c.current_phase]}</Badge>
                 </td>
-                <td className="px-4 py-3 text-slate-500 max-w-xs truncate">{locationText}</td>
+                <td className="px-4 py-3 max-w-xs truncate text-muted-foreground">{locationText}</td>
               </tr>
             )
           })}
