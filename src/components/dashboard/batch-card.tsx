@@ -34,10 +34,14 @@ export function BatchCard({ batch, variant }: Props) {
   const href = isActive ? `/batches/${batch.id}` : `/batches/${batch.id}/report`
   const ctaLabel = isActive ? 'Ver lote' : 'Generar reporte'
   const CtaIcon = isActive ? ArrowRight : FileText
+  const ariaLabel = isActive
+    ? `Ver lote de ${batch.client.name}, ${PHASE_LABELS[batch.next_pending_step]}`
+    : `Generar reporte del lote de ${batch.client.name}`
 
   return (
     <Link
       href={href}
+      aria-label={ariaLabel}
       className="group relative flex h-full flex-col overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:ring-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className={cn('h-1 w-full bg-gradient-to-r', isActive ? accent.bar : 'from-emerald-400/50 to-emerald-400/0')} />
@@ -45,7 +49,7 @@ export function BatchCard({ batch, variant }: Props) {
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
             <span className="flex size-8 items-center justify-center rounded-lg bg-primary/5 text-primary ring-1 ring-primary/10">
-              <Building2 className="size-4" />
+              <Building2 aria-hidden className="size-4" />
             </span>
             <span className="truncate">{batch.client.name}</span>
           </div>
@@ -56,7 +60,7 @@ export function BatchCard({ batch, variant }: Props) {
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-              <CheckCircle2 className="size-3" />
+              <CheckCircle2 aria-hidden className="size-3" />
               Completo
             </span>
           )}
@@ -64,11 +68,11 @@ export function BatchCard({ batch, variant }: Props) {
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
-            <Package className="size-3.5" />
+            <Package aria-hidden className="size-3.5" />
             {batch.container_count} {batch.container_count === 1 ? 'envase' : 'envases'}
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <Calendar className="size-3.5" />
+            <Calendar aria-hidden className="size-3.5" />
             {batch.date}
           </span>
         </div>
@@ -76,7 +80,7 @@ export function BatchCard({ batch, variant }: Props) {
         <div className="mt-auto flex items-center justify-end pt-2">
           <span className="inline-flex items-center gap-1.5 text-sm font-medium text-accent transition-colors group-hover:text-accent/80">
             {ctaLabel}
-            <CtaIcon className="size-4 transition-transform group-hover:translate-x-0.5" />
+            <CtaIcon aria-hidden className="size-4 transition-transform group-hover:translate-x-0.5" />
           </span>
         </div>
       </div>
