@@ -39,6 +39,9 @@ const labelClass = 'text-xs font-semibold uppercase tracking-wide text-muted-for
 
 export function ContainerFilters({ filters, clients, onChange }: Props) {
   const searchId = useId()
+  const clientLabelId = useId()
+  const wasteTypeLabelId = useId()
+  const sizeLabelId = useId()
 
   return (
     <div className="grid grid-cols-1 gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]">
@@ -57,12 +60,12 @@ export function ContainerFilters({ filters, clients, onChange }: Props) {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <span className={labelClass}>Cliente</span>
+        <span id={clientLabelId} className={labelClass}>Cliente</span>
         <Select
           value={filters.clientId}
           onValueChange={(v) => onChange({ ...filters, clientId: v ?? 'all' })}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger aria-labelledby={clientLabelId} className="w-full">
             <SelectValue placeholder="Todos los clientes" />
           </SelectTrigger>
           <SelectContent>
@@ -75,12 +78,12 @@ export function ContainerFilters({ filters, clients, onChange }: Props) {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <span className={labelClass}>Tipo de desecho</span>
+        <span id={wasteTypeLabelId} className={labelClass}>Tipo de desecho</span>
         <Select
           value={String(filters.wasteType)}
           onValueChange={(v) => onChange({ ...filters, wasteType: (v ?? 'all') as WasteType | 'all' })}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger aria-labelledby={wasteTypeLabelId} className="w-full">
             <SelectValue placeholder="Tipo de desecho" />
           </SelectTrigger>
           <SelectContent>
@@ -92,12 +95,12 @@ export function ContainerFilters({ filters, clients, onChange }: Props) {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <span className={labelClass}>Tamaño</span>
+        <span id={sizeLabelId} className={labelClass}>Tamaño</span>
         <Select
           value={String(filters.size)}
           onValueChange={(v) => onChange({ ...filters, size: (!v || v === 'all') ? 'all' : (Number(v) as ContainerSize) })}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger aria-labelledby={sizeLabelId} className="w-full">
             <SelectValue placeholder="Tamaño" />
           </SelectTrigger>
           <SelectContent>
