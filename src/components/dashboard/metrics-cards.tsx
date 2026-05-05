@@ -1,4 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Boxes, Layers, Snowflake, Flame, type LucideIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import type { Batch, Container, StorageEvent, TreatmentRun } from '@/lib/types'
 
 interface DashboardMetrics {
@@ -29,29 +30,47 @@ export function computeDashboardMetrics(
   }
 }
 
+interface CardSpec {
+  key: keyof DashboardMetrics
+  label: string
+  icon: LucideIcon
+  iconBg: string
+  iconText: string
+  decoration: string
+}
+
+const CARDS: CardSpec[] = [
+  { key: 'activeBatches',           label: 'Lotes activos',          icon: Layers,    iconBg: 'bg-accent/10',  iconText: 'text-accent',     decoration: 'from-accent/15    to-accent/0' },
+  { key: 'containersInCirculation', label: 'Envases en circulación', icon: Boxes,     iconBg: 'bg-primary/10', iconText: 'text-primary',    decoration: 'from-primary/15   to-primary/0' },
+  { key: 'containersInStorage',     label: 'En cámara fría',         icon: Snowflake, iconBg: 'bg-cyan-100',   iconText: 'text-cyan-700',   decoration: 'from-cyan-200/40  to-cyan-200/0' },
+  { key: 'containersInTreatment',   label: 'En tratamiento',         icon: Flame,     iconBg: 'bg-violet-100', iconText: 'text-violet-700', decoration: 'from-violet-200/40 to-violet-200/0' },
+]
+
 interface Props {
   metrics: DashboardMetrics
 }
 
 export function MetricsCards({ metrics }: Props) {
-  const cards = [
-    { label: 'Lotes activos', value: metrics.activeBatches },
-    { label: 'Envases en circulación', value: metrics.containersInCirculation },
-    { label: 'En cámara fría', value: metrics.containersInStorage },
-    { label: 'En tratamiento', value: metrics.containersInTreatment },
-  ]
-
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      {cards.map(({ label, value }) => (
-        <Card key={label}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">{label}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-slate-800">{value}</p>
-          </CardContent>
-        </Card>
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+      {CARDS.map(({ key, label, icon: Icon, iconBg, iconText, decoration }) => (
+        <div
+          key={key}
+          className="group relative overflow-hidden rounded-xl bg-card p-4 ring-1 ring-foreground/10 transition-all hover:-translate-y-0.5 hover:shadow-md"
+        >
+          <div aria-hidden className={cn('pointer-events-none absolute -top-10 -right-10 size-32 rounded-full bg-gradient-to-br blur-2xl', decoration)} />
+          <div className="relative flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {label}
+              </span>
+              <span className={cn('flex size-9 items-center justify-center rounded-lg ring-1 ring-foreground/5', iconBg, iconText)}>
+                <Icon aria-hidden className="size-4" />
+              </span>
+            </div>
+            <p className="text-3xl font-bold tabular-nums text-foreground">{metrics[key]}</p>
+          </div>
+        </div>
       ))}
     </div>
   )
