@@ -3,7 +3,7 @@ title: Índice del Vault — Hospimed Waste Tracking
 tags:
   - index
   - meta
-updated: 2026-05-02
+updated: 2026-05-05
 ---
 
 # Vault Index — Sistema de Trazabilidad de Desechos Clínicos
@@ -16,18 +16,19 @@ updated: 2026-05-02
 **Fase:** Pre-desarrollo — dominio definido, stack pendiente, código sin escribir  
 **Última reunión:** 2026-04-30 (Francesca Labella + Sebastian Castro)  
 **Próxima reunión:** 2026-05-08 (viernes, 12pm Panamá) — revisión de avance del sistema de desechos  
-**Última actualización del vault:** 2026-05-02
+**Última actualización del vault:** 2026-05-03
 
 | Área | Estado | Archivo |
 |------|--------|---------|
 | Descripción del negocio y stakeholders | 🟢 | [[Overview]] |
-| Stack y arquitectura | 🔴 Pendiente | [[Architecture]] |
+| Stack y arquitectura | 🟢 | [[Architecture]] |
 | Modelo de datos conceptual | 🟢 | [[DataModel]] |
 | Roadmap de módulos | 🟢 | [[Roadmap]] |
 | Tipos de desecho | 🟢 | [[WasteTypes]] |
 | Ciclo de vida del contenedor | 🟢 | [[ContainerLifecycle]] |
 | Memoria fotográfica | 🟢 | [[PhotoDocumentation]] |
-| Decisiones de diseño | 🔴 Pendiente | `decisions/` |
+| Branding y sistema de diseño | 🟢 | [[Branding]] |
+| Decisiones de diseño | 🟡 En progreso | `decisions/` — border-radius global (2026-05-03) |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completo · ⚠️ Tiene incoherencias
 
@@ -40,6 +41,7 @@ updated: 2026-05-02
 - [[Architecture]] — stack técnico, patrones, convenciones *(pendiente de definir)*
 - [[DataModel]] — entidades principales, relaciones, campos clave
 - [[Roadmap]] — módulos planificados, prioridades, estado
+- [[Branding]] — colores, tipografía, componentes base, tokens CSS *(3 incoherencias pendientes de confirmar)*
 
 ### Procesos de negocio
 - [[WasteTypes]] — los 5 tipos de desecho y su tratamiento diferenciado
@@ -65,6 +67,15 @@ updated: 2026-05-02
 *(Vacío)*
 
 ## Notas del último procesamiento
+
+**2026-05-05** — Polish de Dashboard y Inventario de Envases.
+Filas de envase clickeables en su totalidad, filtros con labels, dashboard de lotes unificado a ancho completo, hero decorativo y KPI cards renovadas. Mejoras a11y (aria-labelledby en Selects, aria-hidden en íconos decorativos, role=radiogroup en segmented control).
+Log: `logs/2026-05-05-dashboard-containers-polish.md`.
+
+**2026-05-03** — Procesado `inbox/branding.json` (datos de branding extraídos de hospimed.com.pa).  
+Archivos creados: `Branding.md`.  
+3 incoherencias detectadas (textPrimary, escala tipográfica, border-radius botón secundario) — pendientes de confirmar con Sebastian.  
+Archivo movido a `inbox/procesado/`.
 
 **2026-05-02** — Procesado transcript de reunión `2026-04-30` (Francesca Labella + Sebastian Castro).  
 Archivos actualizados: `Overview`, `DataModel`, `Roadmap`.  
