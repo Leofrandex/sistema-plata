@@ -1,10 +1,11 @@
 'use client'
 
-import { useMemo } from 'react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useMemo, useState } from 'react'
 import { MetricsCards, computeDashboardMetrics } from '@/components/dashboard/metrics-cards'
-import { ActiveBatchesTab } from '@/components/dashboard/active-batches-tab'
-import { CompletedBatchesTab } from '@/components/dashboard/completed-batches-tab'
+import { DashboardHero } from '@/components/dashboard/dashboard-hero'
+import { BatchStatusToggle, type BatchStatusValue } from '@/components/dashboard/batch-status-toggle'
+import { BatchCard } from '@/components/dashboard/batch-card'
+import { CompletedBatchesFilters } from '@/components/dashboard/completed-batches-filters'
 import { useStore } from '@/lib/store'
 import { computeNextPendingStep } from '@/lib/data/batches'
 import { computeContainerPhase } from '@/lib/data/containers'
@@ -16,6 +17,11 @@ export default function DashboardPage() {
     exchangeEvents, receptions, externalTransfers,
   } = useStore()
 
+  const [statusView, setStatusView] = useState<BatchStatusValue>('active')
+  const [clientFilter, setClientFilter] = useState<string>('all')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+
   const metrics = useMemo(
     () => computeDashboardMetrics(batches, containers, storageEvents, treatmentRuns),
     [batches, containers, storageEvents, treatmentRuns]
@@ -24,7 +30,6 @@ export default function DashboardPage() {
   const enrichBatch = (batch: typeof batches[0]): BatchWithClient => {
     const client = clients.find((c) => c.id === batch.client_id)!
     const batchContainers = containers.filter((c) => batch.container_ids.includes(c.id))
-
     const phases = batchContainers.map((container) => {
       const exchangeIds = exchangeEvents
         .filter((e) => e.dirty_containers_received.includes(container.id) && e.batch_id === batch.id)
@@ -36,7 +41,6 @@ export default function DashboardPage() {
         ?? null
       return computeContainerPhase(exchangeIds, reception, storage, treatment)
     })
-
     return {
       ...batch,
       client,
@@ -57,29 +61,66 @@ export default function DashboardPage() {
     [batches, clients, containers, exchangeEvents, receptions, storageEvents, treatmentRuns, externalTransfers]
   )
 
+  const completedFiltered = useMemo(
+    () => completedBatches.filter((b) => {
+      if (clientFilter !== 'all' && b.client_id !== clientFilter) return false
+      if (dateFrom && b.date < dateFrom) return false
+      if (dateTo && b.date > dateTo) return false
+      return true
+    }),
+    [completedBatches, clientFilter, dateFrom, dateTo]
+  )
+
+  const visible = statusView === 'active' ? activeBatches : completedFiltered
+  const emptyText = statusView === 'active'
+    ? 'No hay lotes activos hoy.'
+    : 'No hay lotes completados con esos filtros.'
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
+      <DashboardHero />
       <MetricsCards metrics={metrics} />
-      <Tabs defaultValue="active">
-        <TabsList>
-          <TabsTrigger value="active">
-            Lotes activos ({activeBatches.length})
-          </TabsTrigger>
-          <TabsTrigger value="completed">
-            Lotes completados ({completedBatches.length})
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="active" className="mt-4">
-          <ActiveBatchesTab batches={activeBatches} />
-        </TabsContent>
-        <TabsContent value="completed" className="mt-4">
-          <CompletedBatchesTab
-            batches={completedBatches}
-            clients={clients.map((c) => ({ id: c.id, name: c.name }))}
+
+      <section className="space-y-4">
+        <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">Lotes</h2>
+            <p className="text-sm text-muted-foreground">
+              Accede al detalle del lote o al reporte final.
+            </p>
+          </div>
+          <BatchStatusToggle
+            value={statusView}
+            onChange={setStatusView}
+            activeCount={activeBatches.length}
+            completedCount={completedBatches.length}
           />
-        </TabsContent>
-      </Tabs>
+        </header>
+
+        {statusView === 'completed' && (
+          <CompletedBatchesFilters
+            clients={clients.map((c) => ({ id: c.id, name: c.name }))}
+            clientFilter={clientFilter}
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            onClientChange={setClientFilter}
+            onDateFromChange={setDateFrom}
+            onDateToChange={setDateTo}
+          />
+        )}
+
+        {visible.length === 0 ? (
+          <div className="rounded-xl bg-card p-12 text-center text-muted-foreground ring-1 ring-foreground/10">
+            {emptyText}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            {visible.map((batch) => (
+              <BatchCard key={batch.id} batch={batch} variant={statusView} />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   )
 }
