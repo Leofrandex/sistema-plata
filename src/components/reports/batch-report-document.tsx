@@ -2,6 +2,7 @@ import {
   Document, Page, Text, View, Image, StyleSheet,
 } from '@react-pdf/renderer'
 import type { Batch, Client, Container, ContainerReception, Photo } from '@/lib/types'
+import { APP_NAME } from '@/lib/constants'
 
 const styles = StyleSheet.create({
   page: { padding: 32, fontSize: 10, fontFamily: 'Helvetica', color: '#1e293b' },
@@ -57,9 +58,9 @@ export function BatchReportDocument({ batch, client, containerData }: Props) {
   }, 0)
 
   return (
-    <Document title={`Reporte Hospimed — ${client.name} — ${batch.date}`}>
+    <Document title={`Reporte ${APP_NAME} — ${client.name} — ${batch.date}`}>
       <Page size="A4" style={[styles.page, styles.coverPage]}>
-        <Text style={styles.coverTitle}>HOSPIMED</Text>
+        <Text style={styles.coverTitle}>{APP_NAME.toUpperCase()}</Text>
         <Text style={styles.coverTitle}>Informe de Procesamiento</Text>
         <Text style={[styles.coverSubtitle, { marginTop: 16 }]}>{client.name}</Text>
         <Text style={styles.coverMeta}>Fecha: {batch.date}</Text>

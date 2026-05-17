@@ -16,7 +16,7 @@ const STEPS = ['Seleccionar envase', 'Fotos', 'Peso']
 type Step = 1 | 2 | 3
 
 export default function WeighingPage() {
-  const { containers, clients, addReception, addPhoto } = useStore()
+  const { containers, clients, addReception, addPhoto, addStorageEvent, addLocation } = useStore()
 
   const [step, setStep] = useState<Step>(1)
   const [selected, setSelected] = useState<Container | null>(null)
@@ -57,6 +57,31 @@ export default function WeighingPage() {
       operator_id: 'user-1',
       photo_ids: [photo1Id, photo2Id],
     })
+
+    // Transición automática a cámara fría: tras el pesaje el envase queda
+    // lógicamente en cámara fría sin paso manual ni foto.
+    const storageId = `storage-${Date.now()}`
+    addStorageEvent({
+      id: storageId,
+      container_id: selected.id,
+      batch_id: batchId,
+      entry_at: now,
+      exit_at: null,
+      operator_id: 'user-1',
+      photo_ids: [],
+    })
+    addLocation({
+      id: `loc-${Date.now()}`,
+      container_id: selected.id,
+      reported_at: now,
+      operator_id: 'user-1',
+      location_type: 'cold_storage',
+      client_id: null,
+      floor: null,
+      area: null,
+      notes: null,
+    })
+
     setDone(true)
   }
 

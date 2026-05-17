@@ -1,6 +1,6 @@
 {
-  "name": "Hospimed Trazabilidad",
-  "short_name": "Hospimed",
+  "name": "Hospiwaste Trazabilidad",
+  "short_name": "Hospiwaste",
   "description": "Sistema de trazabilidad de desechos clínicos",
   "start_url": "/dashboard",
   "display": "standalone",

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { APP_NAME } from '@/lib/constants'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -21,7 +22,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Hospimed</CardTitle>
+          <CardTitle className="text-2xl font-bold">{APP_NAME}</CardTitle>
           <p className="text-sm text-slate-500 mt-1">Trazabilidad de Desechos Clínicos</p>
         </CardHeader>
         <CardContent>
@@ -30,7 +31,7 @@ export default function LoginPage() {
               <label htmlFor="email" className="text-sm font-medium">
                 Correo electrónico
               </label>
-              <Input id="email" type="email" placeholder="operador@hospimed.com" required />
+              <Input id="email" type="email" placeholder="operador@hospiwaste.com" required />
             </div>
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium">

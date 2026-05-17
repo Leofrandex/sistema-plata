@@ -1,8 +1,8 @@
-# Instrucciones para Claude — Hospimed: Sistema de Trazabilidad de Desechos Clínicos
+# Instrucciones para Claude — Hospiwaste: Sistema de Trazabilidad de Desechos Clínicos
 
 ## Qué es este proyecto
 
-Sistema web para gestionar la trazabilidad completa del proceso de manejo de desechos clínicos de Hospimed. El detalle del negocio, los módulos y el modelo de datos viven en el vault.
+Sistema web para gestionar la trazabilidad completa del proceso de manejo de desechos clínicos de Hospiwaste. El detalle del negocio, los módulos y el modelo de datos viven en el vault. (El proyecto se llamaba originalmente "Hospimed" — el vault conserva esa denominación como historial.)
 
 ## Base de conocimiento (Obsidian Vault)
 

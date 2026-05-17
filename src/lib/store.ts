@@ -26,7 +26,7 @@ import {
   MOCK_PHOTOS,
 } from './mock-data'
 
-interface HospimedStore {
+interface HospiwasteStore {
   clients: Client[]
   containers: Container[]
   batches: Batch[]
@@ -55,7 +55,7 @@ interface HospimedStore {
   addPhoto: (photo: Photo) => void
 }
 
-export const useStore = create<HospimedStore>((set) => ({
+export const useStore = create<HospiwasteStore>((set) => ({
   clients: MOCK_CLIENTS,
   containers: MOCK_CONTAINERS,
   batches: MOCK_BATCHES,

@@ -3,8 +3,11 @@ title: Índice del Vault — Hospimed Waste Tracking
 tags:
   - index
   - meta
-updated: 2026-05-05
+updated: 2026-05-12
 ---
+
+> [!info] Nota de marca (2026-05-12)
+> El **producto** pasó a llamarse **Hospiwaste**. Este vault conserva la denominación original "Hospimed" como historial; el código, PWA, login y reportes ya reflejan "Hospiwaste". Ver log `2026-05-12-rename-hospiwaste-cold-storage-auto-transfer-multi.md`.
 
 # Vault Index — Sistema de Trazabilidad de Desechos Clínicos
 
@@ -67,6 +70,12 @@ updated: 2026-05-05
 *(Vacío)*
 
 ## Notas del último procesamiento
+
+**2026-05-12** — Tres cambios operativos.
+(1) Rename de marca Hospimed → Hospiwaste en código, PWA, login, reportes PDF y CLAUDE.md (vault y docs/specs|plans/ quedan como historial).
+(2) Eliminado el paso manual de cámara fría: tras pesar, el envase entra automáticamente al estado `cold_storage` sin foto ni formulario.
+(3) Traslado externo ahora acepta selección múltiple acumulativa (mismo patrón que intercambio).
+Log: `logs/2026-05-12-rename-hospiwaste-cold-storage-auto-transfer-multi.md`.
 
 **2026-05-05** — Polish de Dashboard y Inventario de Envases.
 Filas de envase clickeables en su totalidad, filtros con labels, dashboard de lotes unificado a ancho completo, hero decorativo y KPI cards renovadas. Mejoras a11y (aria-labelledby en Selects, aria-hidden en íconos decorativos, role=radiogroup en segmented control).

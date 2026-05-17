@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/button'
 import { Download, Loader2 } from 'lucide-react'
 import type { Batch, Client, Container, ContainerReception, Photo } from '@/lib/types'
+import { APP_NAME } from '@/lib/constants'
 import { BatchReportDocument } from './batch-report-document'
 
 const PDFDownloadLink = dynamic(
@@ -26,7 +27,7 @@ interface Props {
 }
 
 export function ReportPreview({ batch, client, containerData }: Props) {
-  const filename = `Hospimed_${client.name.replace(/\s+/g, '_')}_${batch.date}.pdf`
+  const filename = `${APP_NAME}_${client.name.replace(/\s+/g, '_')}_${batch.date}.pdf`
 
   return (
     <div className="space-y-4">

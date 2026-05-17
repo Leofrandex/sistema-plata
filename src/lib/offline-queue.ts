@@ -1,6 +1,6 @@
 import { openDB, type IDBPDatabase } from 'idb'
 
-const DB_NAME = 'hospimed-offline'
+const DB_NAME = 'hospiwaste-offline'
 const DB_VERSION = 1
 const STORE_NAME = 'queue'
 

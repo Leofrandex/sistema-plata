@@ -4,12 +4,12 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, Package, Settings, ChevronDown, ClipboardList } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { APP_NAME } from '@/lib/constants'
 import { useState } from 'react'
 
 const REGISTER_LINKS = [
   { href: '/register/exchange', label: 'Intercambio' },
   { href: '/register/weighing', label: 'Pesaje' },
-  { href: '/register/storage', label: 'Cámara fría' },
   { href: '/register/treatment', label: 'Tratamiento' },
   { href: '/register/transfer', label: 'Traslado externo' },
   { href: '/register/location', label: 'Ubicación' },
@@ -33,7 +33,7 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex w-56 flex-col border-r border-sidebar-border bg-sidebar h-screen sticky top-0">
       <div className="p-4 border-b border-sidebar-border">
-        <span className="font-bold text-lg text-sidebar-foreground">Hospimed</span>
+        <span className="font-bold text-lg text-sidebar-foreground">{APP_NAME}</span>
       </div>
       <nav className="flex-1 p-3 space-y-1">
         {TOP_NAV.map(({ href, label, icon: Icon }) => (

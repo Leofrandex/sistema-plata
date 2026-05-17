@@ -4,6 +4,7 @@ import './globals.css'
 import { Sidebar } from '@/components/layout/sidebar'
 import { MobileHeader } from '@/components/layout/mobile-header'
 import { SyncIndicator } from '@/components/layout/sync-indicator'
+import { APP_NAME, APP_DESCRIPTION, APP_TAGLINE } from '@/lib/constants'
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -12,8 +13,8 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'Hospimed — Trazabilidad',
-  description: 'Sistema de trazabilidad de desechos clínicos',
+  title: `${APP_NAME} — ${APP_TAGLINE}`,
+  description: APP_DESCRIPTION,
   manifest: '/manifest.json',
 }
 

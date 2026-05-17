@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
     ],
   },
   transpilePackages: ['@react-pdf/renderer'],
+  turbopack: {},
 }
 
 export default withPWA({

@@ -11,7 +11,7 @@ export default function BrandingDemoPage() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="https://hospimed.com.pa/wp-content/uploads/2025/04/hospimed-equipos-medicos.png"
-          alt="Hospimed Equipos Médicos"
+          alt="Hospiwaste"
           className="h-12 object-contain"
         />
       </div>
