@@ -3,7 +3,7 @@
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import { Scale, TrendingUp, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { DailyKgMetrics } from '@/lib/data/dashboard-metrics'
+import { formatKg, type DailyKgMetrics } from '@/lib/data/dashboard-metrics'
 
 interface Props {
   data: DailyKgMetrics
@@ -69,7 +69,7 @@ export function DailyKgDonut({ data }: Props) {
 
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
             <p className="text-3xl font-bold tabular-nums text-foreground leading-none">
-              {processedKg}
+              {processedKg.toFixed(2)}
               <span className="text-sm font-medium text-muted-foreground"> kg</span>
             </p>
             <p className="text-xs text-muted-foreground mt-1">procesados</p>
@@ -86,20 +86,20 @@ export function DailyKgDonut({ data }: Props) {
             color={PROCESSED_COLOR}
             icon={<TrendingUp className="h-4 w-4" />}
             label="Procesado hoy"
-            value={`${processedKg} kg`}
+            value={formatKg(processedKg)}
             tone="primary"
           />
           <MetricRow
             color={PENDING_COLOR}
             icon={<Clock className="h-4 w-4" />}
             label="Pendiente por procesar"
-            value={`${pendingKg} kg`}
+            value={formatKg(pendingKg)}
             tone="amber"
           />
           <div className="border-t border-foreground/5 pt-3">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Total recibido hoy</span>
-              <span className="font-semibold tabular-nums">{receivedKg} kg</span>
+              <span className="font-semibold tabular-nums">{formatKg(receivedKg)}</span>
             </div>
           </div>
         </div>

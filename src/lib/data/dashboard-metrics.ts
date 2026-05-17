@@ -150,9 +150,9 @@ export function computeDailyKg(store: DailyKgStoreSlice, today: string): DailyKg
   const pendingKg = Math.max(0, receivedKg - processedKg)
   return {
     date: today,
-    receivedKg: round1(receivedKg),
-    processedKg: round1(processedKg),
-    pendingKg: round1(pendingKg),
+    receivedKg: round2(receivedKg),
+    processedKg: round2(processedKg),
+    pendingKg: round2(pendingKg),
   }
 }
 
@@ -225,12 +225,18 @@ export function computeMonthlyKgByCompany(
         company_id: company.id,
         company_name: company.name,
         client_id: company.client_id,
-        receivedKg: round1(b.receivedKg),
-        processedKg: round1(b.processedKg),
+        receivedKg: round2(b.receivedKg),
+        processedKg: round2(b.processedKg),
       }
     })
 }
 
-function round1(n: number): number {
-  return Math.round(n * 10) / 10
+/** Redondea a 2 decimales para reportar kg sin ruido de coma flotante. */
+function round2(n: number): number {
+  return Math.round(n * 100) / 100
+}
+
+/** Formatea un peso en kg con 2 decimales, ej: "43.70 kg". */
+export function formatKg(value: number): string {
+  return `${value.toFixed(2)} kg`
 }

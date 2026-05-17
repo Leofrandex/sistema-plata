@@ -12,11 +12,14 @@ import {
   Cell,
 } from 'recharts'
 import { BarChart3 } from 'lucide-react'
-import type { MonthlyKgByCompany } from '@/lib/data/dashboard-metrics'
+import { formatKg, type MonthlyKgByCompany } from '@/lib/data/dashboard-metrics'
 
 interface Props {
   data: MonthlyKgByCompany[]
   month: string // YYYY-MM
+  onMonthChange: (month: string) => void
+  /** Mes máximo que se puede seleccionar — por defecto el actual. */
+  maxMonth?: string
 }
 
 const RECEIVED_COLOR = '#2A27E9' // accent
@@ -46,7 +49,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
             <span className="inline-block size-2 rounded-sm" style={{ backgroundColor: p.color }} />
             {p.name}
           </span>
-          <span className="font-semibold">{p.value} kg</span>
+          <span className="font-semibold">{formatKg(p.value)}</span>
         </p>
       ))}
     </div>
@@ -61,13 +64,13 @@ function formatMonthLabel(month: string): string {
   return date.toLocaleDateString('es-PA', { month: 'long', year: 'numeric' })
 }
 
-export function MonthlyBarChart({ data, month }: Props) {
+export function MonthlyBarChart({ data, month, onMonthChange, maxMonth }: Props) {
   const totalReceived = data.reduce((sum, d) => sum + d.receivedKg, 0)
   const totalProcessed = data.reduce((sum, d) => sum + d.processedKg, 0)
   const hasData = totalReceived > 0 || totalProcessed > 0
 
-  // Renderizamos solo clientes con actividad cuando hay datos; si no hay datos
-  // todavía, mostramos todos (para que la barra/leyenda no estén vacíos).
+  // Si hay datos, mostramos solo empresas con actividad; si no, mostramos todas
+  // para que la composición no quede vacía.
   const chartData = hasData ? data.filter((d) => d.receivedKg > 0 || d.processedKg > 0) : data
 
   return (
@@ -86,14 +89,26 @@ export function MonthlyBarChart({ data, month }: Props) {
             </p>
           </div>
         </div>
-        <div className="flex gap-3 text-xs">
-          <div className="rounded-lg ring-1 ring-foreground/10 bg-muted/30 px-3 py-1.5">
-            <p className="text-muted-foreground">Total recibido</p>
-            <p className="font-semibold tabular-nums text-foreground">{totalReceived} kg</p>
-          </div>
-          <div className="rounded-lg ring-1 ring-foreground/10 bg-muted/30 px-3 py-1.5">
-            <p className="text-muted-foreground">Total procesado</p>
-            <p className="font-semibold tabular-nums text-foreground">{totalProcessed} kg</p>
+        <div className="flex items-center gap-3 flex-wrap">
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="font-semibold uppercase tracking-wide">Mes</span>
+            <input
+              type="month"
+              value={month}
+              max={maxMonth}
+              onChange={(e) => onMonthChange(e.target.value)}
+              className="rounded-md border border-foreground/10 bg-card px-2 py-1 text-foreground text-xs tabular-nums focus:outline-none focus:ring-2 focus:ring-accent/40"
+            />
+          </label>
+          <div className="flex gap-2 text-xs">
+            <div className="rounded-lg ring-1 ring-foreground/10 bg-muted/30 px-3 py-1.5">
+              <p className="text-muted-foreground">Total recibido</p>
+              <p className="font-semibold tabular-nums text-foreground">{formatKg(totalReceived)}</p>
+            </div>
+            <div className="rounded-lg ring-1 ring-foreground/10 bg-muted/30 px-3 py-1.5">
+              <p className="text-muted-foreground">Total procesado</p>
+              <p className="font-semibold tabular-nums text-foreground">{formatKg(totalProcessed)}</p>
+            </div>
           </div>
         </div>
       </header>

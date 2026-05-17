@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { DashboardHero } from '@/components/dashboard/dashboard-hero'
 import { MetricsCards, computeDashboardMetrics } from '@/components/dashboard/metrics-cards'
 import { CirculationPieChart } from '@/components/dashboard/circulation-pie-chart'
@@ -20,7 +20,8 @@ export default function DashboardPage() {
   } = useStore()
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
-  const month = today.slice(0, 7) // 'YYYY-MM'
+  const currentMonth = today.slice(0, 7) // 'YYYY-MM'
+  const [month, setMonth] = useState<string>(currentMonth)
 
   const metrics = useMemo(
     () => computeDashboardMetrics(containers, routeEvents, storageEvents, treatmentRuns),
@@ -55,8 +56,13 @@ export default function DashboardPage() {
         <DailyKgDonut data={dailyKg} />
       </div>
 
-      {/* Fila 2: barras kg/cliente/mes (ancho completo) */}
-      <MonthlyBarChart data={monthlyKg} month={month} />
+      {/* Fila 2: barras kg/empresa/mes (ancho completo) — el mes es seleccionable */}
+      <MonthlyBarChart
+        data={monthlyKg}
+        month={month}
+        onMonthChange={setMonth}
+        maxMonth={currentMonth}
+      />
     </div>
   )
 }
