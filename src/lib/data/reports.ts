@@ -8,32 +8,26 @@ import type {
   Photo,
 } from '@/lib/types'
 
-/** Una foto enriquecida con metadatos del contexto (envase, empresa, hora). */
+/** Una foto enriquecida con metadatos del contexto (envase, hora, etapa). */
 export interface ReportPhotoEntry {
   photo: Photo
   container_id: string
   container: Container | null
-  company_id: string | null
-  company_name: string | null
   taken_at: string
   /** Texto a renderizar como "Comentario:" debajo de la foto. */
   comment: string
 }
 
-export interface ReportGroupedByCompany {
-  company: Company
-  photos: ReportPhotoEntry[]
-}
-
 export interface PhotographicReportData {
+  company: Company
   client: Client
   weekStart: string // ISO date YYYY-MM-DD
   weekEnd: string   // ISO date YYYY-MM-DD
   generatedAt: string // ISO datetime
-  // Fotos agrupadas por etapa y, dentro de cada etapa, por empresa.
+  // Fotos agrupadas por etapa. Toda la data es de la misma empresa.
   byStage: {
-    route: ReportGroupedByCompany[]
-    weighing: ReportGroupedByCompany[]
+    route: ReportPhotoEntry[]
+    weighing: ReportPhotoEntry[]
   }
   meta: {
     routeEventCount: number
@@ -60,7 +54,7 @@ export interface ReportStoreSlice {
 export function getMondayOfWeek(reference: Date = new Date()): Date {
   const d = new Date(reference)
   const day = d.getDay()
-  const diff = day === 0 ? -6 : 1 - day // si es domingo, retroceder 6 días
+  const diff = day === 0 ? -6 : 1 - day
   d.setDate(d.getDate() + diff)
   d.setHours(0, 0, 0, 0)
   return d
@@ -74,41 +68,37 @@ export function isoDate(date: Date): string {
   return `${yyyy}-${mm}-${dd}`
 }
 
-/** Devuelve true si `value` (ISO datetime o date) cae dentro de `[start, end]` inclusivos. */
+/** Devuelve true si `value` (ISO datetime) cae dentro de `[start, end]` inclusivos. */
 export function withinRange(value: string, start: Date, end: Date): boolean {
   const t = new Date(value).getTime()
   return t >= start.getTime() && t <= end.getTime()
 }
 
 /**
- * Arma el reporte fotográfico de un cliente para la semana actual.
- * - Lee `clientId` y devuelve null si el cliente no existe.
+ * Arma el reporte fotográfico de una empresa para la semana actual.
+ * - Devuelve null si la empresa no existe.
  * - El rango es [lunes 00:00, ahora] por defecto. `endOverride` permite testing.
  */
 export function buildPhotographicReportData(
-  clientId: string,
+  companyId: string,
   store: ReportStoreSlice,
   endOverride?: Date,
 ): PhotographicReportData | null {
-  const client = store.clients.find((c) => c.id === clientId)
+  const company = store.companies.find((co) => co.id === companyId)
+  if (!company) return null
+  const client = store.clients.find((c) => c.id === company.client_id)
   if (!client) return null
 
   const end = endOverride ?? new Date()
   const start = getMondayOfWeek(end)
 
-  // 1. Companies del cliente
-  const companies = store.companies.filter((co) => co.client_id === clientId)
-  const companyIds = new Set(companies.map((co) => co.id))
-  const companyMap = new Map(companies.map((co) => [co.id, co]))
-
-  // 2. Containers de esas companies
-  const containers = store.containers.filter((c) => companyIds.has(c.company_id))
+  // 1. Containers de la empresa
+  const containers = store.containers.filter((c) => c.company_id === companyId)
   const containerIds = new Set(containers.map((c) => c.id))
   const containerMap = new Map(containers.map((c) => [c.id, c]))
 
-  // 3. RouteEvents del cliente dentro del rango cuyos containers tocan empresas del cliente
+  // 2. RouteEvents dentro del rango cuyos containers tocan esta empresa
   const routeEvents = store.routeEvents.filter((r) => {
-    if (r.client_id !== clientId) return false
     if (!withinRange(r.started_at, start, end)) return false
     return (
       r.containers_dirty_received.some((cid) => containerIds.has(cid)) ||
@@ -116,127 +106,83 @@ export function buildPhotographicReportData(
     )
   })
 
-  // 4. Receptions de containers del cliente dentro del rango
+  // 3. Receptions de containers de la empresa dentro del rango
   const receptions = store.receptions.filter((r) => {
     if (!containerIds.has(r.container_id)) return false
     return withinRange(r.arrived_at, start, end)
   })
 
-  // 5. Recolectar fotos por etapa
+  // 4. Recolectar fotos por etapa
   const photoMap = new Map(store.photos.map((p) => [p.id, p]))
 
-  // 5a. Recorridos: cada RouteEvent puede tener varios containers + varias fotos.
-  // Asignamos todas las fotos del recorrido a CADA empresa que aparece en ese
-  // recorrido (sea como sucio recogido o limpio entregado).
-  const routePhotosByCompany = new Map<string, ReportPhotoEntry[]>()
+  // 4a. Recorridos
+  const routePhotos: ReportPhotoEntry[] = []
   for (const ev of routeEvents) {
-    const allContainerIds = [...ev.containers_dirty_received, ...ev.containers_clean_delivered]
-    const companiesInEvent = new Set<string>()
-    for (const cid of allContainerIds) {
-      const container = containerMap.get(cid)
-      if (container) companiesInEvent.add(container.company_id)
-    }
-    // Texto de comentario con la lista de envases del recorrido
-    const dirtyText = ev.containers_dirty_received.length > 0
-      ? `Recogidos: ${ev.containers_dirty_received.join(', ')}`
-      : null
-    const cleanText = ev.containers_clean_delivered.length > 0
-      ? `Entregados: ${ev.containers_clean_delivered.join(', ')}`
-      : null
+    // Solo los envases del recorrido que pertenecen a ESTA empresa
+    const dirtyOfCompany = ev.containers_dirty_received.filter((cid) => containerIds.has(cid))
+    const cleanOfCompany = ev.containers_clean_delivered.filter((cid) => containerIds.has(cid))
+    if (dirtyOfCompany.length === 0 && cleanOfCompany.length === 0) continue
+
+    const dirtyText = dirtyOfCompany.length > 0 ? `Recogidos: ${dirtyOfCompany.join(', ')}` : null
+    const cleanText = cleanOfCompany.length > 0 ? `Entregados: ${cleanOfCompany.join(', ')}` : null
     const envasesText = [dirtyText, cleanText].filter(Boolean).join(' · ')
-    const time = new Date(ev.started_at).toLocaleTimeString('es-PA', {
-      hour: '2-digit',
-      minute: '2-digit',
-    })
+    const time = new Date(ev.started_at).toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })
+
     for (const photoId of ev.photo_ids) {
       const photo = photoMap.get(photoId)
       if (!photo) continue
-      for (const companyId of companiesInEvent) {
-        const company = companyMap.get(companyId)
-        if (!company) continue
-        const entry: ReportPhotoEntry = {
-          photo,
-          container_id: allContainerIds.find((cid) => containerMap.get(cid)?.company_id === companyId) ?? '',
-          container: null,
-          company_id: companyId,
-          company_name: company.name,
-          taken_at: photo.taken_at,
-          comment: `Recorrido ${time} · Piso ${ev.floor || '—'}, ${ev.area || '—'} · ${envasesText}`,
-        }
-        if (!routePhotosByCompany.has(companyId)) routePhotosByCompany.set(companyId, [])
-        routePhotosByCompany.get(companyId)!.push(entry)
-      }
+      routePhotos.push({
+        photo,
+        container_id: dirtyOfCompany[0] ?? cleanOfCompany[0] ?? '',
+        container: null,
+        taken_at: photo.taken_at,
+        comment: `Recorrido ${time} · Piso ${ev.floor || '—'}, ${ev.area || '—'} · ${envasesText}`,
+      })
     }
   }
 
-  // 5b. Pesajes: cada reception tiene container_id y photo_ids (envase + balanza)
-  const weighingPhotosByCompany = new Map<string, ReportPhotoEntry[]>()
+  // 4b. Pesajes
+  const weighingPhotos: ReportPhotoEntry[] = []
   for (const r of receptions) {
     const container = containerMap.get(r.container_id)
     if (!container) continue
-    const company = companyMap.get(container.company_id)
-    if (!company) continue
-    const time = new Date(r.arrived_at).toLocaleTimeString('es-PA', {
-      hour: '2-digit',
-      minute: '2-digit',
-    })
+    const time = new Date(r.arrived_at).toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })
     const netRaw = r.gross_weight_kg - container.tare_weight_kg
     const net = Math.round(netRaw * 100) / 100
     r.photo_ids.forEach((photoId, idx) => {
       const photo = photoMap.get(photoId)
       if (!photo) return
       const kind = idx === 0 ? 'Envase' : 'Balanza'
-      const entry: ReportPhotoEntry = {
+      weighingPhotos.push({
         photo,
         container_id: r.container_id,
         container,
-        company_id: company.id,
-        company_name: company.name,
         taken_at: photo.taken_at,
         comment: `Pesaje ${time} · ${kind} · Envase ${r.container_id} · Neto ${net} kg`,
-      }
-      if (!weighingPhotosByCompany.has(company.id)) weighingPhotosByCompany.set(company.id, [])
-      weighingPhotosByCompany.get(company.id)!.push(entry)
+      })
     })
   }
 
-  // Ordenar fotos por taken_at ASC dentro de cada empresa
-  function sortByTakenAt(a: ReportPhotoEntry, b: ReportPhotoEntry) {
-    return new Date(a.taken_at).getTime() - new Date(b.taken_at).getTime()
-  }
-  for (const arr of routePhotosByCompany.values()) arr.sort(sortByTakenAt)
-  for (const arr of weighingPhotosByCompany.values()) arr.sort(sortByTakenAt)
-
-  // Convertir maps a arrays ordenados alfabéticamente por nombre de empresa
-  function mapToGroupedArray(map: Map<string, ReportPhotoEntry[]>): ReportGroupedByCompany[] {
-    return Array.from(map.entries())
-      .map(([companyId, photos]) => {
-        const company = companyMap.get(companyId)!
-        return { company, photos }
-      })
-      .sort((a, b) => a.company.name.localeCompare(b.company.name))
-  }
-
-  const routeGrouped = mapToGroupedArray(routePhotosByCompany)
-  const weighingGrouped = mapToGroupedArray(weighingPhotosByCompany)
-
-  const totalPhotos =
-    routeGrouped.reduce((acc, g) => acc + g.photos.length, 0) +
-    weighingGrouped.reduce((acc, g) => acc + g.photos.length, 0)
+  // Ordenar cronológicamente
+  const byTakenAt = (a: ReportPhotoEntry, b: ReportPhotoEntry) =>
+    new Date(a.taken_at).getTime() - new Date(b.taken_at).getTime()
+  routePhotos.sort(byTakenAt)
+  weighingPhotos.sort(byTakenAt)
 
   return {
+    company,
     client,
     weekStart: isoDate(start),
     weekEnd: isoDate(end),
     generatedAt: new Date().toISOString(),
     byStage: {
-      route: routeGrouped,
-      weighing: weighingGrouped,
+      route: routePhotos,
+      weighing: weighingPhotos,
     },
     meta: {
       routeEventCount: routeEvents.length,
       weighingReceptionCount: receptions.length,
-      totalPhotos,
+      totalPhotos: routePhotos.length + weighingPhotos.length,
     },
   }
 }

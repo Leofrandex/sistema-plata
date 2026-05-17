@@ -156,11 +156,12 @@ export function computeDailyKg(store: DailyKgStoreSlice, today: string): DailyKg
   }
 }
 
-// ─── Kg del mes por cliente ─────────────────────────────────────────────────
+// ─── Kg del mes por empresa ─────────────────────────────────────────────────
 
-export interface MonthlyKgByClient {
+export interface MonthlyKgByCompany {
+  company_id: string
+  company_name: string
   client_id: string
-  client_name: string
   receivedKg: number
   processedKg: number
 }
@@ -174,34 +175,27 @@ interface MonthlyKgStoreSlice {
 }
 
 /**
- * Calcula recibidos vs procesados por cliente en un rango de mes.
+ * Calcula recibidos vs procesados por empresa en un rango de mes.
  * `month` formato 'YYYY-MM'.
  */
-export function computeMonthlyKgByClient(
+export function computeMonthlyKgByCompany(
   store: MonthlyKgStoreSlice,
   month: string,
-): MonthlyKgByClient[] {
-  const companyToClient = new Map(store.companies.map((co) => [co.id, co.client_id]))
-  const containerToClient = new Map<string, string>()
-  for (const c of store.containers) {
-    const clientId = companyToClient.get(c.company_id)
-    if (clientId) containerToClient.set(c.id, clientId)
-  }
+): MonthlyKgByCompany[] {
   const containerMap = new Map(store.containers.map((c) => [c.id, c]))
 
   const buckets = new Map<string, { receivedKg: number; processedKg: number }>()
-  for (const client of store.clients) {
-    buckets.set(client.id, { receivedKg: 0, processedKg: 0 })
+  for (const company of store.companies) {
+    buckets.set(company.id, { receivedKg: 0, processedKg: 0 })
   }
 
-  // Recibidos: receptions del mes, agrupados por cliente del container
+  // Recibidos: receptions del mes, agrupados por empresa del container
   for (const r of store.receptions) {
     const day = isoDayOf(r.arrived_at)
     if (!day.startsWith(month)) continue
-    const clientId = containerToClient.get(r.container_id)
     const container = containerMap.get(r.container_id)
-    if (!clientId || !container) continue
-    const bucket = buckets.get(clientId)
+    if (!container) continue
+    const bucket = buckets.get(container.company_id)
     if (!bucket) continue
     bucket.receivedKg += computeNetWeight(r.gross_weight_kg, container.tare_weight_kg)
   }
@@ -211,10 +205,9 @@ export function computeMonthlyKgByClient(
     if (!t.completed_at) continue
     const day = isoDayOf(t.completed_at)
     if (!day.startsWith(month)) continue
-    const clientId = containerToClient.get(t.container_id)
     const container = containerMap.get(t.container_id)
-    if (!clientId || !container) continue
-    const bucket = buckets.get(clientId)
+    if (!container) continue
+    const bucket = buckets.get(container.company_id)
     if (!bucket) continue
     const reception = [...store.receptions]
       .filter((r) => r.container_id === t.container_id)
@@ -223,15 +216,19 @@ export function computeMonthlyKgByClient(
     bucket.processedKg += computeNetWeight(reception.gross_weight_kg, container.tare_weight_kg)
   }
 
-  return store.clients.map((client) => {
-    const b = buckets.get(client.id) ?? { receivedKg: 0, processedKg: 0 }
-    return {
-      client_id: client.id,
-      client_name: client.name,
-      receivedKg: round1(b.receivedKg),
-      processedKg: round1(b.processedKg),
-    }
-  })
+  return store.companies
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((company) => {
+      const b = buckets.get(company.id) ?? { receivedKg: 0, processedKg: 0 }
+      return {
+        company_id: company.id,
+        company_name: company.name,
+        client_id: company.client_id,
+        receivedKg: round1(b.receivedKg),
+        processedKg: round1(b.processedKg),
+      }
+    })
 }
 
 function round1(n: number): number {

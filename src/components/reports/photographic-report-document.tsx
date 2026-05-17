@@ -2,14 +2,9 @@ import {
   Document, Page, Text, View, Image, StyleSheet,
 } from '@react-pdf/renderer'
 import { APP_NAME } from '@/lib/constants'
-import type {
-  PhotographicReportData,
-  ReportGroupedByCompany,
-  ReportPhotoEntry,
-} from '@/lib/data/reports'
+import type { PhotographicReportData, ReportPhotoEntry } from '@/lib/data/reports'
 
-// Fotos por página (2 columnas × 3 filas)
-const PHOTOS_PER_PAGE = 6
+const PHOTOS_PER_PAGE = 6 // 2 columnas × 3 filas
 
 const styles = StyleSheet.create({
   page: {
@@ -157,7 +152,6 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     marginTop: 1,
   },
-  // Footer
   pageNumber: {
     position: 'absolute',
     bottom: 16,
@@ -165,7 +159,6 @@ const styles = StyleSheet.create({
     fontSize: 7,
     color: '#94a3b8',
   },
-  // Sin contenido para empresa/etapa
   emptyStage: {
     padding: 32,
     border: '1 dashed #cbd5e1',
@@ -178,20 +171,6 @@ const styles = StyleSheet.create({
   },
 })
 
-interface CompanyBadgeProps {
-  letter: string
-  name: string
-}
-
-function CompanyBadge({ letter, name }: CompanyBadgeProps) {
-  return (
-    <View style={styles.companyBadge}>
-      <Text style={styles.companyBadgeLetter}>{letter}</Text>
-      <Text style={styles.companyBadgeName}>{name.toUpperCase()}</Text>
-    </View>
-  )
-}
-
 interface PageHeaderProps {
   companyLetter: string
   companyName: string
@@ -203,7 +182,10 @@ interface PageHeaderProps {
 function PageHeader({ companyLetter, companyName, edificio, ubicacion, fecha }: PageHeaderProps) {
   return (
     <View style={styles.pageHeader} fixed>
-      <CompanyBadge letter={companyLetter} name={companyName} />
+      <View style={styles.companyBadge}>
+        <Text style={styles.companyBadgeLetter}>{companyLetter}</Text>
+        <Text style={styles.companyBadgeName}>{companyName.toUpperCase()}</Text>
+      </View>
       <View style={styles.pageTitleBlock}>
         <Text style={styles.pageTitle}>REGISTRO FOTOGRÁFICO</Text>
         <Text style={styles.pageSubtitle}>{companyName}</Text>
@@ -226,11 +208,7 @@ function PageHeader({ companyLetter, companyName, edificio, ubicacion, fecha }: 
   )
 }
 
-interface PhotoCellProps {
-  entry: ReportPhotoEntry
-}
-
-function PhotoCell({ entry }: PhotoCellProps) {
+function PhotoCell({ entry }: { entry: ReportPhotoEntry }) {
   return (
     <View style={styles.photoCell} wrap={false}>
       <View style={styles.photoBox}>
@@ -245,7 +223,6 @@ function PhotoCell({ entry }: PhotoCellProps) {
   )
 }
 
-/** Chunk de N en N */
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = []
   for (let i = 0; i < arr.length; i += size) {
@@ -255,50 +232,39 @@ function chunk<T>(arr: T[], size: number): T[][] {
 }
 
 interface StagePagesProps {
-  stageTitle: string
-  groups: ReportGroupedByCompany[]
-  weekStart: string
-  weekEnd: string
+  ubicacion: string
+  photos: ReportPhotoEntry[]
+  companyLetter: string
+  companyName: string
+  fechaText: string
 }
 
-function StagePages({ stageTitle, groups, weekStart, weekEnd }: StagePagesProps) {
-  if (groups.length === 0) return null
-
-  const fechaText = `${weekStart} a ${weekEnd}`
-
+function StagePages({ ubicacion, photos, companyLetter, companyName, fechaText }: StagePagesProps) {
+  if (photos.length === 0) return null
+  const pages = chunk(photos, PHOTOS_PER_PAGE)
   return (
     <>
-      {groups.map(({ company, photos }) => {
-        if (photos.length === 0) return null
-        // Tomamos edificio/ubicación de la primera entrada con datos disponibles.
-        // Como las fotos del recorrido tienen el contexto en el comentario, no
-        // exponemos un edificio específico aquí — usamos genéricos.
-        const edificio = '—'
-        const ubicacion = stageTitle
-        const pages = chunk(photos, PHOTOS_PER_PAGE)
-
-        return pages.map((pagePhotos, pageIdx) => (
-          <Page key={`${company.id}-${stageTitle}-${pageIdx}`} size="A4" style={styles.page} orientation="landscape">
-            <PageHeader
-              companyLetter={company.code_letter}
-              companyName={company.name}
-              edificio={edificio}
-              ubicacion={ubicacion}
-              fecha={fechaText}
-            />
-            <View style={styles.photoGrid}>
-              {pagePhotos.map((entry) => (
-                <PhotoCell key={entry.photo.id} entry={entry} />
-              ))}
-            </View>
-            <Text
-              style={styles.pageNumber}
-              render={({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}`}
-              fixed
-            />
-          </Page>
-        ))
-      })}
+      {pages.map((pagePhotos, pageIdx) => (
+        <Page key={`${ubicacion}-${pageIdx}`} size="A4" style={styles.page} orientation="landscape">
+          <PageHeader
+            companyLetter={companyLetter}
+            companyName={companyName}
+            edificio="—"
+            ubicacion={ubicacion}
+            fecha={fechaText}
+          />
+          <View style={styles.photoGrid}>
+            {pagePhotos.map((entry) => (
+              <PhotoCell key={entry.photo.id} entry={entry} />
+            ))}
+          </View>
+          <Text
+            style={styles.pageNumber}
+            render={({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}`}
+            fixed
+          />
+        </Page>
+      ))}
     </>
   )
 }
@@ -308,17 +274,20 @@ interface Props {
 }
 
 export function PhotographicReportDocument({ data }: Props) {
-  const { client, weekStart, weekEnd, generatedAt, byStage, meta } = data
-
+  const { company, client, weekStart, weekEnd, generatedAt, byStage, meta } = data
   const generatedAtFormatted = new Date(generatedAt).toLocaleString('es-PA')
+  const fechaText = `${weekStart} a ${weekEnd}`
 
   return (
-    <Document title={`${APP_NAME} — Registro Fotográfico — ${client.name}`}>
+    <Document title={`${APP_NAME} — Registro Fotográfico — ${company.name}`}>
       {/* Portada */}
       <Page size="A4" style={[styles.page, styles.coverPage]}>
         <Text style={{ fontSize: 11, color: '#475569', letterSpacing: 2 }}>{APP_NAME.toUpperCase()}</Text>
         <Text style={styles.coverTitle}>REGISTRO FOTOGRÁFICO</Text>
-        <Text style={styles.coverSubtitle}>{client.name}</Text>
+        <Text style={styles.coverSubtitle}>{company.name}</Text>
+        <Text style={[styles.coverSubtitle, { fontSize: 11 }]}>
+          Cliente: {client.name}
+        </Text>
         <Text style={[styles.coverSubtitle, { fontSize: 11 }]}>
           Semana del {weekStart} al {weekEnd}
         </Text>
@@ -343,28 +312,27 @@ export function PhotographicReportDocument({ data }: Props) {
         </View>
       </Page>
 
-      {/* Páginas de recorridos */}
       <StagePages
-        stageTitle="Recorridos"
-        groups={byStage.route}
-        weekStart={weekStart}
-        weekEnd={weekEnd}
+        ubicacion="Recorridos"
+        photos={byStage.route}
+        companyLetter={company.code_letter}
+        companyName={company.name}
+        fechaText={fechaText}
       />
 
-      {/* Páginas de pesajes */}
       <StagePages
-        stageTitle="Pesajes"
-        groups={byStage.weighing}
-        weekStart={weekStart}
-        weekEnd={weekEnd}
+        ubicacion="Pesajes"
+        photos={byStage.weighing}
+        companyLetter={company.code_letter}
+        companyName={company.name}
+        fechaText={fechaText}
       />
 
-      {/* Página de cierre si no hay nada en ninguna etapa */}
       {meta.totalPhotos === 0 && (
         <Page size="A4" style={styles.page}>
           <View style={styles.emptyStage}>
             <Text style={styles.emptyStageText}>
-              No hay registros fotográficos para {client.name} en el rango {weekStart} a {weekEnd}.
+              No hay registros fotográficos para {company.name} en el rango {weekStart} a {weekEnd}.
             </Text>
           </View>
         </Page>

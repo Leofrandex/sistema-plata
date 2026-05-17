@@ -100,6 +100,18 @@ export const MOCK_ROUTE_EVENTS: RouteEvent[] = [
 ]
 
 export const MOCK_WEIGHING_SESSIONS: WeighingSession[] = [
+  // Sesión histórica de la semana pasada
+  {
+    id: 'weighing-prev',
+    client_id: 'client-1',
+    date: '2026-05-10',
+    started_at: '2026-05-10T09:00:00-05:00',
+    ended_at: '2026-05-10T10:30:00-05:00',
+    operator_id: 'user-1',
+    status: 'completed',
+    reception_ids: ['reception-prev-1', 'reception-prev-2', 'reception-prev-3', 'reception-prev-4'],
+  },
+  // Sesión de hoy
   {
     id: 'weighing-1',
     client_id: 'client-1',
@@ -113,12 +125,50 @@ export const MOCK_WEIGHING_SESSIONS: WeighingSession[] = [
 ]
 
 export const MOCK_RECEPTIONS: ContainerReception[] = [
+  // ── Semana pasada (ya tratados / completados) ──────────────────────────────
+  {
+    id: 'reception-prev-1',
+    container_id: 'I-003',
+    weighing_session_id: 'weighing-prev',
+    arrived_at: '2026-05-10T09:15:00-05:00',
+    gross_weight_kg: 41.0,  // neto = 26.9
+    operator_id: 'user-1',
+    photo_ids: [],
+  },
+  {
+    id: 'reception-prev-2',
+    container_id: 'I-006',
+    weighing_session_id: 'weighing-prev',
+    arrived_at: '2026-05-10T09:25:00-05:00',
+    gross_weight_kg: 90.0,  // neto = 28
+    operator_id: 'user-1',
+    photo_ids: [],
+  },
+  {
+    id: 'reception-prev-3',
+    container_id: 'A-002',
+    weighing_session_id: 'weighing-prev',
+    arrived_at: '2026-05-10T09:35:00-05:00',
+    gross_weight_kg: 42.5,  // neto = 28.3
+    operator_id: 'user-1',
+    photo_ids: [],
+  },
+  {
+    id: 'reception-prev-4',
+    container_id: 'A-006',
+    weighing_session_id: 'weighing-prev',
+    arrived_at: '2026-05-10T09:45:00-05:00',
+    gross_weight_kg: 88.5,  // neto = 27
+    operator_id: 'user-1',
+    photo_ids: [],
+  },
+  // ── Hoy (recién pesados, pendientes de procesar) ───────────────────────────
   {
     id: 'reception-1',
     container_id: 'I-001',
     weighing_session_id: 'weighing-1',
     arrived_at: '2026-05-17T09:15:00-05:00',
-    gross_weight_kg: 43.7,
+    gross_weight_kg: 43.7,  // neto = 29.5
     operator_id: 'user-1',
     photo_ids: ['photo-w1-1', 'photo-w1-2'],
   },
@@ -127,32 +177,31 @@ export const MOCK_RECEPTIONS: ContainerReception[] = [
     container_id: 'I-002',
     weighing_session_id: 'weighing-1',
     arrived_at: '2026-05-17T09:20:00-05:00',
-    gross_weight_kg: 38.2,
+    gross_weight_kg: 38.2,  // neto = 23.7
     operator_id: 'user-1',
     photo_ids: ['photo-w2-1', 'photo-w2-2'],
   },
 ]
 
 export const MOCK_STORAGE_EVENTS: StorageEvent[] = [
-  {
-    id: 'storage-1',
-    container_id: 'I-001',
-    entry_at: '2026-05-17T09:45:00-05:00',
-    exit_at: null,
-    operator_id: 'user-1',
-    photo_ids: [],
-  },
-  {
-    id: 'storage-2',
-    container_id: 'I-002',
-    entry_at: '2026-05-17T09:45:00-05:00',
-    exit_at: null,
-    operator_id: 'user-1',
-    photo_ids: [],
-  },
+  // Semana pasada: entraron y ya salieron (tratados)
+  { id: 'storage-prev-1', container_id: 'I-003', entry_at: '2026-05-10T10:30:00-05:00', exit_at: '2026-05-10T14:00:00-05:00', operator_id: 'user-1', photo_ids: [] },
+  { id: 'storage-prev-2', container_id: 'I-006', entry_at: '2026-05-10T10:30:00-05:00', exit_at: '2026-05-10T15:30:00-05:00', operator_id: 'user-1', photo_ids: [] },
+  { id: 'storage-prev-3', container_id: 'A-002', entry_at: '2026-05-10T10:30:00-05:00', exit_at: '2026-05-11T09:00:00-05:00', operator_id: 'user-1', photo_ids: [] },
+  { id: 'storage-prev-4', container_id: 'A-006', entry_at: '2026-05-10T10:30:00-05:00', exit_at: '2026-05-11T10:00:00-05:00', operator_id: 'user-1', photo_ids: [] },
+  // Hoy: entraron pero aún no salen
+  { id: 'storage-1', container_id: 'I-001', entry_at: '2026-05-17T09:45:00-05:00', exit_at: null, operator_id: 'user-1', photo_ids: [] },
+  { id: 'storage-2', container_id: 'I-002', entry_at: '2026-05-17T09:45:00-05:00', exit_at: null, operator_id: 'user-1', photo_ids: [] },
 ]
 
-export const MOCK_TREATMENT_RUNS: TreatmentRun[] = []
+export const MOCK_TREATMENT_RUNS: TreatmentRun[] = [
+  // ION: tratamientos on-site (infectious) completados la semana pasada
+  { id: 'treatment-prev-1', container_id: 'I-003', started_at: '2026-05-10T14:00:00-05:00', completed_at: '2026-05-10T15:30:00-05:00', operator_id: 'user-2' },
+  { id: 'treatment-prev-2', container_id: 'I-006', started_at: '2026-05-10T15:30:00-05:00', completed_at: '2026-05-10T17:00:00-05:00', operator_id: 'user-2' },
+  // Airkem: tratamientos completados (suponemos algunos infectious también)
+  { id: 'treatment-prev-3', container_id: 'A-002', started_at: '2026-05-11T09:00:00-05:00', completed_at: '2026-05-11T10:30:00-05:00', operator_id: 'user-2' },
+  { id: 'treatment-prev-4', container_id: 'A-006', started_at: '2026-05-11T10:00:00-05:00', completed_at: '2026-05-11T11:30:00-05:00', operator_id: 'user-2' },
+]
 
 export const MOCK_EXTERNAL_TRANSFERS: ExternalTransfer[] = []
 

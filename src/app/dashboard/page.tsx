@@ -9,7 +9,7 @@ import { MonthlyBarChart } from '@/components/dashboard/monthly-bar-chart'
 import {
   computeCirculationBreakdown,
   computeDailyKg,
-  computeMonthlyKgByClient,
+  computeMonthlyKgByCompany,
 } from '@/lib/data/dashboard-metrics'
 import { useStore } from '@/lib/store'
 
@@ -40,7 +40,7 @@ export default function DashboardPage() {
   )
 
   const monthlyKg = useMemo(
-    () => computeMonthlyKgByClient({ clients, companies, containers, receptions, treatmentRuns }, month),
+    () => computeMonthlyKgByCompany({ clients, companies, containers, receptions, treatmentRuns }, month),
     [clients, companies, containers, receptions, treatmentRuns, month],
   )
 

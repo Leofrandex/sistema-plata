@@ -1,7 +1,7 @@
 import {
   computeCirculationBreakdown,
   computeDailyKg,
-  computeMonthlyKgByClient,
+  computeMonthlyKgByCompany,
 } from '@/lib/data/dashboard-metrics'
 import {
   MOCK_CLIENTS,
@@ -27,16 +27,14 @@ describe('computeCirculationBreakdown', () => {
       locations: MOCK_LOCATIONS,
     })
     expect(result.total).toBe(20)
-    // Las 4 buckets siempre vienen presentes en el orden declarado
     expect(result.buckets.map((b) => b.key)).toEqual([
       'en_planta', 'en_cliente', 'en_transito', 'sin_registro',
     ])
-    // La suma de buckets es igual al total
     const sum = result.buckets.reduce((acc, b) => acc + b.count, 0)
     expect(sum).toBe(result.total)
   })
 
-  it('classifies I-001 (con storage abierto) como en_planta', () => {
+  it('classifies envases con storage abierto como en_planta', () => {
     const result = computeCirculationBreakdown({
       containers: MOCK_CONTAINERS,
       routeEvents: MOCK_ROUTE_EVENTS,
@@ -66,7 +64,7 @@ describe('computeDailyKg', () => {
     // Reception I-002: 38.2 - 14.5 = 23.7
     // Total = 53.2
     expect(result.receivedKg).toBeCloseTo(53.2, 1)
-    // No hay treatments completados → todo pendiente
+    // No hay treatments completados hoy → todo pendiente
     expect(result.processedKg).toBe(0)
     expect(result.pendingKg).toBeCloseTo(53.2, 1)
   })
@@ -86,9 +84,9 @@ describe('computeDailyKg', () => {
   })
 })
 
-describe('computeMonthlyKgByClient', () => {
-  it('groups receptions by client of the company', () => {
-    const result = computeMonthlyKgByClient(
+describe('computeMonthlyKgByCompany', () => {
+  it('groups receptions by company of the container', () => {
+    const result = computeMonthlyKgByCompany(
       {
         clients: MOCK_CLIENTS,
         companies: MOCK_COMPANIES,
@@ -98,16 +96,23 @@ describe('computeMonthlyKgByClient', () => {
       },
       '2026-05',
     )
-    expect(result).toHaveLength(MOCK_CLIENTS.length)
-    const centro = result.find((r) => r.client_id === 'client-1')!
-    // Reception I-001: 43.7 - 14.2 = 29.5 (ION → client-1)
-    // Reception I-002: 38.2 - 14.5 = 23.7 (ION → client-1)
-    expect(centro.receivedKg).toBeCloseTo(53.2, 1)
-    expect(centro.processedKg).toBe(0)
+    expect(result).toHaveLength(MOCK_COMPANIES.length)
+    const ion = result.find((r) => r.company_name === 'ION')!
+    const airkem = result.find((r) => r.company_name === 'Airkem')!
+
+    // ION recibidos en mayo: I-001 (29.5) + I-002 (23.7) + I-003 (26.9) + I-006 (28.0) = ~108.1
+    expect(ion.receivedKg).toBeCloseTo(108.1, 1)
+    // ION procesados: treatments completados I-003 + I-006 = 26.9 + 28 = 54.9
+    expect(ion.processedKg).toBeCloseTo(54.9, 1)
+
+    // Airkem recibidos: A-002 (28.3) + A-006 (27.0) = 55.3
+    expect(airkem.receivedKg).toBeCloseTo(55.3, 1)
+    // Airkem procesados: A-002 + A-006 = 55.3
+    expect(airkem.processedKg).toBeCloseTo(55.3, 1)
   })
 
   it('returns zero kg for months without activity', () => {
-    const result = computeMonthlyKgByClient(
+    const result = computeMonthlyKgByCompany(
       {
         clients: MOCK_CLIENTS,
         companies: MOCK_COMPANIES,

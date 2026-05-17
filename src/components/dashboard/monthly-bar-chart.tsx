@@ -12,10 +12,10 @@ import {
   Cell,
 } from 'recharts'
 import { BarChart3 } from 'lucide-react'
-import type { MonthlyKgByClient } from '@/lib/data/dashboard-metrics'
+import type { MonthlyKgByCompany } from '@/lib/data/dashboard-metrics'
 
 interface Props {
-  data: MonthlyKgByClient[]
+  data: MonthlyKgByCompany[]
   month: string // YYYY-MM
 }
 
@@ -82,7 +82,7 @@ export function MonthlyBarChart({ data, month }: Props) {
               Kilogramos del mes
             </h2>
             <p className="text-xs text-muted-foreground/80">
-              Recibidos vs. procesados por cliente — {formatMonthLabel(month)}
+              Recibidos vs. procesados por empresa — {formatMonthLabel(month)}
             </p>
           </div>
         </div>
@@ -113,7 +113,7 @@ export function MonthlyBarChart({ data, month }: Props) {
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
               <XAxis
-                dataKey="client_name"
+                dataKey="company_name"
                 tick={{ fontSize: 12, fill: '#64748B' }}
                 tickLine={false}
                 axisLine={{ stroke: '#E2E8F0' }}
@@ -139,12 +139,12 @@ export function MonthlyBarChart({ data, month }: Props) {
               />
               <Bar dataKey="receivedKg" name="Recibidos" fill={RECEIVED_COLOR} radius={[6, 6, 0, 0]}>
                 {chartData.map((entry) => (
-                  <Cell key={`r-${entry.client_id}`} />
+                  <Cell key={`r-${entry.company_id}`} />
                 ))}
               </Bar>
               <Bar dataKey="processedKg" name="Procesados" fill={PROCESSED_COLOR} radius={[6, 6, 0, 0]}>
                 {chartData.map((entry) => (
-                  <Cell key={`p-${entry.client_id}`} />
+                  <Cell key={`p-${entry.company_id}`} />
                 ))}
               </Bar>
             </BarChart>
