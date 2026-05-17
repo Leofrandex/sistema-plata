@@ -136,7 +136,44 @@ Cambios estructurales sin nueva UX:
 **Verificación Fase 3:**
 - `npm run build` ✅ (17 rutas)
 - `vitest` 12/12 ✅
-### Fase 4 — Sección de reportes semanales (pendiente)
+### Fase 4 — Sección de reportes semanales (✅ completada)
+
+**Data layer (`src/lib/data/reports.ts`):**
+- `getMondayOfWeek(reference)` — devuelve lunes 00:00 local de la semana que contiene la fecha de referencia. Maneja correctamente domingo (retrocede 6 días).
+- `isoDate(date)` — formatea Date como `YYYY-MM-DD` local.
+- `buildPhotographicReportData(clientId, store, endOverride?)` — función pura que devuelve la estructura del reporte:
+  - Encuentra empresas del cliente
+  - Toma containers de esas empresas
+  - Filtra RouteEvents por client_id, rango temporal y containers que tocan empresas del cliente
+  - Filtra receptions por containers del cliente y rango temporal
+  - Resuelve photos y agrega comentarios contextuales (envase, hora, peso neto, ubicación)
+  - Agrupa: por etapa (recorrido → pesaje) y dentro de cada etapa por empresa (orden alfabético)
+  - Casos especiales: si un RouteEvent toca varias empresas, sus fotos se replican en cada grupo (no podemos saber a qué envase específico corresponde cada foto).
+
+**PDF (`src/components/reports/photographic-report-document.tsx`):**
+- Replica el layout de los reportes históricos (screenshots):
+  - **Portada**: título grande "REGISTRO FOTOGRÁFICO", cliente, rango de semana, caja con métricas (recorridos, envases pesados, total fotos, fecha de generación).
+  - **Páginas de contenido**: orientación landscape (4 fotos por fila × 2 = 8 fotos por página… ajustado a 2 col × 3 filas = 6 por página para dejar espacio a las cajas de comentario).
+  - Header por página (fixed) con un placeholder de logo de empresa (badge negro con letra grande + nombre debajo), título "REGISTRO FOTOGRÁFICO" centrado, y tabla a la derecha con `Edificio | Ubicación | Fecha`.
+  - Cada celda de foto incluye una caja "Comentario:" con texto contextual.
+  - Páginas se agrupan por etapa primero, luego por empresa.
+  - Si no hay registros, página de cierre con nota.
+
+**Preview & página (`/reports`):**
+- `report-preview.tsx` — Card con métricas, desglose por empresa, y `PDFDownloadLink` (cargado dinámicamente con SSR off). Filename: `Hospiwaste_RegistroFotografico_{Cliente}_{weekStart}_{weekEnd}.pdf`. Spinner durante generación.
+- `app/reports/page.tsx` — selector de cliente + banner de rango calculado automáticamente (lunes → hoy) + ReportPreview.
+
+**Decisiones:**
+- Logos de empresa: en lugar de imágenes externas, se renderiza un "badge" de texto con la letra y el nombre — funciona offline, sin assets adicionales, y mantiene la estética de cabecera. Cuando el cliente provea logos reales, basta con reemplazar el componente `CompanyBadge`.
+- Orientación landscape elegida por permitir grids de fotos más amplios y por imitar mejor las screenshots de referencia.
+- "Edificio" en la tabla del header queda como `—` por ahora (el dato no se captura en el flujo); "Ubicación" muestra el nombre de la etapa (Recorridos / Pesajes).
+
+**Tests:**
+- `src/__tests__/lib/reports.test.ts` — 8 tests cubriendo `getMondayOfWeek` con varios días de la semana y `buildPhotographicReportData` con casos: cliente inexistente, reporte popular, agrupación por empresa correcta, rango sin datos.
+
+**Verificación Fase 4:**
+- `npm run build` ✅ (18 rutas incluyendo `/reports`)
+- `npm test:jest` ✅ 46/48 (8 nuevos pasan; los 2 fallidos siguen siendo pre-existentes button/input-field)
 ### Fase 5 — Dashboard rediseñado con Recharts (pendiente)
 
 ## Decisiones técnicas (Fase 1)
