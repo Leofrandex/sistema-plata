@@ -27,12 +27,14 @@ export function getContainerCurrentLocation(
 }
 
 // Determina la fase actual del envase en su ciclo de vida.
-// routeEventIds: IDs de RouteEvents donde el envase aparece en containers_exchanged.
-// Si tiene recorrido pero no recepción → 'route'
-// Si tiene recepción pero no entró a cámara fría → 'weighing'
-// Si está en cámara fría sin salir → 'cold_storage'
-// Si tiene tratamiento/traslado activo → 'treatment' o 'transfer'
-// Si todo está cerrado → 'clean'
+// routeEventIds: IDs de RouteEvents donde el envase fue recogido sucio
+// (containers_dirty_received). Solo los recogidos sucios disparan fase 'route';
+// los entregados limpios no afectan la fase del envase.
+// - Recogido sucio sin recepción → 'route'
+// - Recepción sin storage → 'weighing'
+// - Storage sin exit → 'cold_storage'
+// - Tratamiento/traslado activo → 'treatment' o 'transfer'
+// - Todo cerrado → 'clean'
 export function computeContainerPhase(
   routeEventIds: string[],
   reception: ContainerReception | null,
@@ -68,12 +70,28 @@ export function buildContainerWithPhase(
   }
 }
 
-// Ayudante: obtiene los IDs de RouteEvents donde aparece un envase.
+// Ayudante: obtiene los IDs de RouteEvents donde el envase fue recogido sucio.
+// Esto es lo que determina si está en fase 'route' (a la espera de pesaje).
+// Los envases entregados limpios NO disparan fase 'route' — siguen su fase actual.
 export function getRouteEventIdsForContainer(
   routeEvents: RouteEvent[],
   containerId: string
 ): string[] {
   return routeEvents
-    .filter((r) => r.containers_exchanged.includes(containerId))
+    .filter((r) => r.containers_dirty_received.includes(containerId))
+    .map((r) => r.id)
+}
+
+// Variante que considera ambos lados del recorrido. Útil para reportes y vistas
+// históricas donde queremos mostrar todo el ciclo (limpio entregado + sucio recogido).
+export function getRouteEventIdsAnyDirection(
+  routeEvents: RouteEvent[],
+  containerId: string
+): string[] {
+  return routeEvents
+    .filter((r) =>
+      r.containers_dirty_received.includes(containerId) ||
+      r.containers_clean_delivered.includes(containerId),
+    )
     .map((r) => r.id)
 }

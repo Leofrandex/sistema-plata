@@ -62,7 +62,8 @@ export const MOCK_CONTAINERS: Container[] = [
   { id: 'A-010', company_id: 'company-airkem', size_liters: 240, tare_weight_kg: 14.5, waste_type: 'morgue', status: 'active', registered_at: '2026-03-01T08:00:00Z' },
 ]
 
-// Hoy se completó la 1.ª y 2.ª ruta para Centro de la Salud
+// Hoy se completó la 1.ª y 2.ª ruta para Centro de la Salud.
+// En cada recorrido se ENTREGAN envases limpios y se RECOGEN sucios.
 export const MOCK_ROUTE_EVENTS: RouteEvent[] = [
   {
     id: 'route-1',
@@ -73,7 +74,8 @@ export const MOCK_ROUTE_EVENTS: RouteEvent[] = [
     ended_at: '2026-05-17T08:12:00-05:00',
     operator_id: 'user-1',
     status: 'completed',
-    containers_exchanged: ['I-001', 'I-002', 'A-001', 'A-002'],
+    containers_dirty_received: ['I-001', 'I-002', 'A-001', 'A-002'],
+    containers_clean_delivered: ['I-007', 'I-008', 'A-007', 'A-008'],
     floor: '1',
     area: 'Emergencias',
     dock: 'Andén Norte',
@@ -88,7 +90,8 @@ export const MOCK_ROUTE_EVENTS: RouteEvent[] = [
     ended_at: '2026-05-17T11:45:00-05:00',
     operator_id: 'user-2',
     status: 'completed',
-    containers_exchanged: ['I-003', 'A-003', 'A-004'],
+    containers_dirty_received: ['I-003', 'A-003', 'A-004'],
+    containers_clean_delivered: ['I-009', 'A-009'],
     floor: '2',
     area: 'Pediatría',
     dock: 'Andén Sur',

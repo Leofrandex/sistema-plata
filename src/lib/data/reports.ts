@@ -110,7 +110,10 @@ export function buildPhotographicReportData(
   const routeEvents = store.routeEvents.filter((r) => {
     if (r.client_id !== clientId) return false
     if (!withinRange(r.started_at, start, end)) return false
-    return r.containers_exchanged.some((cid) => containerIds.has(cid))
+    return (
+      r.containers_dirty_received.some((cid) => containerIds.has(cid)) ||
+      r.containers_clean_delivered.some((cid) => containerIds.has(cid))
+    )
   })
 
   // 4. Receptions de containers del cliente dentro del rango
@@ -124,16 +127,23 @@ export function buildPhotographicReportData(
 
   // 5a. Recorridos: cada RouteEvent puede tener varios containers + varias fotos.
   // Asignamos todas las fotos del recorrido a CADA empresa que aparece en ese
-  // recorrido (porque no podemos saber a qué envase corresponde cada foto).
+  // recorrido (sea como sucio recogido o limpio entregado).
   const routePhotosByCompany = new Map<string, ReportPhotoEntry[]>()
   for (const ev of routeEvents) {
+    const allContainerIds = [...ev.containers_dirty_received, ...ev.containers_clean_delivered]
     const companiesInEvent = new Set<string>()
-    for (const cid of ev.containers_exchanged) {
+    for (const cid of allContainerIds) {
       const container = containerMap.get(cid)
       if (container) companiesInEvent.add(container.company_id)
     }
-    // Construir el texto de comentario con la lista de envases del recorrido
-    const envasesText = ev.containers_exchanged.join(', ')
+    // Texto de comentario con la lista de envases del recorrido
+    const dirtyText = ev.containers_dirty_received.length > 0
+      ? `Recogidos: ${ev.containers_dirty_received.join(', ')}`
+      : null
+    const cleanText = ev.containers_clean_delivered.length > 0
+      ? `Entregados: ${ev.containers_clean_delivered.join(', ')}`
+      : null
+    const envasesText = [dirtyText, cleanText].filter(Boolean).join(' · ')
     const time = new Date(ev.started_at).toLocaleTimeString('es-PA', {
       hour: '2-digit',
       minute: '2-digit',
@@ -146,12 +156,12 @@ export function buildPhotographicReportData(
         if (!company) continue
         const entry: ReportPhotoEntry = {
           photo,
-          container_id: ev.containers_exchanged.find((cid) => containerMap.get(cid)?.company_id === companyId) ?? '',
+          container_id: allContainerIds.find((cid) => containerMap.get(cid)?.company_id === companyId) ?? '',
           container: null,
           company_id: companyId,
           company_name: company.name,
           taken_at: photo.taken_at,
-          comment: `Recorrido ${time} · Piso ${ev.floor || '—'}, ${ev.area || '—'} · Envases: ${envasesText}`,
+          comment: `Recorrido ${time} · Piso ${ev.floor || '—'}, ${ev.area || '—'} · ${envasesText}`,
         }
         if (!routePhotosByCompany.has(companyId)) routePhotosByCompany.set(companyId, [])
         routePhotosByCompany.get(companyId)!.push(entry)

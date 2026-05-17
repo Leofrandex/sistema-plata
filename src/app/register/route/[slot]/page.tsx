@@ -43,7 +43,8 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   const [hydrated, setHydrated] = useState(false)
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null)
   const [formState, setFormState] = useState<RouteFormState>({
-    containerIds: [],
+    dirtyReceivedIds: [],
+    cleanDeliveredIds: [],
     floor: '',
     area: '',
     dock: '',
@@ -72,7 +73,8 @@ export default function RegisterRouteSlotPage({ params }: Props) {
           const event = useStore.getState().routeEvents.find((r) => r.id === ctx.route_event_id)
           if (event) {
             setFormState({
-              containerIds: event.containers_exchanged,
+              dirtyReceivedIds: event.containers_dirty_received,
+              cleanDeliveredIds: event.containers_clean_delivered,
               floor: event.floor,
               area: event.area,
               dock: event.dock,
@@ -103,7 +105,8 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     // Si hay un RouteEvent activo, persistimos los cambios incrementales en el store.
     if (activeSession?.context.type === 'route') {
       updateRouteEvent(activeSession.context.route_event_id, {
-        ...(updates.containerIds !== undefined && { containers_exchanged: updates.containerIds }),
+        ...(updates.dirtyReceivedIds !== undefined && { containers_dirty_received: updates.dirtyReceivedIds }),
+        ...(updates.cleanDeliveredIds !== undefined && { containers_clean_delivered: updates.cleanDeliveredIds }),
         ...(updates.floor !== undefined && { floor: updates.floor }),
         ...(updates.area !== undefined && { area: updates.area }),
         ...(updates.dock !== undefined && { dock: updates.dock }),
@@ -124,7 +127,8 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       ended_at: null,
       operator_id: 'user-1',
       status: 'in_progress',
-      containers_exchanged: formState.containerIds,
+      containers_dirty_received: formState.dirtyReceivedIds,
+      containers_clean_delivered: formState.cleanDeliveredIds,
       floor: formState.floor,
       area: formState.area,
       dock: formState.dock,
@@ -155,7 +159,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     // Borrar la ActiveSession de IndexedDB
     await endSession(activeSession.key)
     setActiveSession(null)
-    setFormState({ containerIds: [], floor: '', area: '', dock: '', photos: [] })
+    setFormState({ dirtyReceivedIds: [], cleanDeliveredIds: [], floor: '', area: '', dock: '', photos: [] })
     router.push('/register/route')
   }
 
@@ -185,7 +189,8 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       status: 'completed',
       ended_at: now,
       photo_ids: photoIds,
-      containers_exchanged: formState.containerIds,
+      containers_dirty_received: formState.dirtyReceivedIds,
+      containers_clean_delivered: formState.cleanDeliveredIds,
       floor: formState.floor,
       area: formState.area,
       dock: formState.dock,
@@ -224,7 +229,10 @@ export default function RegisterRouteSlotPage({ params }: Props) {
               Finalizado {completedEvent.ended_at ? new Date(completedEvent.ended_at).toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' }) : '—'}
             </p>
             <p className="text-sm text-emerald-700">
-              {completedEvent.containers_exchanged.length} envase{completedEvent.containers_exchanged.length !== 1 ? 's' : ''} ·
+              {completedEvent.containers_dirty_received.length} recogido{completedEvent.containers_dirty_received.length !== 1 ? 's' : ''}
+              {' · '}
+              {completedEvent.containers_clean_delivered.length} entregado{completedEvent.containers_clean_delivered.length !== 1 ? 's' : ''}
+              {' · '}
               Piso {completedEvent.floor || '—'}, {completedEvent.area || '—'}, {completedEvent.dock || '—'}
             </p>
             <p className="text-xs text-emerald-700/80 mt-2">
@@ -238,7 +246,8 @@ export default function RegisterRouteSlotPage({ params }: Props) {
 
   const isRunning = !!activeSession
 
-  const canFinish = formState.containerIds.length > 0 && formState.photos.length > 0
+  const totalContainers = formState.dirtyReceivedIds.length + formState.cleanDeliveredIds.length
+  const canFinish = totalContainers > 0 && formState.photos.length > 0
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -300,7 +309,8 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       {/* Modal de confirmación de finalización */}
       {confirmingFinish && (
         <ConfirmFinishDialog
-          containerCount={formState.containerIds.length}
+          dirtyCount={formState.dirtyReceivedIds.length}
+          cleanCount={formState.cleanDeliveredIds.length}
           photoCount={formState.photos.length}
           elapsed={elapsed}
           onCancel={() => setConfirmingFinish(false)}
@@ -342,7 +352,8 @@ function Header({ slot }: { slot: ReturnType<typeof getRouteSlotDefinition> }) {
 }
 
 interface DialogProps {
-  containerCount: number
+  dirtyCount: number
+  cleanCount: number
   photoCount: number
   elapsed: number
   onCancel: () => void
@@ -393,7 +404,7 @@ function ConfirmCancelDialog({ onCancel, onConfirm }: CancelDialogProps) {
   )
 }
 
-function ConfirmFinishDialog({ containerCount, photoCount, elapsed, onCancel, onConfirm }: DialogProps) {
+function ConfirmFinishDialog({ dirtyCount, cleanCount, photoCount, elapsed, onCancel, onConfirm }: DialogProps) {
   return (
     <div
       role="dialog"
@@ -418,7 +429,8 @@ function ConfirmFinishDialog({ containerCount, photoCount, elapsed, onCancel, on
         </div>
         <div className="rounded-lg bg-muted/30 p-3 text-sm space-y-1">
           <p>Duración: <strong className="font-mono">{formatElapsed(elapsed)}</strong></p>
-          <p>Envases: <strong>{containerCount}</strong></p>
+          <p>Sucios recogidos: <strong>{dirtyCount}</strong></p>
+          <p>Limpios entregados: <strong>{cleanCount}</strong></p>
           <p>Fotos: <strong>{photoCount}</strong></p>
         </div>
         <div className="flex gap-3 justify-end">

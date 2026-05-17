@@ -89,9 +89,11 @@ export interface RouteEvent {
   ended_at: string | null       // null mientras está en curso
   operator_id: string
   status: RouteEventStatus
-  // Envases involucrados en el intercambio limpio↔sucio (selección acumulativa)
-  containers_exchanged: string[]
-  // Ubicación del intercambio
+  // Envases SUCIOS recogidos en el recorrido (van a pesaje en planta)
+  containers_dirty_received: string[]
+  // Envases LIMPIOS entregados al cliente durante el recorrido
+  containers_clean_delivered: string[]
+  // Ubicación del recorrido
   floor: string
   area: string
   dock: string                  // andén

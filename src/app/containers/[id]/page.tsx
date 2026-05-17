@@ -69,7 +69,12 @@ export default function ContainerDetailPage({ params }: Props) {
 
   const containerPhotoIds = [
     ...(routeEvents.flatMap((e) => {
-      if (e.containers_exchanged.includes(container.id)) return e.photo_ids
+      if (
+        e.containers_dirty_received.includes(container.id) ||
+        e.containers_clean_delivered.includes(container.id)
+      ) {
+        return e.photo_ids
+      }
       return []
     })),
     ...(reception?.photo_ids ?? []),

@@ -101,7 +101,7 @@ describe('getContainerCurrentLocation', () => {
 })
 
 describe('getRouteEventIdsForContainer', () => {
-  const baseRoute: Omit<RouteEvent, 'id' | 'containers_exchanged'> = {
+  const baseRoute: Omit<RouteEvent, 'id' | 'containers_dirty_received' | 'containers_clean_delivered'> = {
     client_id: 'client-1',
     slot: '06:30',
     date: '2026-05-17',
@@ -113,13 +113,21 @@ describe('getRouteEventIdsForContainer', () => {
     photo_ids: [],
   }
 
-  it('returns route ids where the container appears', () => {
+  it('returns route ids where the container was received as dirty', () => {
     const events: RouteEvent[] = [
-      { ...baseRoute, id: 'route-1', containers_exchanged: ['I-001', 'I-002'] },
-      { ...baseRoute, id: 'route-2', slot: '10:30', containers_exchanged: ['A-001'] },
-      { ...baseRoute, id: 'route-3', slot: '13:20', containers_exchanged: ['I-001'] },
+      { ...baseRoute, id: 'route-1', containers_dirty_received: ['I-001', 'I-002'], containers_clean_delivered: [] },
+      { ...baseRoute, id: 'route-2', slot: '10:30', containers_dirty_received: ['A-001'], containers_clean_delivered: [] },
+      { ...baseRoute, id: 'route-3', slot: '13:20', containers_dirty_received: ['I-001'], containers_clean_delivered: [] },
     ]
     expect(getRouteEventIdsForContainer(events, 'I-001')).toEqual(['route-1', 'route-3'])
+  })
+
+  it('does NOT return route ids where container was only delivered clean', () => {
+    const events: RouteEvent[] = [
+      { ...baseRoute, id: 'route-1', containers_dirty_received: [], containers_clean_delivered: ['I-001'] },
+    ]
+    // I-001 entregado limpio NO debe disparar fase 'route'
+    expect(getRouteEventIdsForContainer(events, 'I-001')).toEqual([])
   })
 
   it('returns empty array when no route includes the container', () => {
