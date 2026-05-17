@@ -98,7 +98,44 @@ Cambios estructurales sin nueva UX:
 **Verificación Fase 2:**
 - `npm run build` ✅ (17 rutas, incluida `/register/route/[slot]` dinámica)
 - `vitest` 12/12 ✅
-### Fase 3 — Pesaje dinámico multi-registro (pendiente)
+### Fase 3 — Pesaje dinámico multi-registro (✅ completada)
+
+**Componentes:**
+- `src/components/register/weighing-form.tsx` — formulario por envase con:
+  - Dropdown tipo de desecho (5 valores)
+  - Select de envase (filtrado por `waste_type` seleccionado)
+  - Dos `PhotoCapture` (envase + balanza)
+  - Input peso bruto con validación (debe superar la tara) y vista del peso neto estimado
+  - Modos `create` ("Guardar y agregar otro") y `edit` ("Guardar cambios" / "Cancelar" / "Eliminar")
+- `src/components/register/weighing-session-drawer.tsx` — drawer lateral derecho:
+  - Tab flotante con contador, fixed al borde, visible cuando hay registros
+  - Backdrop al abrir; cierre con click fuera o tecla Escape
+  - Lista de receptions ordenada cronológicamente; click selecciona para edición
+
+**Página `/register/weighing` reescrita:**
+- Vista inicial: form bloqueado (opacity-50 + pointer-events-none) + botón "Iniciar pesaje"
+- Tras iniciar:
+  - Crea `WeighingSession { status: 'in_progress' }` en store
+  - Persiste `ActiveSession` en IndexedDB con key `weighing:{today}`
+  - Cronómetro arriba (HH:MM:SS)
+- Flujo dinámico:
+  - "Guardar y agregar otro" persiste el reception + 2 photos al store, lo agrega a la sesión y resetea el form
+  - Click en un registro del drawer carga el reception al form en modo `edit`; oculta "Agregar otro" y muestra banner ámbar "Editando…"
+  - "Eliminar" en modo edit remueve el reception de la sesión (soft, queda en store huérfano)
+- Finalización:
+  - Dialog de confirmación inline (recuento + duración)
+  - Marca la sesión como completed, crea un `StorageEvent` + `ContainerLocation` (cámara fría) por cada reception, borra la ActiveSession
+  - Navega a `/dashboard`
+
+**Decisiones técnicas:**
+- Si el operador cierra la app a mitad de la sesión, todos los receptions ya guardados sobreviven (están en store) y el cronómetro se recupera de IndexedDB.
+- Las fotos del form en edición se cargan desde el store (sus dataURLs persistidos), no como blob URLs nuevos.
+- Estrategia de fotos al editar: se crean nuevas Photo records con IDs nuevos (las viejas quedan huérfanas en el store) — simplificación aceptable para el MVP.
+- El select de envase se filtra por tipo de desecho activo: evita pesar un envase del tipo equivocado.
+
+**Verificación Fase 3:**
+- `npm run build` ✅ (17 rutas)
+- `vitest` 12/12 ✅
 ### Fase 4 — Sección de reportes semanales (pendiente)
 ### Fase 5 — Dashboard rediseñado con Recharts (pendiente)
 
