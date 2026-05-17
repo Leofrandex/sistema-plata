@@ -53,30 +53,43 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   // Cliente: por ahora tomamos el primero (Centro de la Salud).
   const client = clients[0]
 
-  // Hidrata el estado desde IndexedDB y el store al montar.
+  // Hidrata el estado desde IndexedDB y el store al montar (una sola vez por
+  // slot/día). NO depender de `routeEvents` porque cambia con cada edición
+  // incremental del form y dispararía hidrataciones en loop.
   useEffect(() => {
     let cancelled = false
     const key = routeSessionKey(today, slotId)
-    getActiveSession(key).then((session) => {
-      if (cancelled) return
-      setActiveSession(session ?? null)
-      if (session && session.context.type === 'route') {
-        const ctx = session.context
-        const event = routeEvents.find((r) => r.id === ctx.route_event_id)
-        if (event) {
-          setFormState({
-            containerIds: event.containers_exchanged,
-            floor: event.floor,
-            area: event.area,
-            dock: event.dock,
-            photos: [], // los blobs no se guardan en store; se mantienen solo durante la sesión
-          })
+    getActiveSession(key)
+      .then((session) => {
+        if (cancelled) return
+        setActiveSession(session ?? null)
+        if (session && session.context.type === 'route') {
+          const ctx = session.context
+          // Leemos el routeEvent vía getState() para evitar acoplar este
+          // effect a `routeEvents` (snapshot puntual, no suscripción).
+          const event = useStore.getState().routeEvents.find((r) => r.id === ctx.route_event_id)
+          if (event) {
+            setFormState({
+              containerIds: event.containers_exchanged,
+              floor: event.floor,
+              area: event.area,
+              dock: event.dock,
+              photos: [],
+            })
+          }
         }
-      }
-      setHydrated(true)
-    })
+      })
+      .catch((err) => {
+        // Si IndexedDB falla, no dejamos el spinner colgado: seguimos como
+        // si no hubiera sesión activa.
+        // eslint-disable-next-line no-console
+        console.error('[route] Error hidratando sesión activa:', err)
+      })
+      .finally(() => {
+        if (!cancelled) setHydrated(true)
+      })
     return () => { cancelled = true }
-  }, [today, slotId, routeEvents])
+  }, [today, slotId])
 
   const completedEvent = routeEvents.find(
     (r) => r.slot === slotId && r.date === today && r.status === 'completed',

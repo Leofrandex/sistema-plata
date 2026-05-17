@@ -29,12 +29,19 @@ export default function RegisterRoutesPage() {
     return () => clearInterval(interval)
   }, [])
 
-  // Carga las sesiones activas desde IndexedDB (cronómetros persistentes)
+  // Carga las sesiones activas desde IndexedDB (cronómetros persistentes).
+  // Se re-ejecuta cuando cambia `routeEvents` para reflejar finalizaciones.
   useEffect(() => {
     let cancelled = false
-    listActiveSessions('route').then((sessions) => {
-      if (!cancelled) setActiveSessions(sessions)
-    })
+    listActiveSessions('route')
+      .then((sessions) => {
+        if (!cancelled) setActiveSessions(sessions)
+      })
+      .catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error('[route-list] Error leyendo sesiones activas:', err)
+        if (!cancelled) setActiveSessions([])
+      })
     return () => { cancelled = true }
   }, [today, routeEvents])
 

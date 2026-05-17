@@ -4,6 +4,7 @@ import './globals.css'
 import { Sidebar } from '@/components/layout/sidebar'
 import { MobileHeader } from '@/components/layout/mobile-header'
 import { SyncIndicator } from '@/components/layout/sync-indicator'
+import { SWCleanup } from '@/components/layout/sw-cleanup'
 import { APP_NAME, APP_DESCRIPTION, APP_TAGLINE } from '@/lib/constants'
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <body className={`${plusJakartaSans.variable} font-sans`}>
+        <SWCleanup />
         <div className="flex min-h-screen bg-background">
           <Sidebar />
           <div className="flex-1 flex flex-col">

@@ -42,15 +42,22 @@ export default function WeighingPage() {
 
   const client = clients[0]
 
-  // Hidrata desde IndexedDB al montar
+  // Hidrata desde IndexedDB al montar. Si falla, seguimos sin sesión activa.
   useEffect(() => {
     let cancelled = false
     const key = weighingSessionKey(today)
-    getActiveSession(key).then((session) => {
-      if (cancelled) return
-      setActiveSession(session ?? null)
-      setHydrated(true)
-    })
+    getActiveSession(key)
+      .then((session) => {
+        if (cancelled) return
+        setActiveSession(session ?? null)
+      })
+      .catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error('[weighing] Error hidratando sesión activa:', err)
+      })
+      .finally(() => {
+        if (!cancelled) setHydrated(true)
+      })
     return () => { cancelled = true }
   }, [today])
 
