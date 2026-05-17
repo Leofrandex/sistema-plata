@@ -68,7 +68,36 @@ Cambios estructurales sin nueva UX:
 - `npm test` (vitest) ✅ 12 tests passed
 - `npm run test:jest` ✅ 38/40 tests passed (los 2 fallidos son pre-existentes: `button.test.tsx` y `input-field.test.tsx` usan `vi.fn()` de vitest en archivos de jest)
 
-### Fase 2 — Recorridos con cronómetro persistente (pendiente)
+### Fase 2 — Recorridos con cronómetro persistente (✅ completada)
+
+**Building blocks:**
+- `src/lib/active-session.ts` — módulo IndexedDB reutilizando `hospiwaste-offline` DB (versión bumped a 2) con nuevo store `active_sessions`. Keys compuestas: `route:{date}:{slot}` y `weighing:{date}`. API: `startSession`, `getActiveSession`, `endSession`, `listActiveSessions`. Helper `todayLocal()` para fecha local en `YYYY-MM-DD`.
+- `src/hooks/use-elapsed.ts` — hook que devuelve segundos transcurridos desde `started_at`, actualizándose cada segundo con `setInterval`. Helper `formatElapsed(seconds)` para `HH:MM:SS` / `MM:SS`.
+
+**Componentes:**
+- `src/components/register/photo-capture-multi.tsx` — grid de fotos con "+ Agregar" siempre visible. Cada foto tiene botón eliminar.
+- `src/components/register/route-form.tsx` — formulario completo: ContainerSelector multi-select acumulativo + inputs piso/área/andén + `PhotoCaptureMulti`. Prop `locked` aplica `opacity-50 pointer-events-none`.
+- `src/components/register/route-slot-card.tsx` — card individual de slot con tres estados visuales: `available` (clickable, decoración accent), `in_progress` (cronómetro live), `completed` (gris, no clickable, muestra hora de cierre).
+
+**Páginas:**
+- `src/app/register/route/page.tsx` — lista de los 6 slots. Lee `routeEvents` del store y `listActiveSessions('route')` de IndexedDB para calcular el estado de cada slot.
+- `src/app/register/route/[slot]/page.tsx` — pantalla individual:
+  - Hidrata desde IndexedDB al montar (recupera el cronómetro si la app se cerró)
+  - Si el slot ya está completado hoy: vista read-only con resumen
+  - Si está en curso: banner con cronómetro + botón "Finalizar" (deshabilitado si no hay envases o fotos)
+  - Si está disponible: form atenuado + botón "Iniciar recorrido"
+  - Modal de confirmación al finalizar (recuento de envases, fotos, duración)
+  - Mutaciones incrementales al store mientras se edita (no hay draft separado)
+- Confirmación implementada con un dialog inline minimalista (sin agregar dependencia de modal).
+
+**Decisiones técnicas:**
+- Las fotos como dataURLs viven solo durante la sesión activa en el state del componente. Al finalizar se persisten al store como `Photo[]`. Si el operador cierra la app a mitad del recorrido, las fotos se pierden pero el cronómetro, ubicación y envases seleccionados se mantienen (porque esos sí se persisten incrementalmente al store).
+- `RouteEvent.date` se setea al iniciar y NO se recalcula al finalizar — resuelve el caso de un recorrido nocturno que cruza medianoche.
+- Slot completado bloquea re-inicio el mismo día calendario.
+
+**Verificación Fase 2:**
+- `npm run build` ✅ (17 rutas, incluida `/register/route/[slot]` dinámica)
+- `vitest` 12/12 ✅
 ### Fase 3 — Pesaje dinámico multi-registro (pendiente)
 ### Fase 4 — Sección de reportes semanales (pendiente)
 ### Fase 5 — Dashboard rediseñado con Recharts (pendiente)

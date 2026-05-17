@@ -1,39 +1,81 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { ROUTE_SLOTS } from '@/lib/constants'
-import { Card, CardContent } from '@/components/ui/card'
-import { Clock } from 'lucide-react'
+import { useStore } from '@/lib/store'
+import {
+  listActiveSessions,
+  routeSessionKey,
+  todayLocal,
+  type ActiveSession,
+} from '@/lib/active-session'
+import { RouteSlotCard, type RouteSlotStatus } from '@/components/register/route-slot-card'
+import type { RouteSlot } from '@/lib/types'
 
-export default function RegisterRoutePage() {
+interface SlotState {
+  status: RouteSlotStatus
+  startedAt?: string | null
+  completedAt?: string | null
+}
+
+export default function RegisterRoutesPage() {
+  const { routeEvents } = useStore()
+  const [today, setToday] = useState<string>(todayLocal)
+  const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
+
+  // Refresca la fecha cada minuto por si pasamos medianoche con la app abierta
+  useEffect(() => {
+    const interval = setInterval(() => setToday(todayLocal()), 60_000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Carga las sesiones activas desde IndexedDB (cronómetros persistentes)
+  useEffect(() => {
+    let cancelled = false
+    listActiveSessions('route').then((sessions) => {
+      if (!cancelled) setActiveSessions(sessions)
+    })
+    return () => { cancelled = true }
+  }, [today, routeEvents])
+
+  function computeStatus(slot: RouteSlot): SlotState {
+    const inProgressKey = routeSessionKey(today, slot)
+    const inProgressSession = activeSessions.find((s) => s.key === inProgressKey)
+    if (inProgressSession) {
+      return { status: 'in_progress', startedAt: inProgressSession.started_at }
+    }
+    const completed = routeEvents.find(
+      (r) => r.slot === slot && r.date === today && r.status === 'completed',
+    )
+    if (completed) {
+      return { status: 'completed', completedAt: completed.ended_at }
+    }
+    return { status: 'available' }
+  }
+
   return (
-    <div className="max-w-md mx-auto space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-slate-800">Recorridos</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          6 recorridos diarios con horario fijo. Selecciona un slot para iniciar el registro.
+    <div className="max-w-2xl mx-auto space-y-6">
+      <header>
+        <h1 className="text-2xl font-bold text-foreground">Recorridos</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          6 recorridos diarios con horario fijo. Una vez finalizada una ruta del día,
+          no se puede volver a iniciar hasta el día siguiente.
         </p>
-      </div>
+      </header>
 
-      <Card className="bg-amber-50 border-amber-200">
-        <CardContent className="pt-4 text-sm text-amber-800">
-          La pantalla completa con cronómetro persistente, bloqueo del formulario y
-          finalización confirmada se entrega en la Fase 2 del rediseño.
-        </CardContent>
-      </Card>
-
-      <div className="space-y-2">
-        {ROUTE_SLOTS.map((slot) => (
-          <div
-            key={slot.id}
-            className="flex items-center gap-3 p-4 rounded-lg border bg-white opacity-60"
-          >
-            <Clock className="h-5 w-5 text-slate-400" />
-            <div>
-              <p className="font-semibold text-slate-800">{slot.ordinal} ruta</p>
-              <p className="text-sm text-slate-500">{slot.shortLabel}</p>
-            </div>
-          </div>
-        ))}
+      <div className="space-y-3">
+        {ROUTE_SLOTS.map((slot) => {
+          const state = computeStatus(slot.id)
+          return (
+            <RouteSlotCard
+              key={slot.id}
+              slot={slot}
+              status={state.status}
+              startedAt={state.startedAt}
+              completedAt={state.completedAt}
+            />
+          )
+        })}
       </div>
     </div>
   )
