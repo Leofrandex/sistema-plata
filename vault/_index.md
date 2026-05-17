@@ -19,7 +19,7 @@ updated: 2026-05-17
 
 ## Estado actual del proyecto
 
-**Fase:** Rediseño operativo en curso — Fase 1/5 (modelo + rename) completada
+**Fase:** Rediseño operativo completado — 5/5 fases listas en rama `feat/recorridos-pesaje-reportes-dashboard`
 **Última reunión:** 2026-04-30 (Francesca Labella + Sebastian Castro)
 **Próxima reunión:** 2026-05-08 (viernes, 12pm Panamá)
 **Última actualización del vault:** 2026-05-17
@@ -35,7 +35,7 @@ updated: 2026-05-17
 | Memoria fotográfica | 🟢 | [[PhotoDocumentation]] |
 | Branding y sistema de diseño | 🟢 | [[Branding]] |
 | Cliente / Empresa / Recorrido | 🟢 | `decisions/2026-05-17-cliente-empresa-recorrido.md` |
-| Rediseño operativo (fases 2-5) | 🟡 En progreso | `logs/2026-05-17-recorridos-pesaje-reportes-dashboard.md` |
+| Rediseño operativo (5 fases) | 🟢 Completado | `logs/2026-05-17-recorridos-pesaje-reportes-dashboard.md` |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completo · ⚠️ Tiene incoherencias
 
@@ -73,9 +73,12 @@ updated: 2026-05-17
 
 ## Notas del último procesamiento
 
-**2026-05-17** — Rediseño operativo, Fase 1/5 completada.
-Cambios: (1) rename `intercambio → recorrido` (entidad `ExchangeEvent → RouteEvent` con campos de slot horario y cronómetro), (2) jerarquía nueva `Cliente → Empresa` con `Centro de la Salud` conteniendo `ION` y `Airkem`, (3) nomenclatura de envases pasa a `{letra_empresa}-NNN` (`I-001`, `A-001`), (4) eliminado el modelo `Batch`, (5) sidebar y reports incluyen entradas nuevas.
-Pendiente: Fases 2-5 (recorridos con cronómetro, pesaje multi-registro, sección de reportes, dashboard con gráficos).
+**2026-05-17** — Rediseño operativo completo (5 fases).
+- Fase 1: modelo Cliente→Empresa, rename `intercambio → recorrido`, eliminado `Batch`, nomenclatura `I-`/`A-`.
+- Fase 2: `/register/route` con 6 slots fijos y cronómetro persistente en IndexedDB.
+- Fase 3: `/register/weighing` multi-registro con drawer lateral editable.
+- Fase 4: `/reports` con PDF semanal por cliente (header tipo "REGISTRO FOTOGRÁFICO", grid 2-col de fotos con comentarios).
+- Fase 5: `/dashboard` con 3 gráficos Recharts (torta circulación, donut kg/día, barras kg/cliente/mes).
 Log: `logs/2026-05-17-recorridos-pesaje-reportes-dashboard.md`.
 
 **2026-05-12** — Tres cambios operativos.

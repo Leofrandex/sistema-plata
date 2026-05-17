@@ -1,29 +1,62 @@
 'use client'
 
 import { useMemo } from 'react'
-import { MetricsCards, computeDashboardMetrics } from '@/components/dashboard/metrics-cards'
 import { DashboardHero } from '@/components/dashboard/dashboard-hero'
+import { MetricsCards, computeDashboardMetrics } from '@/components/dashboard/metrics-cards'
+import { CirculationPieChart } from '@/components/dashboard/circulation-pie-chart'
+import { DailyKgDonut } from '@/components/dashboard/daily-kg-donut'
+import { MonthlyBarChart } from '@/components/dashboard/monthly-bar-chart'
+import {
+  computeCirculationBreakdown,
+  computeDailyKg,
+  computeMonthlyKgByClient,
+} from '@/lib/data/dashboard-metrics'
 import { useStore } from '@/lib/store'
 
 export default function DashboardPage() {
-  const { containers, routeEvents, storageEvents, treatmentRuns } = useStore()
+  const {
+    clients, companies, containers, routeEvents, receptions,
+    storageEvents, treatmentRuns, externalTransfers, locations,
+  } = useStore()
+
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
+  const month = today.slice(0, 7) // 'YYYY-MM'
 
   const metrics = useMemo(
     () => computeDashboardMetrics(containers, routeEvents, storageEvents, treatmentRuns),
-    [containers, routeEvents, storageEvents, treatmentRuns]
+    [containers, routeEvents, storageEvents, treatmentRuns],
+  )
+
+  const circulation = useMemo(
+    () => computeCirculationBreakdown({
+      containers, routeEvents, receptions, storageEvents, treatmentRuns, externalTransfers, locations,
+    }),
+    [containers, routeEvents, receptions, storageEvents, treatmentRuns, externalTransfers, locations],
+  )
+
+  const dailyKg = useMemo(
+    () => computeDailyKg({ containers, receptions, treatmentRuns }, today),
+    [containers, receptions, treatmentRuns, today],
+  )
+
+  const monthlyKg = useMemo(
+    () => computeMonthlyKgByClient({ clients, companies, containers, receptions, treatmentRuns }, month),
+    [clients, companies, containers, receptions, treatmentRuns, month],
   )
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-8">
       <DashboardHero />
       <MetricsCards metrics={metrics} />
 
-      <section className="rounded-xl bg-card p-8 text-center text-muted-foreground ring-1 ring-foreground/10">
-        <p className="text-sm">
-          El dashboard completo (gráficos de circulación, kg por día y por cliente)
-          se entrega en la Fase 5 del rediseño operativo.
-        </p>
-      </section>
+      {/* Fila 1: torta de circulación + donut kg/día (2 columnas en ≥lg) */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <CirculationPieChart data={circulation} />
+        <DailyKgDonut data={dailyKg} />
+      </div>
+
+      {/* Fila 2: barras kg/cliente/mes (ancho completo) */}
+      <MonthlyBarChart data={monthlyKg} month={month} />
     </div>
   )
 }

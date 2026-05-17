@@ -174,7 +174,58 @@ Cambios estructurales sin nueva UX:
 **Verificación Fase 4:**
 - `npm run build` ✅ (18 rutas incluyendo `/reports`)
 - `npm test:jest` ✅ 46/48 (8 nuevos pasan; los 2 fallidos siguen siendo pre-existentes button/input-field)
-### Fase 5 — Dashboard rediseñado con Recharts (pendiente)
+### Fase 5 — Dashboard rediseñado con Recharts (✅ completada)
+
+**Dependencia:**
+- `recharts@3.8.1` instalado.
+
+**Data layer (`src/lib/data/dashboard-metrics.ts`):**
+- `computeCirculationBreakdown(store)` — clasifica cada container activo en uno de 4 buckets (`en_planta`, `en_cliente`, `en_transito`, `sin_registro`) reutilizando `computeContainerPhase` + última `ContainerLocation`. Devuelve total + buckets con label/color.
+- `computeDailyKg(store, today)` — suma peso neto de receptions del día (received) y de treatments completados ese día (processed). pendingKg = max(0, received - processed).
+- `computeMonthlyKgByClient(store, month)` — para cada cliente devuelve `{receivedKg, processedKg}` agregando por mes a través de la cadena `container.company_id → company.client_id`. Mes en formato `YYYY-MM`.
+
+**Componentes de gráficos:**
+- `src/components/dashboard/circulation-pie-chart.tsx` — PieChart de Recharts con innerRadius para look de donut, total en el centro absolutely-positioned, leyenda lateral con %; tooltip custom con label + count + porcentaje. 4 colores: primary/accent/amber/emerald/slate.
+- `src/components/dashboard/daily-kg-donut.tsx` — donut procesado/pendiente, kg procesados en el centro + porcentaje; lista lateral con métricas tipo MetricRow (procesado/pendiente con íconos) y total recibido. Cuando no hay datos, dibuja un anillo gris para no romper la composición.
+- `src/components/dashboard/monthly-bar-chart.tsx` — BarChart agrupado con 2 series (Recibidos accent / Procesados emerald), grid cartesiano horizontal sutil, ejes minimalistas, tooltip custom con leyenda inline; cabecera con cards de totales (recibido/procesado). Formato del mes en español ("Mayo 2026").
+
+**Página `/dashboard` rediseñada:**
+- Layout: Hero → MetricsCards (KPIs numéricos heredados de Fase 1) → grid 2-col (PieChart + DailyKgDonut) en ≥lg → BarChart de ancho completo.
+- Memoización de las 3 métricas con `useMemo` para evitar recalcular en cada re-render.
+- En mobile, todas las secciones se apilan en columna sin overflow.
+
+**Tests:**
+- `src/__tests__/lib/dashboard-metrics.test.ts` — 6 tests cubriendo:
+  - `computeCirculationBreakdown` total + suma de buckets + clasificación de envases en planta
+  - `computeDailyKg` cálculo neto correcto (53.2 kg = (43.7-14.2)+(38.2-14.5)) y día vacío
+  - `computeMonthlyKgByClient` agrupación por cliente vía company y mes vacío
+
+**Decisiones:**
+- Colores ligados al branding system (primary `#0B1A48`, accent `#2A27E9`) + emerald/amber/slate para diferenciar series.
+- Recharts elegido sobre Tremor por flexibilidad: queríamos donut con total en el centro absolutely positioned, lo cual Tremor no expone limpiamente.
+- Tooltip 100% custom (no el default de Recharts) para mantener consistencia visual con el resto de la app.
+
+**Verificación Fase 5:**
+- `npm run build` ✅
+- `jest` 52/54 ✅ (6 nuevos pasan; 2 fallidos siguen pre-existentes)
+
+---
+
+## Fase final — estado entregado
+
+Todas las fases del rediseño operativo están completas en la rama
+`feat/recorridos-pesaje-reportes-dashboard`. Commits:
+
+1. `fd7e8e8` — Fase 1: modelo + rename + cleanup
+2. `2b98a7e` — Fase 2: recorridos con cronómetro persistente
+3. `7c33955` — Fase 3: pesaje multi-registro con drawer
+4. `9f3bab1` — Fase 4: reportes PDF semanales
+5. *(Fase 5: dashboard con Recharts — este commit)*
+
+Próximos pasos sugeridos (fuera del alcance de este rediseño):
+- Reemplazar `CompanyBadge` del PDF por logos oficiales cuando el cliente los provea (`public/logos/ion.png`, `airkem.png`).
+- Capturar el campo "Edificio" en algún flujo y exponerlo en el header del PDF (hoy queda como `—`).
+- Cuando exista backend, persistir las fotos del recorrido en cada update incremental del store en vez de solo al finalizar (hoy se pierden si la app se cierra a mitad de recorrido sin finalizar).
 
 ## Decisiones técnicas (Fase 1)
 
