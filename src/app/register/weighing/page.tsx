@@ -21,12 +21,12 @@ import {
   todayLocal,
   type ActiveSession,
 } from '@/lib/active-session'
-import type { WasteType } from '@/lib/types'
+import { getRouteEventIdsForContainer } from '@/lib/data/containers'
 
 export default function WeighingPage() {
   const router = useRouter()
   const {
-    clients, companies, containers, weighingSessions, receptions, photos,
+    clients, companies, containers, weighingSessions, receptions, routeEvents, photos,
     addWeighingSession, updateWeighingSession, deleteWeighingSession,
     addReception, updateReception,
     addPhoto, addStorageEvent, addLocation,
@@ -75,6 +75,15 @@ export default function WeighingPage() {
   const isRunning = !!activeSession
   const isEditing = editingReceptionId != null
   const elapsed = useElapsed(activeSession?.started_at ?? null)
+
+  // Envases disponibles para pesar = envases activos que fueron recogidos sucios
+  // en algún recorrido y aún no tienen reception persistido en el store.
+  const pesadosIds = new Set(receptions.map((r) => r.container_id))
+  const availableContainers = containers.filter((c) => {
+    if (c.status !== 'active') return false
+    if (pesadosIds.has(c.id)) return false
+    return getRouteEventIdsForContainer(routeEvents, c.id).length > 0
+  })
 
   function updateForm(updates: Partial<WeighingFormState>) {
     setFormState((prev) => ({ ...prev, ...updates }))
@@ -209,15 +218,12 @@ export default function WeighingPage() {
   function handleSelectForEdit(receptionId: string) {
     const r = receptions.find((rr) => rr.id === receptionId)
     if (!r) return
-    const container = containers.find((c) => c.id === r.container_id)
-    const wasteType: WasteType | '' = container?.waste_type ?? ''
 
     // Cargar las fotos existentes desde el store (sus dataURLs)
     const containerPhoto = photos.find((p) => p.id === r.photo_ids[0])?.url ?? null
     const scalePhoto = photos.find((p) => p.id === r.photo_ids[1])?.url ?? null
 
     setFormState({
-      waste_type: wasteType,
       container_id: r.container_id,
       photo_container: containerPhoto,
       photo_scale: scalePhoto,
@@ -376,7 +382,8 @@ export default function WeighingPage() {
       <WeighingForm
         state={formState}
         onChange={updateForm}
-        containers={containers}
+        availableContainers={availableContainers}
+        allContainers={containers}
         companies={companies}
         locked={!isRunning}
         mode={isEditing ? 'edit' : 'create'}

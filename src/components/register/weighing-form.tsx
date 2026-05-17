@@ -2,34 +2,33 @@
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PhotoCapture } from '@/components/register/photo-capture'
 import { cn } from '@/lib/utils'
 import { computeNetWeight } from '@/lib/data/containers'
 import type { Container, Company, WasteType } from '@/lib/types'
 
-const WASTE_OPTIONS: { value: WasteType; label: string }[] = [
-  { value: 'infectious', label: 'Peligroso infeccioso' },
-  { value: 'anatomopathological', label: 'Anatomopatológico' },
-  { value: 'cytotoxic', label: 'Citotóxico' },
-  { value: 'liquid', label: 'Líquidos' },
-  { value: 'morgue', label: 'Morgue' },
-]
+const WASTE_LABELS: Record<WasteType, string> = {
+  infectious: 'Peligroso infeccioso',
+  anatomopathological: 'Anatomopatológico',
+  cytotoxic: 'Citotóxico',
+  liquid: 'Líquidos',
+  morgue: 'Morgue',
+}
 
 /**
- * Estado de un envase pesado dentro de la sesión actual. Se puede crear nuevo
- * o cargar desde una `ContainerReception` ya persistida para editar.
+ * Estado de un envase pesado dentro de la sesión actual.
+ * El `waste_type` se deriva automáticamente del envase elegido (no se selecciona).
  */
 export interface WeighingFormState {
-  waste_type: WasteType | ''
   container_id: string
-  photo_container: string | null  // dataURL
-  photo_scale: string | null      // dataURL
+  photo_container: string | null
+  photo_scale: string | null
   gross_weight: string
 }
 
 export const EMPTY_WEIGHING_FORM: WeighingFormState = {
-  waste_type: '',
   container_id: '',
   photo_container: null,
   photo_scale: null,
@@ -39,11 +38,13 @@ export const EMPTY_WEIGHING_FORM: WeighingFormState = {
 interface Props {
   state: WeighingFormState
   onChange: (updates: Partial<WeighingFormState>) => void
-  containers: Container[]
+  /** Lista de envases que aparecen en el dropdown (ya filtrada por el padre). */
+  availableContainers: Container[]
+  /** Lista completa para resolver datos del envase si se está editando uno ya pesado. */
+  allContainers: Container[]
   companies: Company[]
-  /** Cuando true: el formulario está atenuado y no es editable. */
+  /** Cuando true: form atenuado y no editable. */
   locked: boolean
-  /** 'create' = botón "Guardar y agregar otro"; 'edit' = "Guardar cambios" + "Cancelar". */
   mode: 'create' | 'edit'
   onSubmit: () => void
   onCancelEdit?: () => void
@@ -53,7 +54,8 @@ interface Props {
 export function WeighingForm({
   state,
   onChange,
-  containers,
+  availableContainers,
+  allContainers,
   companies,
   locked,
   mode,
@@ -61,13 +63,16 @@ export function WeighingForm({
   onCancelEdit,
   onDelete,
 }: Props) {
-  // Solo envases activos cuyo waste_type coincide con el seleccionado
-  const filteredContainers = state.waste_type
-    ? containers.filter((c) => c.status === 'active' && c.waste_type === state.waste_type)
-    : containers.filter((c) => c.status === 'active')
-
-  const selectedContainer = containers.find((c) => c.id === state.container_id) ?? null
   const companyMap = Object.fromEntries(companies.map((c) => [c.id, c.name]))
+  const selectedContainer = allContainers.find((c) => c.id === state.container_id) ?? null
+
+  // En modo edit, el envase actualmente cargado puede no estar en
+  // availableContainers (porque ya tiene reception). Lo agregamos al inicio
+  // para que siga visible y editable.
+  const dropdownContainers =
+    mode === 'edit' && selectedContainer && !availableContainers.some((c) => c.id === selectedContainer.id)
+      ? [selectedContainer, ...availableContainers]
+      : availableContainers
 
   const grossWeight = parseFloat(state.gross_weight)
   const hasValidWeight =
@@ -77,21 +82,10 @@ export function WeighingForm({
     grossWeight > selectedContainer.tare_weight_kg
 
   const canSubmit =
-    !!state.waste_type &&
     !!state.container_id &&
     !!state.photo_container &&
     !!state.photo_scale &&
     hasValidWeight
-
-  function handleWasteTypeChange(value: string | null) {
-    const newType = (value || '') as WasteType | ''
-    // Si el tipo cambia, reset container_id si ya no matcha
-    if (selectedContainer && selectedContainer.waste_type !== newType) {
-      onChange({ waste_type: newType, container_id: '' })
-    } else {
-      onChange({ waste_type: newType })
-    }
-  }
 
   return (
     <div
@@ -101,23 +95,6 @@ export function WeighingForm({
       )}
       aria-disabled={locked}
     >
-      {/* Tipo de desecho */}
-      <div className="space-y-1.5">
-        <label className="text-sm font-medium text-foreground">
-          Tipo de desecho <span className="text-red-500">*</span>
-        </label>
-        <Select value={state.waste_type} onValueChange={handleWasteTypeChange}>
-          <SelectTrigger>
-            <SelectValue placeholder="Seleccionar tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            {WASTE_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
       {/* Envase */}
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-foreground">
@@ -126,23 +103,40 @@ export function WeighingForm({
         <Select
           value={state.container_id}
           onValueChange={(v) => onChange({ container_id: v ?? '' })}
-          disabled={!state.waste_type}
         >
           <SelectTrigger>
-            <SelectValue placeholder={state.waste_type ? 'Seleccionar envase' : 'Primero elige el tipo de desecho'} />
+            <SelectValue placeholder={
+              dropdownContainers.length === 0
+                ? 'No hay envases pendientes de pesar'
+                : 'Seleccionar envase'
+            } />
           </SelectTrigger>
           <SelectContent>
-            {filteredContainers.map((c) => (
+            {dropdownContainers.map((c) => (
               <SelectItem key={c.id} value={c.id}>
                 {c.id} — {companyMap[c.company_id] ?? '—'} · {c.size_liters} L
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        {selectedContainer && (
-          <p className="text-xs text-muted-foreground">
-            Tara: <strong>{selectedContainer.tare_weight_kg} kg</strong>
+        {dropdownContainers.length === 0 && mode === 'create' && (
+          <p className="text-xs text-amber-700">
+            No hay envases sucios recogidos pendientes de pesar. Registrá un
+            recorrido primero para que aparezcan envases acá.
           </p>
+        )}
+        {selectedContainer && (
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <Badge variant="outline" className="font-normal">
+              Tipo: <strong className="ml-1 font-semibold">{WASTE_LABELS[selectedContainer.waste_type]}</strong>
+            </Badge>
+            <Badge variant="outline" className="font-normal">
+              Tara: <strong className="ml-1 font-semibold">{selectedContainer.tare_weight_kg} kg</strong>
+            </Badge>
+            <Badge variant="outline" className="font-normal">
+              Tamaño: <strong className="ml-1 font-semibold">{selectedContainer.size_liters} L</strong>
+            </Badge>
+          </div>
         )}
       </div>
 
