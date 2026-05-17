@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Play, StopCircle, AlertCircle } from 'lucide-react'
+import { Play, StopCircle, AlertCircle, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -27,7 +27,7 @@ export default function WeighingPage() {
   const router = useRouter()
   const {
     clients, companies, containers, weighingSessions, receptions, photos,
-    addWeighingSession, updateWeighingSession,
+    addWeighingSession, updateWeighingSession, deleteWeighingSession,
     addReception, updateReception,
     addPhoto, addStorageEvent, addLocation,
   } = useStore()
@@ -38,6 +38,7 @@ export default function WeighingPage() {
   const [editingReceptionId, setEditingReceptionId] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [confirmingFinish, setConfirmingFinish] = useState(false)
+  const [confirmingCancel, setConfirmingCancel] = useState(false)
   const [formState, setFormState] = useState<WeighingFormState>(EMPTY_WEIGHING_FORM)
 
   const client = clients[0]
@@ -241,6 +242,17 @@ export default function WeighingPage() {
     resetForm()
   }
 
+  async function handleCancel() {
+    if (!activeSession || activeSession.context.type !== 'weighing') return
+    const ctx = activeSession.context
+    // Borra sesión + receptions + fotos de la sesión
+    deleteWeighingSession(ctx.weighing_session_id)
+    await endSession(activeSession.key)
+    setActiveSession(null)
+    resetForm()
+    router.push('/dashboard')
+  }
+
   async function handleFinish() {
     if (!activeSession || activeSession.context.type !== 'weighing' || !session) return
     const ctx = activeSession.context
@@ -318,15 +330,24 @@ export default function WeighingPage() {
                 {sessionReceptions.length} envase{sessionReceptions.length !== 1 ? 's' : ''} registrado{sessionReceptions.length !== 1 ? 's' : ''}
               </p>
             </div>
-            <Button
-              variant="destructive"
-              onClick={() => setConfirmingFinish(true)}
-              disabled={sessionReceptions.length === 0}
-              className="gap-2 shrink-0"
-            >
-              <StopCircle className="h-4 w-4" />
-              Finalizar pesaje
-            </Button>
+            <div className="flex gap-2 shrink-0 flex-wrap justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setConfirmingCancel(true)}
+                className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+              >
+                <X className="h-4 w-4" />
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => setConfirmingFinish(true)}
+                disabled={sessionReceptions.length === 0}
+                className="gap-2"
+              >
+                <StopCircle className="h-4 w-4" />
+                Finalizar pesaje
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (
@@ -374,7 +395,7 @@ export default function WeighingPage() {
         onSelectReception={handleSelectForEdit}
       />
 
-      {/* Dialog de confirmación */}
+      {/* Dialog de confirmación de finalización */}
       {confirmingFinish && (
         <ConfirmFinishDialog
           count={sessionReceptions.length}
@@ -383,6 +404,18 @@ export default function WeighingPage() {
           onConfirm={async () => {
             setConfirmingFinish(false)
             await handleFinish()
+          }}
+        />
+      )}
+
+      {/* Dialog de confirmación de cancelación (destructiva) */}
+      {confirmingCancel && (
+        <ConfirmCancelDialog
+          count={sessionReceptions.length}
+          onCancel={() => setConfirmingCancel(false)}
+          onConfirm={async () => {
+            setConfirmingCancel(false)
+            await handleCancel()
           }}
         />
       )}
@@ -395,6 +428,48 @@ interface DialogProps {
   elapsed: number
   onCancel: () => void
   onConfirm: () => void
+}
+
+interface CancelDialogProps {
+  count: number
+  onCancel: () => void
+  onConfirm: () => void
+}
+
+function ConfirmCancelDialog({ count, onCancel, onConfirm }: CancelDialogProps) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4"
+      onClick={onCancel}
+    >
+      <div
+        className="bg-card rounded-xl ring-1 ring-red-200 p-6 max-w-sm w-full space-y-4 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-700">
+            <X className="h-5 w-5" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-base font-semibold text-foreground">¿Cancelar la sesión de pesaje?</h2>
+            <p className="text-sm text-muted-foreground">
+              Esta acción <strong className="text-red-700">descarta</strong> la sesión y
+              los {count} envase{count !== 1 ? 's' : ''} ya registrado{count !== 1 ? 's' : ''},
+              incluyendo sus fotos. Los envases no pasarán a cámara fría.
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-3 justify-end">
+          <Button variant="outline" onClick={onCancel}>Seguir pesando</Button>
+          <Button onClick={onConfirm} className="bg-red-600 hover:bg-red-700 text-white">
+            Sí, cancelar
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function ConfirmFinishDialog({ count, elapsed, onCancel, onConfirm }: DialogProps) {

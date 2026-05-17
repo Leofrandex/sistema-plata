@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from 'react'
 import { notFound, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Play, StopCircle, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Play, StopCircle, AlertCircle, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { RouteForm, type RouteFormState } from '@/components/register/route-form'
@@ -35,7 +35,8 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   const slot = getRouteSlotDefinition(slotId)
   const router = useRouter()
   const {
-    clients, companies, containers, routeEvents, addRouteEvent, updateRouteEvent, addPhoto,
+    clients, companies, containers, routeEvents,
+    addRouteEvent, updateRouteEvent, deleteRouteEvent, addPhoto,
   } = useStore()
 
   const [today] = useState<string>(todayLocal)
@@ -49,6 +50,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     photos: [],
   })
   const [confirmingFinish, setConfirmingFinish] = useState(false)
+  const [confirmingCancel, setConfirmingCancel] = useState(false)
 
   // Cliente: por ahora tomamos el primero (Centro de la Salud).
   const client = clients[0]
@@ -145,6 +147,18 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     setActiveSession(session)
   }
 
+  async function handleCancel() {
+    if (!activeSession || activeSession.context.type !== 'route') return
+    const ctx = activeSession.context
+    // Borrar el RouteEvent del store (también limpia sus fotos persistidas)
+    deleteRouteEvent(ctx.route_event_id)
+    // Borrar la ActiveSession de IndexedDB
+    await endSession(activeSession.key)
+    setActiveSession(null)
+    setFormState({ containerIds: [], floor: '', area: '', dock: '', photos: [] })
+    router.push('/register/route')
+  }
+
   async function handleFinish() {
     if (!activeSession || activeSession.context.type !== 'route') return
     const now = new Date().toISOString()
@@ -233,20 +247,29 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       {/* Banner de estado */}
       {isRunning ? (
         <Card className="bg-accent/5 border-accent/30">
-          <CardContent className="pt-4 flex items-center justify-between gap-4">
+          <CardContent className="pt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-accent">Recorrido en curso</p>
               <p className="text-3xl font-bold tabular-nums text-foreground mt-1">{formatElapsed(elapsed)}</p>
             </div>
-            <Button
-              variant="destructive"
-              onClick={() => setConfirmingFinish(true)}
-              disabled={!canFinish}
-              className="gap-2"
-            >
-              <StopCircle className="h-4 w-4" />
-              Finalizar
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setConfirmingCancel(true)}
+                className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+              >
+                <X className="h-4 w-4" />
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => setConfirmingFinish(true)}
+                disabled={!canFinish}
+                className="gap-2"
+              >
+                <StopCircle className="h-4 w-4" />
+                Finalizar
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (
@@ -287,6 +310,17 @@ export default function RegisterRouteSlotPage({ params }: Props) {
           }}
         />
       )}
+
+      {/* Modal de confirmación de cancelación (destructiva) */}
+      {confirmingCancel && (
+        <ConfirmCancelDialog
+          onCancel={() => setConfirmingCancel(false)}
+          onConfirm={async () => {
+            setConfirmingCancel(false)
+            await handleCancel()
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -313,6 +347,50 @@ interface DialogProps {
   elapsed: number
   onCancel: () => void
   onConfirm: () => void
+}
+
+interface CancelDialogProps {
+  onCancel: () => void
+  onConfirm: () => void
+}
+
+function ConfirmCancelDialog({ onCancel, onConfirm }: CancelDialogProps) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4"
+      onClick={onCancel}
+    >
+      <div
+        className="bg-card rounded-xl ring-1 ring-red-200 p-6 max-w-sm w-full space-y-4 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-700">
+            <X className="h-5 w-5" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-base font-semibold text-foreground">¿Cancelar el recorrido?</h2>
+            <p className="text-sm text-muted-foreground">
+              Esta acción <strong className="text-red-700">descarta</strong> todos los datos
+              ingresados durante el recorrido (envases, ubicación, fotos). El slot vuelve a
+              quedar disponible para iniciar.
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-3 justify-end">
+          <Button variant="outline" onClick={onCancel}>Seguir registrando</Button>
+          <Button
+            onClick={onConfirm}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            Sí, cancelar
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function ConfirmFinishDialog({ containerCount, photoCount, elapsed, onCancel, onConfirm }: DialogProps) {

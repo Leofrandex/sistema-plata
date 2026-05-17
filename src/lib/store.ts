@@ -55,10 +55,13 @@ interface HospiwasteStore {
   // Recorridos
   addRouteEvent: (event: RouteEvent) => void
   updateRouteEvent: (id: string, updates: Partial<RouteEvent>) => void
+  deleteRouteEvent: (id: string) => void
 
   // Sesiones de pesaje y receptions
   addWeighingSession: (session: WeighingSession) => void
   updateWeighingSession: (id: string, updates: Partial<WeighingSession>) => void
+  /** Borra una sesión y todas sus receptions y fotos asociadas. */
+  deleteWeighingSession: (id: string) => void
   addReception: (reception: ContainerReception) => void
   updateReception: (id: string, updates: Partial<ContainerReception>) => void
 
@@ -116,6 +119,17 @@ export const useStore = create<HospiwasteStore>((set) => ({
       routeEvents: s.routeEvents.map((r) => (r.id === id ? { ...r, ...updates } : r)),
     })),
 
+  deleteRouteEvent: (id) =>
+    set((s) => {
+      const event = s.routeEvents.find((r) => r.id === id)
+      if (!event) return s
+      const photoIds = new Set(event.photo_ids)
+      return {
+        routeEvents: s.routeEvents.filter((r) => r.id !== id),
+        photos: s.photos.filter((p) => !photoIds.has(p.id)),
+      }
+    }),
+
   addWeighingSession: (session) =>
     set((s) => ({ weighingSessions: [...s.weighingSessions, session] })),
 
@@ -125,6 +139,24 @@ export const useStore = create<HospiwasteStore>((set) => ({
         w.id === id ? { ...w, ...updates } : w
       ),
     })),
+
+  deleteWeighingSession: (id) =>
+    set((s) => {
+      const session = s.weighingSessions.find((w) => w.id === id)
+      if (!session) return s
+      const receptionIds = new Set(session.reception_ids)
+      const receptions = s.receptions.filter((r) => !receptionIds.has(r.id))
+      const droppedPhotoIds = new Set(
+        s.receptions
+          .filter((r) => receptionIds.has(r.id))
+          .flatMap((r) => r.photo_ids),
+      )
+      return {
+        weighingSessions: s.weighingSessions.filter((w) => w.id !== id),
+        receptions,
+        photos: s.photos.filter((p) => !droppedPhotoIds.has(p.id)),
+      }
+    }),
 
   addReception: (reception) =>
     set((s) => ({ receptions: [...s.receptions, reception] })),
