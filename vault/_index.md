@@ -3,11 +3,14 @@ title: Índice del Vault — Hospimed Waste Tracking
 tags:
   - index
   - meta
-updated: 2026-05-12
+updated: 2026-05-17
 ---
 
 > [!info] Nota de marca (2026-05-12)
 > El **producto** pasó a llamarse **Hospiwaste**. Este vault conserva la denominación original "Hospimed" como historial; el código, PWA, login y reportes ya reflejan "Hospiwaste". Ver log `2026-05-12-rename-hospiwaste-cold-storage-auto-transfer-multi.md`.
+
+> [!info] Nota de modelo (2026-05-17)
+> Rediseño operativo en curso: rename **intercambio → recorrido**, jerarquía **Cliente → Empresa**, nomenclatura **`{letra_empresa}-NNN`** (`I-`/`A-`). Se elimina la entidad `Batch`. Ver log `2026-05-17-recorridos-pesaje-reportes-dashboard.md` y ADR `decisions/2026-05-17-cliente-empresa-recorrido.md`.
 
 # Vault Index — Sistema de Trazabilidad de Desechos Clínicos
 
@@ -16,22 +19,23 @@ updated: 2026-05-12
 
 ## Estado actual del proyecto
 
-**Fase:** Pre-desarrollo — dominio definido, stack pendiente, código sin escribir  
-**Última reunión:** 2026-04-30 (Francesca Labella + Sebastian Castro)  
-**Próxima reunión:** 2026-05-08 (viernes, 12pm Panamá) — revisión de avance del sistema de desechos  
-**Última actualización del vault:** 2026-05-03
+**Fase:** Rediseño operativo en curso — Fase 1/5 (modelo + rename) completada
+**Última reunión:** 2026-04-30 (Francesca Labella + Sebastian Castro)
+**Próxima reunión:** 2026-05-08 (viernes, 12pm Panamá)
+**Última actualización del vault:** 2026-05-17
 
 | Área | Estado | Archivo |
 |------|--------|---------|
 | Descripción del negocio y stakeholders | 🟢 | [[Overview]] |
 | Stack y arquitectura | 🟢 | [[Architecture]] |
-| Modelo de datos conceptual | 🟢 | [[DataModel]] |
+| Modelo de datos | 🟢 | [[DataModel]] |
 | Roadmap de módulos | 🟢 | [[Roadmap]] |
 | Tipos de desecho | 🟢 | [[WasteTypes]] |
 | Ciclo de vida del contenedor | 🟢 | [[ContainerLifecycle]] |
 | Memoria fotográfica | 🟢 | [[PhotoDocumentation]] |
 | Branding y sistema de diseño | 🟢 | [[Branding]] |
-| Decisiones de diseño | 🟡 En progreso | `decisions/` — border-radius global (2026-05-03) |
+| Cliente / Empresa / Recorrido | 🟢 | `decisions/2026-05-17-cliente-empresa-recorrido.md` |
+| Rediseño operativo (fases 2-5) | 🟡 En progreso | `logs/2026-05-17-recorridos-pesaje-reportes-dashboard.md` |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completo · ⚠️ Tiene incoherencias
 
@@ -41,27 +45,25 @@ updated: 2026-05-12
 
 ### Proyecto
 - [[Overview]] — empresa, problema, stakeholders, alcance, contexto regulatorio
-- [[Architecture]] — stack técnico, patrones, convenciones *(pendiente de definir)*
-- [[DataModel]] — entidades principales, relaciones, campos clave
+- [[Architecture]] — stack técnico, patrones, convenciones
+- [[DataModel]] — entidades principales, relaciones, campos clave (Cliente/Empresa/Recorrido)
 - [[Roadmap]] — módulos planificados, prioridades, estado
-- [[Branding]] — colores, tipografía, componentes base, tokens CSS *(3 incoherencias pendientes de confirmar)*
+- [[Branding]] — colores, tipografía, componentes base, tokens CSS
 
 ### Procesos de negocio
 - [[WasteTypes]] — los 5 tipos de desecho y su tratamiento diferenciado
 - [[ContainerLifecycle]] — ciclo completo del contenedor desde alta hasta lavado
-- [[PhotoDocumentation]] — requisito regulatorio: memoria fotográfica diaria
-
-### Módulos del sistema
-*(Se crean cuando empiece el desarrollo)*
-
-### Tipos y modelos TypeScript
-*(Se crean cuando se defina el stack)*
+- [[PhotoDocumentation]] — requisito regulatorio: registro fotográfico semanal por cliente
 
 ### Decisiones de diseño
-*(Se crean cuando se tomen decisiones no obvias)*
+- `decisions/2026-05-03-border-radius-global.md`
+- `decisions/2026-05-17-cliente-empresa-recorrido.md`
 
 ### Logs de cambios
-*(Se crean al completar features)*
+- `logs/2026-05-03-branding-system.md`
+- `logs/2026-05-05-dashboard-containers-polish.md`
+- `logs/2026-05-12-rename-hospiwaste-cold-storage-auto-transfer-multi.md`
+- `logs/2026-05-17-recorridos-pesaje-reportes-dashboard.md`
 
 ---
 
@@ -71,22 +73,23 @@ updated: 2026-05-12
 
 ## Notas del último procesamiento
 
+**2026-05-17** — Rediseño operativo, Fase 1/5 completada.
+Cambios: (1) rename `intercambio → recorrido` (entidad `ExchangeEvent → RouteEvent` con campos de slot horario y cronómetro), (2) jerarquía nueva `Cliente → Empresa` con `Centro de la Salud` conteniendo `ION` y `Airkem`, (3) nomenclatura de envases pasa a `{letra_empresa}-NNN` (`I-001`, `A-001`), (4) eliminado el modelo `Batch`, (5) sidebar y reports incluyen entradas nuevas.
+Pendiente: Fases 2-5 (recorridos con cronómetro, pesaje multi-registro, sección de reportes, dashboard con gráficos).
+Log: `logs/2026-05-17-recorridos-pesaje-reportes-dashboard.md`.
+
 **2026-05-12** — Tres cambios operativos.
 (1) Rename de marca Hospimed → Hospiwaste en código, PWA, login, reportes PDF y CLAUDE.md (vault y docs/specs|plans/ quedan como historial).
 (2) Eliminado el paso manual de cámara fría: tras pesar, el envase entra automáticamente al estado `cold_storage` sin foto ni formulario.
-(3) Traslado externo ahora acepta selección múltiple acumulativa (mismo patrón que intercambio).
+(3) Traslado externo ahora acepta selección múltiple acumulativa.
 Log: `logs/2026-05-12-rename-hospiwaste-cold-storage-auto-transfer-multi.md`.
 
 **2026-05-05** — Polish de Dashboard y Inventario de Envases.
-Filas de envase clickeables en su totalidad, filtros con labels, dashboard de lotes unificado a ancho completo, hero decorativo y KPI cards renovadas. Mejoras a11y (aria-labelledby en Selects, aria-hidden en íconos decorativos, role=radiogroup en segmented control).
 Log: `logs/2026-05-05-dashboard-containers-polish.md`.
 
-**2026-05-03** — Procesado `inbox/branding.json` (datos de branding extraídos de hospimed.com.pa).  
-Archivos creados: `Branding.md`.  
-3 incoherencias detectadas (textPrimary, escala tipográfica, border-radius botón secundario) — pendientes de confirmar con Sebastian.  
-Archivo movido a `inbox/procesado/`.
+**2026-05-03** — Procesado `inbox/branding.json` (datos de branding).
+Archivos creados: `Branding.md`. Archivo movido a `inbox/procesado/`.
 
-**2026-05-02** — Procesado transcript de reunión `2026-04-30` (Francesca Labella + Sebastian Castro).  
-Archivos actualizados: `Overview`, `DataModel`, `Roadmap`.  
-Archivos creados: `WasteTypes`, `ContainerLifecycle`, `PhotoDocumentation`.  
-Transcript archivado en `inbox/procesado/`.
+**2026-05-02** — Procesado transcript de reunión 2026-04-30.
+Archivos actualizados: `Overview`, `DataModel`, `Roadmap`.
+Archivos creados: `WasteTypes`, `ContainerLifecycle`, `PhotoDocumentation`.

@@ -11,7 +11,7 @@ import { PhaseMetrics } from '@/components/containers/phase-metrics'
 import { LocationHistory } from '@/components/containers/location-history'
 import { PhasePhotoGallery } from '@/components/containers/phase-photo-gallery'
 import { useStore } from '@/lib/store'
-import { buildContainerWithPhase } from '@/lib/data/containers'
+import { buildContainerWithPhase, getRouteEventIdsForContainer } from '@/lib/data/containers'
 
 const WASTE_TYPE_LABELS: Record<string, string> = {
   infectious: 'Peligroso infeccioso',
@@ -28,18 +28,17 @@ interface Props {
 export default function ContainerDetailPage({ params }: Props) {
   const { id } = use(params)
   const {
-    containers, clients, exchangeEvents, receptions,
+    containers, clients, companies, routeEvents, receptions,
     storageEvents, treatmentRuns, externalTransfers, locations, photos,
   } = useStore()
 
   const container = containers.find((c) => c.id === id)
   if (!container) notFound()
 
-  const client = clients.find((c) => c.id === container.client_id)!
+  const company = companies.find((c) => c.id === container.company_id)
+  const client = company ? clients.find((c) => c.id === company.client_id) : undefined
 
-  const exchangeIds = exchangeEvents
-    .filter((e) => e.dirty_containers_received.includes(container.id))
-    .map((e) => e.id)
+  const routeIds = getRouteEventIdsForContainer(routeEvents, container.id)
 
   const reception = useMemo(() => {
     return [...receptions]
@@ -65,14 +64,12 @@ export default function ContainerDetailPage({ params }: Props) {
   )
 
   const containerWithPhase = buildContainerWithPhase(
-    container, exchangeIds, reception, storage, treatment, containerLocations
+    container, routeIds, reception, storage, treatment, containerLocations
   )
 
   const containerPhotoIds = [
-    ...(exchangeEvents.flatMap((e) => {
-      if (e.dirty_containers_received.includes(container.id) || e.clean_containers_given.includes(container.id)) {
-        return e.photo_ids
-      }
+    ...(routeEvents.flatMap((e) => {
+      if (e.containers_exchanged.includes(container.id)) return e.photo_ids
       return []
     })),
     ...(reception?.photo_ids ?? []),
@@ -92,7 +89,9 @@ export default function ContainerDetailPage({ params }: Props) {
         </Link>
         <div>
           <h1 className="text-xl font-bold font-mono text-slate-800">{container.id}</h1>
-          <p className="text-sm text-slate-500">{client.name}</p>
+          <p className="text-sm text-slate-500">
+            {company?.name ?? '—'} · {client?.name ?? '—'}
+          </p>
         </div>
       </div>
 
@@ -107,8 +106,12 @@ export default function ContainerDetailPage({ params }: Props) {
               <dd className="font-mono font-semibold">{container.id}</dd>
             </div>
             <div>
+              <dt className="text-slate-500">Empresa</dt>
+              <dd className="font-medium">{company?.name ?? '—'}</dd>
+            </div>
+            <div>
               <dt className="text-slate-500">Cliente</dt>
-              <dd className="font-medium">{client.name}</dd>
+              <dd className="font-medium">{client?.name ?? '—'}</dd>
             </div>
             <div>
               <dt className="text-slate-500">Tipo de desecho</dt>
@@ -124,7 +127,7 @@ export default function ContainerDetailPage({ params }: Props) {
             </div>
             {containerWithPhase.latest_net_weight_kg !== null && (
               <div>
-                <dt className="text-slate-500">Peso neto (último lote)</dt>
+                <dt className="text-slate-500">Peso neto (último)</dt>
                 <dd className="font-semibold text-slate-800">{containerWithPhase.latest_net_weight_kg} kg</dd>
               </div>
             )}

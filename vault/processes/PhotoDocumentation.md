@@ -5,44 +5,41 @@ tags:
   - domain
   - reports
   - regulatory
-updated: 2026-05-02
+updated: 2026-05-17
 ---
 
 # Memoria Fotográfica (Informe Fotográfico)
 
 ## Qué es
 
-Un informe diario por contenedor que demuestra regulatoriamente que cada envase fue recibido, pesado y tratado. Es **obligatorio por regulación**. Sin él, Hospimed no puede demostrar el procesamiento correcto.
+Un informe **semanal por cliente** que demuestra regulatoriamente que cada envase fue recogido, pesado y tratado durante esa semana. Es **obligatorio por regulación**. Sin él, Hospiwaste no puede demostrar el procesamiento correcto.
 
-Hoy se arma **manualmente** (foto por foto en una app → ensamblar PDF). Con ~300 contenedores/día, esto es extremadamente tedioso.
+Históricamente se armaba **manualmente** (foto por foto en una app → ensamblar PDF). El módulo de `/reports` lo genera automáticamente desde lunes 00:00 hasta el momento de la consulta.
 
 ## Objetivo del sistema
 
-El operador toma las fotos durante el proceso → el sistema las almacena automáticamente → el informe se **genera con un clic**.
+El operador toma las fotos durante el proceso → el sistema las almacena automáticamente → el informe se **genera con un clic** seleccionando el cliente.
 
 ## Fotos requeridas por etapa
 
 | Etapa | Fotos necesarias |
 |-------|-----------------|
-| Intercambio en punto de encuentro | Foto del contenedor limpio entregado + foto del contenedor sucio recibido |
+| Recorrido en punto de encuentro | Fotos ilimitadas del intercambio limpio/sucio |
 | Pesaje en planta | Foto del envase (número visible) + foto de la balanza mostrando el peso |
 
 El informe incluye también los datos del envase: número, cliente, fecha, hora, tara, peso bruto, peso neto.
 
-## Formato actual del informe
+## Formato del informe
 
-Cada página del informe corresponde a un envase. Contiene:
-- Fecha y hora
-- Identificación de la operación (ej: PTDP, Ciudad de la Salud)
-- Número de contenedor
-- Tara / peso bruto / peso neto
-- Fotos de evidencia
-
-La longitud del informe es proporcional a la cantidad de contenedores del día. Un cliente con 300 contenedores genera un informe muy extenso.
+Layout replicado de los reportes históricos del cliente:
+- **Header** por página: logo de la Empresa (ION / Airkem) a la izquierda, título "REGISTRO FOTOGRÁFICO" centrado, tabla con `Edificio`, `Ubicación`, `Fecha` a la derecha.
+- **Body**: grid de 2 columnas × N filas de fotos. Cada foto con caja "Comentario:" debajo (número de envase, hora, y texto libre opcional).
+- **Orden**: por etapa (recorrido → pesaje) y dentro de cada etapa, por empresa (ION → Airkem). Cada cambio de etapa o empresa empieza página nueva.
+- **Rango**: lunes 00:00 → hoy 23:59 (el viernes cubre la semana completa).
 
 ## Nomenclatura en las fotos
 
-Actualmente las fotos se marcan con: `[fecha] [hora] [código operación] [cliente]`. Ejemplo: `01/03/2026 09:40 PM PTDP Ciudad Salud`.
+Las fotos se marcan con: `[código operación] [cliente] [fecha] [hora]`. Ejemplo: `PTDP Centro Salud 17/05/2026 09:40 AM`.
 
 ## Peso neto = lo que se factura
 

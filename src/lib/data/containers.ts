@@ -7,6 +7,7 @@ import type {
   StorageEvent,
   TreatmentRun,
   ExternalTransfer,
+  RouteEvent,
 } from '@/lib/types'
 
 export function computeNetWeight(
@@ -25,30 +26,33 @@ export function getContainerCurrentLocation(
   )[0]
 }
 
-// Determines which phase a container is currently in.
-// exchangeEventIds: IDs of ExchangeEvents where this container appears in dirty_containers_received.
+// Determina la fase actual del envase en su ciclo de vida.
+// routeEventIds: IDs de RouteEvents donde el envase aparece en containers_exchanged.
+// Si tiene recorrido pero no recepción → 'route'
+// Si tiene recepción pero no entró a cámara fría → 'weighing'
+// Si está en cámara fría sin salir → 'cold_storage'
+// Si tiene tratamiento/traslado activo → 'treatment' o 'transfer'
+// Si todo está cerrado → 'clean'
 export function computeContainerPhase(
-  exchangeEventIds: string[],
+  routeEventIds: string[],
   reception: ContainerReception | null,
   storage: StorageEvent | null,
   treatmentOrTransfer: TreatmentRun | ExternalTransfer | null
 ): ContainerPhase {
-  if (!reception && exchangeEventIds.length === 0) return 'clean'
-  if (!reception) return 'exchange'
+  if (!reception && routeEventIds.length === 0) return 'clean'
+  if (!reception) return 'route'
   if (!storage) return 'weighing'
   if (!storage.exit_at) return 'cold_storage'
-  if (!treatmentOrTransfer) return 'cold_storage' // exited storage but no treatment yet
+  if (!treatmentOrTransfer) return 'cold_storage'
   if ('completed_at' in treatmentOrTransfer) {
-    // TreatmentRun
     return treatmentOrTransfer.completed_at ? 'clean' : 'treatment'
   }
-  // ExternalTransfer
   return (treatmentOrTransfer as ExternalTransfer).transferred_at ? 'clean' : 'transfer'
 }
 
 export function buildContainerWithPhase(
   container: Container,
-  exchangeEventIds: string[],
+  routeEventIds: string[],
   reception: ContainerReception | null,
   storage: StorageEvent | null,
   treatmentOrTransfer: TreatmentRun | ExternalTransfer | null,
@@ -56,10 +60,20 @@ export function buildContainerWithPhase(
 ): ContainerWithPhase {
   return {
     ...container,
-    current_phase: computeContainerPhase(exchangeEventIds, reception, storage, treatmentOrTransfer),
+    current_phase: computeContainerPhase(routeEventIds, reception, storage, treatmentOrTransfer),
     current_location: getContainerCurrentLocation(locations),
     latest_net_weight_kg: reception
       ? computeNetWeight(reception.gross_weight_kg, container.tare_weight_kg)
       : null,
   }
+}
+
+// Ayudante: obtiene los IDs de RouteEvents donde aparece un envase.
+export function getRouteEventIdsForContainer(
+  routeEvents: RouteEvent[],
+  containerId: string
+): string[] {
+  return routeEvents
+    .filter((r) => r.containers_exchanged.includes(containerId))
+    .map((r) => r.id)
 }

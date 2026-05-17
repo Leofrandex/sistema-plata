@@ -2,7 +2,7 @@ import Image from 'next/image'
 import type { Photo, PhotoEventType } from '@/lib/types'
 
 const SECTION_LABELS: Record<PhotoEventType, string> = {
-  exchange: 'Intercambio en punto de encuentro',
+  route: 'Recorrido en punto de encuentro',
   weighing: 'Pesaje en planta',
   storage: 'Cámara fría',
   treatment: 'Tratamiento',

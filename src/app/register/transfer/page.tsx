@@ -14,7 +14,7 @@ const STEPS = ['Seleccionar envases', 'Destino']
 type Step = 1 | 2
 
 export default function TransferPage() {
-  const { containers, clients, addExternalTransfer } = useStore()
+  const { containers, companies, addExternalTransfer } = useStore()
   const nonInfectiousContainers = containers.filter((c) => c.waste_type !== 'infectious')
   const [step, setStep] = useState<Step>(1)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -37,7 +37,6 @@ export default function TransferPage() {
       addExternalTransfer({
         id: `transfer-${Date.now()}-${cid}`,
         container_id: cid,
-        batch_id: 'batch-1',
         storage_started_at: now,
         transferred_at: null,
         destination: dest,
@@ -72,7 +71,7 @@ export default function TransferPage() {
 
       {step === 1 && (
         <div className="space-y-4">
-          <ContainerSelector containers={nonInfectiousContainers} clients={clients} onSelect={handleContainerSelect} />
+          <ContainerSelector containers={nonInfectiousContainers} companies={companies} onSelect={handleContainerSelect} />
           {selectedIds.length > 0 && (
             <div className="space-y-2">
               <p className="text-sm font-medium text-slate-600">Envases seleccionados:</p>

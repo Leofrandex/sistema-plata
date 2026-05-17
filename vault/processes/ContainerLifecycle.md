@@ -4,7 +4,7 @@ tags:
   - processes
   - domain
   - containers
-updated: 2026-05-02
+updated: 2026-05-17
 ---
 
 # Ciclo de Vida del Contenedor (Envase/Tacho)
@@ -17,36 +17,35 @@ Se hace **una sola vez** cuando el contenedor entra en operación:
 - Número de serie único (pintado en el envase, no etiqueta — se lava con agua caliente y químicos abrasivos)
 - Tamaño: 240L / 750L / 1100L
 - Tara (peso en vacío)
-- Cliente al que pertenece
+- Empresa propietaria (dentro de un Cliente)
 - Tipo de desecho asignado
 
-> [!important] Numeración por cliente
-> La secuencia de números puede coincidir entre clientes distintos. Para evitar ambigüedad, se agrega una **letra de prefijo por cliente** (ej: `A-069` para Ciudad de la Salud, `B-069` para Agua Dulce). El sistema debe soportar este formato.
+> [!important] Numeración por empresa
+> La secuencia de números puede coincidir entre empresas distintas. Para evitar ambigüedad, se agrega una **letra de prefijo por empresa** (ej: `I-001` para ION, `A-001` para Airkem). Ambas empresas pueden estar bajo un mismo cliente (ej: "Centro de la Salud").
 
 Si un contenedor se rompe, **sale de operación definitivamente** — su número no se reasigna.
 
 ## Flujo operativo (ciclo diario)
 
 ```
-[Punto de encuentro]
-Hospimed entrega contenedores LIMPIOS
+[Recorrido — punto de encuentro]
+Hospiwaste entrega contenedores LIMPIOS
 Empresa de aseo entrega contenedores SUCIOS (llenos)
         ↓
-[Registro fotográfico del intercambio]
-Foto: contenedor limpio entregado
-Foto: contenedor sucio recibido
+[Registro fotográfico del recorrido]
+Fotos ilimitadas del intercambio limpio/sucio
         ↓
 [Traslado a la planta]
-Mínimo 6 recorridos/día
-Puede haber más de 1 viaje por recorrido
+6 recorridos diarios fijos: 6:30 / 10:30 / 13:20 / 14:30 / 18:30 / 21:00
+Cada recorrido se ejecuta en un único slot por día (cronómetro persistente)
         ↓
 [Pesaje en planta]
-Peso bruto registrado
+Sesión de pesaje con cronómetro y múltiples envases
 Memoria fotográfica: foto del envase + foto de la balanza con el número visible
         ↓
 [Cámara fría]
-Contenedor espera su turno de tratamiento
-El sistema debe registrar cuánto tiempo permanece aquí
+Transición automática al finalizar la sesión de pesaje
+El sistema registra cuánto tiempo permanece aquí
         ↓
 [Tratamiento] (solo tipo 1 - infeccioso)
 Esterilización + trituración

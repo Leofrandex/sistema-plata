@@ -4,7 +4,7 @@ import { useId } from 'react'
 import { Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import type { Client, WasteType, ContainerSize } from '@/lib/types'
+import type { Company, WasteType, ContainerSize } from '@/lib/types'
 
 const WASTE_TYPE_OPTIONS: { value: WasteType | 'all'; label: string }[] = [
   { value: 'all', label: 'Todos los tipos' },
@@ -24,22 +24,22 @@ const SIZE_OPTIONS: { value: ContainerSize | 'all'; label: string }[] = [
 
 export interface ContainerFilters {
   search: string
-  clientId: string
+  companyId: string
   wasteType: WasteType | 'all'
   size: ContainerSize | 'all'
 }
 
 interface Props {
   filters: ContainerFilters
-  clients: Client[]
+  companies: Company[]
   onChange: (filters: ContainerFilters) => void
 }
 
 const labelClass = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground'
 
-export function ContainerFilters({ filters, clients, onChange }: Props) {
+export function ContainerFilters({ filters, companies, onChange }: Props) {
   const searchId = useId()
-  const clientLabelId = useId()
+  const companyLabelId = useId()
   const wasteTypeLabelId = useId()
   const sizeLabelId = useId()
 
@@ -51,7 +51,7 @@ export function ContainerFilters({ filters, clients, onChange }: Props) {
           <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             id={searchId}
-            placeholder="Ej: A-069"
+            placeholder="Ej: I-001"
             value={filters.search}
             onChange={(e) => onChange({ ...filters, search: e.target.value })}
             className="pl-9"
@@ -60,17 +60,17 @@ export function ContainerFilters({ filters, clients, onChange }: Props) {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <span id={clientLabelId} className={labelClass}>Cliente</span>
+        <span id={companyLabelId} className={labelClass}>Empresa</span>
         <Select
-          value={filters.clientId}
-          onValueChange={(v) => onChange({ ...filters, clientId: v ?? 'all' })}
+          value={filters.companyId}
+          onValueChange={(v) => onChange({ ...filters, companyId: v ?? 'all' })}
         >
-          <SelectTrigger aria-labelledby={clientLabelId} className="w-full">
-            <SelectValue placeholder="Todos los clientes" />
+          <SelectTrigger aria-labelledby={companyLabelId} className="w-full">
+            <SelectValue placeholder="Todas las empresas" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos los clientes</SelectItem>
-            {clients.map((c) => (
+            <SelectItem value="all">Todas las empresas</SelectItem>
+            {companies.map((c) => (
               <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
             ))}
           </SelectContent>

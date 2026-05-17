@@ -1,30 +1,34 @@
-import { Boxes, Layers, Snowflake, Flame, type LucideIcon } from 'lucide-react'
+import { Boxes, Route, Snowflake, Flame, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { Batch, Container, StorageEvent, TreatmentRun } from '@/lib/types'
+import type {
+  Container,
+  RouteEvent,
+  StorageEvent,
+  TreatmentRun,
+} from '@/lib/types'
 
 interface DashboardMetrics {
-  activeBatches: number
+  routesToday: number
   containersInCirculation: number
   containersInStorage: number
   containersInTreatment: number
 }
 
 export function computeDashboardMetrics(
-  batches: Batch[],
   containers: Container[],
+  routeEvents: RouteEvent[],
   storageEvents: StorageEvent[],
-  treatmentRuns: TreatmentRun[]
+  treatmentRuns: TreatmentRun[],
+  today: string = new Date().toISOString().slice(0, 10)
 ): DashboardMetrics {
-  const activeBatches = batches.filter((b) => b.status === 'active')
-  const containerIdsInActiveBatches = new Set(
-    activeBatches.flatMap((b) => b.container_ids)
-  )
+  const routesToday = routeEvents.filter((r) => r.date === today).length
+  const containersInCirculation = containers.filter((c) => c.status === 'active').length
   const containersInStorage = storageEvents.filter((s) => s.exit_at === null).length
   const containersInTreatment = treatmentRuns.filter((t) => t.completed_at === null).length
 
   return {
-    activeBatches: activeBatches.length,
-    containersInCirculation: containerIdsInActiveBatches.size,
+    routesToday,
+    containersInCirculation,
     containersInStorage,
     containersInTreatment,
   }
@@ -40,7 +44,7 @@ interface CardSpec {
 }
 
 const CARDS: CardSpec[] = [
-  { key: 'activeBatches',           label: 'Lotes activos',          icon: Layers,    iconBg: 'bg-accent/10',  iconText: 'text-accent',     decoration: 'from-accent/15    to-accent/0' },
+  { key: 'routesToday',             label: 'Recorridos hoy',         icon: Route,     iconBg: 'bg-accent/10',  iconText: 'text-accent',     decoration: 'from-accent/15    to-accent/0' },
   { key: 'containersInCirculation', label: 'Envases en circulación', icon: Boxes,     iconBg: 'bg-primary/10', iconText: 'text-primary',    decoration: 'from-primary/15   to-primary/0' },
   { key: 'containersInStorage',     label: 'En cámara fría',         icon: Snowflake, iconBg: 'bg-cyan-100',   iconText: 'text-cyan-700',   decoration: 'from-cyan-200/40  to-cyan-200/0' },
   { key: 'containersInTreatment',   label: 'En tratamiento',         icon: Flame,     iconBg: 'bg-violet-100', iconText: 'text-violet-700', decoration: 'from-violet-200/40 to-violet-200/0' },

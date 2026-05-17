@@ -23,7 +23,7 @@ const LOCATION_TYPE_OPTIONS: { value: LocationType; label: string }[] = [
 type Step = 1 | 2
 
 export default function LocationPage() {
-  const { containers, clients, addLocation } = useStore()
+  const { containers, clients, companies, addLocation } = useStore()
   const [step, setStep] = useState<Step>(1)
   const [selected, setSelected] = useState<Container | null>(null)
   const [locationType, setLocationType] = useState<LocationType>('client_site')
@@ -35,7 +35,9 @@ export default function LocationPage() {
 
   function handleSelect(container: Container) {
     setSelected(container)
-    setClientId(container.client_id)
+    // Default al cliente padre de la empresa del envase
+    const company = companies.find((c) => c.id === container.company_id)
+    setClientId(company?.client_id ?? '')
     setStep(2)
   }
 
@@ -67,7 +69,7 @@ export default function LocationPage() {
         <h1 className="text-xl font-bold text-slate-800">Reportar Ubicación</h1>
         <div className="mt-3"><StepIndicator current={step} total={2} labels={STEPS} /></div>
       </div>
-      {step === 1 && <ContainerSelector containers={containers} clients={clients} onSelect={handleSelect} />}
+      {step === 1 && <ContainerSelector containers={containers} companies={companies} onSelect={handleSelect} />}
       {step === 2 && selected && (
         <div className="space-y-4">
           <Card className="bg-blue-50 border-blue-200">

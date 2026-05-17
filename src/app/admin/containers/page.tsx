@@ -18,9 +18,10 @@ const WASTE_LABELS: Record<string, string> = {
 }
 
 export default function AdminContainersPage() {
-  const { containers, clients, addContainer, updateContainer } = useStore()
+  const { containers, clients, companies, addContainer, updateContainer } = useStore()
   const [showForm, setShowForm] = useState(false)
 
+  const companyMap = Object.fromEntries(companies.map((c) => [c.id, c]))
   const clientMap = Object.fromEntries(clients.map((c) => [c.id, c.name]))
 
   function handleAdd(data: Omit<Container, 'registered_at' | 'status'>) {
@@ -44,7 +45,12 @@ export default function AdminContainersPage() {
         <Card>
           <CardHeader><CardTitle className="text-base">Agregar nuevo envase</CardTitle></CardHeader>
           <CardContent>
-            <ContainerForm clients={clients} onSubmit={handleAdd} onCancel={() => setShowForm(false)} />
+            <ContainerForm
+              clients={clients}
+              companies={companies}
+              onSubmit={handleAdd}
+              onCancel={() => setShowForm(false)}
+            />
           </CardContent>
         </Card>
       )}
@@ -53,6 +59,7 @@ export default function AdminContainersPage() {
           <thead>
             <tr className="border-b bg-slate-50 text-slate-500 text-left">
               <th className="px-4 py-3 font-medium">Envase</th>
+              <th className="px-4 py-3 font-medium">Empresa</th>
               <th className="px-4 py-3 font-medium">Cliente</th>
               <th className="px-4 py-3 font-medium">Tipo</th>
               <th className="px-4 py-3 font-medium">Tamaño</th>
@@ -62,27 +69,32 @@ export default function AdminContainersPage() {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {containers.map((c) => (
-              <tr key={c.id} className="hover:bg-slate-50">
-                <td className="px-4 py-3 font-mono font-semibold">{c.id}</td>
-                <td className="px-4 py-3 text-slate-600">{clientMap[c.client_id] ?? '—'}</td>
-                <td className="px-4 py-3 text-slate-600">{WASTE_LABELS[c.waste_type]}</td>
-                <td className="px-4 py-3 text-slate-600">{c.size_liters} L</td>
-                <td className="px-4 py-3 text-slate-600">{c.tare_weight_kg} kg</td>
-                <td className="px-4 py-3">
-                  <Badge variant={c.status === 'active' ? 'default' : 'secondary'}>
-                    {c.status === 'active' ? 'Activo' : 'Dado de baja'}
-                  </Badge>
-                </td>
-                <td className="px-4 py-3">
-                  {c.status === 'active' && (
-                    <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDecommission(c.id)}>
-                      Dar de baja
-                    </Button>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {containers.map((c) => {
+              const company = companyMap[c.company_id]
+              const clientName = company ? clientMap[company.client_id] ?? '—' : '—'
+              return (
+                <tr key={c.id} className="hover:bg-slate-50">
+                  <td className="px-4 py-3 font-mono font-semibold">{c.id}</td>
+                  <td className="px-4 py-3 text-slate-600">{company?.name ?? '—'}</td>
+                  <td className="px-4 py-3 text-slate-600">{clientName}</td>
+                  <td className="px-4 py-3 text-slate-600">{WASTE_LABELS[c.waste_type]}</td>
+                  <td className="px-4 py-3 text-slate-600">{c.size_liters} L</td>
+                  <td className="px-4 py-3 text-slate-600">{c.tare_weight_kg} kg</td>
+                  <td className="px-4 py-3">
+                    <Badge variant={c.status === 'active' ? 'default' : 'secondary'}>
+                      {c.status === 'active' ? 'Activo' : 'Dado de baja'}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3">
+                    {c.status === 'active' && (
+                      <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDecommission(c.id)}>
+                        Dar de baja
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

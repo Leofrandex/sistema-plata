@@ -2,13 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Package, Settings, ChevronDown, ClipboardList } from 'lucide-react'
+import { LayoutDashboard, Package, Settings, ChevronDown, ClipboardList, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_NAME } from '@/lib/constants'
 import { useState } from 'react'
 
 const REGISTER_LINKS = [
-  { href: '/register/exchange', label: 'Intercambio' },
+  { href: '/register/route', label: 'Recorrido' },
   { href: '/register/weighing', label: 'Pesaje' },
   { href: '/register/treatment', label: 'Tratamiento' },
   { href: '/register/transfer', label: 'Traslado externo' },
@@ -18,11 +18,13 @@ const REGISTER_LINKS = [
 const ADMIN_LINKS = [
   { href: '/admin/containers', label: 'Envases' },
   { href: '/admin/clients', label: 'Clientes' },
+  { href: '/admin/companies', label: 'Empresas' },
 ]
 
 const TOP_NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/containers', label: 'Envases', icon: Package },
+  { href: '/reports', label: 'Reportes', icon: FileText },
 ]
 
 export function Sidebar() {

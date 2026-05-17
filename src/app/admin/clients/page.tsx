@@ -4,12 +4,13 @@ import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { ClientForm } from '@/components/admin/client-form'
 import { useStore } from '@/lib/store'
 import type { Client } from '@/lib/types'
 
 export default function AdminClientsPage() {
-  const { clients, containers, addClient } = useStore()
+  const { clients, companies, containers, addClient } = useStore()
   const [showForm, setShowForm] = useState(false)
 
   function handleAdd(data: Omit<Client, 'id' | 'locations'>) {
@@ -35,17 +36,37 @@ export default function AdminClientsPage() {
       )}
       <div className="space-y-3">
         {clients.map((client) => {
-          const containerCount = containers.filter((c) => c.client_id === client.id).length
+          const clientCompanies = companies.filter((c) => c.client_id === client.id)
+          const totalContainers = containers.filter((c) =>
+            clientCompanies.some((co) => co.id === c.company_id)
+          ).length
+
           return (
-            <div key={client.id} className="flex items-center justify-between p-4 bg-white rounded-lg border">
-              <div>
-                <p className="font-semibold text-slate-800">{client.name}</p>
-                <p className="text-sm text-slate-500">
-                  Prefijo: <span className="font-mono font-semibold">{client.code_letter}</span>
-                  {' · '}
-                  {containerCount} envase{containerCount !== 1 ? 's' : ''}
-                </p>
+            <div key={client.id} className="p-4 bg-white rounded-lg border space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-slate-800">{client.name}</p>
+                  <p className="text-sm text-slate-500">
+                    {clientCompanies.length} empresa{clientCompanies.length !== 1 ? 's' : ''}
+                    {' · '}
+                    {totalContainers} envase{totalContainers !== 1 ? 's' : ''} total
+                  </p>
+                </div>
               </div>
+              {clientCompanies.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-2 border-t">
+                  {clientCompanies.map((co) => {
+                    const count = containers.filter((c) => c.company_id === co.id).length
+                    return (
+                      <Badge key={co.id} variant="outline" className="gap-1.5">
+                        <span className="font-semibold">{co.name}</span>
+                        <span className="font-mono text-xs text-slate-500">({co.code_letter})</span>
+                        <span className="text-xs text-slate-500">· {count} envases</span>
+                      </Badge>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )
         })}

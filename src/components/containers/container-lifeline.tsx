@@ -1,7 +1,7 @@
 import type { ContainerPhase } from '@/lib/types'
 
 export const PHASES: { key: ContainerPhase; label: string }[] = [
-  { key: 'exchange', label: 'Intercambio' },
+  { key: 'route', label: 'Recorrido' },
   { key: 'weighing', label: 'Pesaje' },
   { key: 'cold_storage', label: 'Cámara fría' },
   { key: 'treatment', label: 'Tratamiento' },
@@ -9,7 +9,7 @@ export const PHASES: { key: ContainerPhase; label: string }[] = [
 ]
 
 const TRANSFER_PHASES: { key: ContainerPhase; label: string }[] = [
-  { key: 'exchange', label: 'Intercambio' },
+  { key: 'route', label: 'Recorrido' },
   { key: 'weighing', label: 'Pesaje' },
   { key: 'cold_storage', label: 'Cámara fría' },
   { key: 'transfer', label: 'Traslado' },

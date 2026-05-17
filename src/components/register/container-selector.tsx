@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Input } from '@/components/ui/input'
-import type { Container, Client } from '@/lib/types'
+import type { Container, Company } from '@/lib/types'
 
 export function filterContainers(containers: Container[], search: string): Container[] {
   const active = containers.filter((c) => c.status === 'active')
@@ -20,20 +20,20 @@ const WASTE_LABELS: Record<string, string> = {
 
 interface Props {
   containers: Container[]
-  clients: Client[]
+  companies: Company[]
   onSelect: (container: Container) => void
 }
 
-export function ContainerSelector({ containers, clients, onSelect }: Props) {
+export function ContainerSelector({ containers, companies, onSelect }: Props) {
   const [search, setSearch] = useState('')
-  const clientMap = Object.fromEntries(clients.map((c) => [c.id, c.name]))
+  const companyMap = Object.fromEntries(companies.map((c) => [c.id, c.name]))
 
   const results = filterContainers(containers, search).slice(0, 8)
 
   return (
     <div className="space-y-3">
       <Input
-        placeholder="Número de envase (ej: A-069)"
+        placeholder="Número de envase (ej: I-001)"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         autoFocus
@@ -54,7 +54,7 @@ export function ContainerSelector({ containers, clients, onSelect }: Props) {
             >
               <p className="font-mono font-semibold text-slate-800">{container.id}</p>
               <p className="text-sm text-slate-500">
-                {clientMap[container.client_id]} · {WASTE_LABELS[container.waste_type]} · {container.size_liters}L
+                {companyMap[container.company_id] ?? '—'} · {WASTE_LABELS[container.waste_type]} · {container.size_liters}L
               </p>
             </button>
           ))}

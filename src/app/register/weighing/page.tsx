@@ -16,7 +16,7 @@ const STEPS = ['Seleccionar envase', 'Fotos', 'Peso']
 type Step = 1 | 2 | 3
 
 export default function WeighingPage() {
-  const { containers, clients, addReception, addPhoto, addStorageEvent, addLocation } = useStore()
+  const { containers, companies, addReception, addPhoto, addStorageEvent, addLocation } = useStore()
 
   const [step, setStep] = useState<Step>(1)
   const [selected, setSelected] = useState<Container | null>(null)
@@ -39,19 +39,18 @@ export default function WeighingPage() {
     if (!selected || !photoContainer || !photoScale || !grossWeight) return
 
     const now = new Date().toISOString()
-    const batchId = 'batch-1'
     const receptionId = `reception-${Date.now()}`
     const photo1Id = `photo-${Date.now()}-1`
     const photo2Id = `photo-${Date.now()}-2`
-    const clientName = clients.find((c) => c.id === selected.client_id)?.name ?? ''
-    const label = `PTDP ${clientName} ${new Date().toLocaleDateString('es-PA')} ${new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })}`
+    const company = companies.find((c) => c.id === selected.company_id)
+    const label = `PTDP ${company?.name ?? ''} ${new Date().toLocaleDateString('es-PA')} ${new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })}`
 
     addPhoto({ id: photo1Id, url: photoContainer, event_type: 'weighing', event_id: receptionId, taken_at: now, label })
     addPhoto({ id: photo2Id, url: photoScale, event_type: 'weighing', event_id: receptionId, taken_at: now, label })
     addReception({
       id: receptionId,
       container_id: selected.id,
-      batch_id: batchId,
+      weighing_session_id: null,
       arrived_at: now,
       gross_weight_kg: parseFloat(grossWeight),
       operator_id: 'user-1',
@@ -64,7 +63,6 @@ export default function WeighingPage() {
     addStorageEvent({
       id: storageId,
       container_id: selected.id,
-      batch_id: batchId,
       entry_at: now,
       exit_at: null,
       operator_id: 'user-1',
@@ -93,21 +91,28 @@ export default function WeighingPage() {
     return <SuccessScreen title="Pesaje registrado" containerId={selected.id} onRegisterAnother={reset} />
   }
 
+  const selectedCompany = selected ? companies.find((c) => c.id === selected.company_id) : null
+
   return (
     <div className="max-w-md mx-auto space-y-6">
       <div>
         <h1 className="text-xl font-bold text-slate-800">Registrar Pesaje</h1>
+        <p className="text-xs text-slate-500 mt-1">
+          Flujo legacy. Reemplazado por sesiones multi-registro en la Fase 3.
+        </p>
         <div className="mt-3"><StepIndicator current={step} total={3} labels={STEPS} /></div>
       </div>
 
-      {step === 1 && <ContainerSelector containers={containers} clients={clients} onSelect={handleSelect} />}
+      {step === 1 && <ContainerSelector containers={containers} companies={companies} onSelect={handleSelect} />}
 
       {step === 2 && selected && (
         <div className="space-y-6">
           <Card className="bg-blue-50 border-blue-200">
             <CardContent className="pt-4">
               <p className="font-mono font-semibold text-blue-800">{selected.id}</p>
-              <p className="text-sm text-blue-600">{clients.find((c) => c.id === selected.client_id)?.name} · Tara: {selected.tare_weight_kg} kg</p>
+              <p className="text-sm text-blue-600">
+                {selectedCompany?.name ?? ''} · Tara: {selected.tare_weight_kg} kg
+              </p>
             </CardContent>
           </Card>
           <PhotoCapture label="Foto del envase (número visible)" required preview={photoContainer} onCapture={setPhotoContainer} onRemove={() => setPhotoContainer(null)} />

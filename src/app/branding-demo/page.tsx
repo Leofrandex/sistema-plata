@@ -20,7 +20,7 @@ export default function BrandingDemoPage() {
       <section className="space-y-3">
         <h1 className="text-2xl font-bold text-foreground">Sistema de Trazabilidad de Desechos Clínicos</h1>
         <h2 className="text-xl font-semibold text-foreground">Gestión de Contenedores</h2>
-        <h3 className="text-lg font-semibold text-foreground">Registro de Intercambio</h3>
+        <h3 className="text-lg font-semibold text-foreground">Registro de Recorrido</h3>
         <p className="text-sm text-muted-foreground">
           Plataforma de seguimiento del ciclo de vida de contenedores de desechos clínicos.
           Diseñada para operadores en campo y supervisores en planta.
@@ -50,7 +50,7 @@ export default function BrandingDemoPage() {
       <section className="space-y-3">
         <h3 className="text-base font-semibold">Botones</h3>
         <div className="flex flex-wrap gap-3">
-          <Button variant="default">Registrar intercambio</Button>
+          <Button variant="default">Registrar recorrido</Button>
           <Button variant="secondary">Ver detalle</Button>
           <Button variant="outline">Cancelar</Button>
           <Button variant="default" disabled>Deshabilitado</Button>

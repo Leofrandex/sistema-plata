@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import type { ContainerWithPhase, ContainerPhase } from '@/lib/types'
 
 const PHASE_LABELS: Record<ContainerPhase, string> = {
-  exchange: 'Intercambio',
+  route: 'Recorrido',
   weighing: 'Pesaje',
   cold_storage: 'Cámara fría',
   treatment: 'Tratamiento',
@@ -24,11 +24,13 @@ const WASTE_LABELS: Record<string, string> = {
 
 interface Props {
   containers: ContainerWithPhase[]
+  companies: { id: string; name: string; client_id: string }[]
   clients: { id: string; name: string }[]
 }
 
-export function ContainerTable({ containers, clients }: Props) {
+export function ContainerTable({ containers, companies, clients }: Props) {
   const router = useRouter()
+  const companyMap = Object.fromEntries(companies.map((c) => [c.id, c]))
   const clientMap = Object.fromEntries(clients.map((c) => [c.id, c.name]))
 
   if (containers.length === 0) {
@@ -45,6 +47,7 @@ export function ContainerTable({ containers, clients }: Props) {
         <thead>
           <tr className="border-b text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             <th className="px-4 py-3">Envase</th>
+            <th className="px-4 py-3">Empresa</th>
             <th className="px-4 py-3">Cliente</th>
             <th className="px-4 py-3">Tipo</th>
             <th className="px-4 py-3">Tamaño</th>
@@ -61,6 +64,8 @@ export function ContainerTable({ containers, clients }: Props) {
                 : loc.location_type.replace('_', ' ')
               : '—'
             const href = `/containers/${c.id}`
+            const company = companyMap[c.company_id]
+            const clientName = company ? clientMap[company.client_id] ?? '—' : '—'
 
             return (
               <tr
@@ -88,7 +93,8 @@ export function ContainerTable({ containers, clients }: Props) {
                     {c.id}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-foreground/80">{clientMap[c.client_id] ?? '—'}</td>
+                <td className="px-4 py-3 text-foreground/80">{company?.name ?? '—'}</td>
+                <td className="px-4 py-3 text-foreground/80">{clientName}</td>
                 <td className="px-4 py-3 text-foreground/80">{WASTE_LABELS[c.waste_type]}</td>
                 <td className="px-4 py-3 text-foreground/80">{c.size_liters} L</td>
                 <td className="px-4 py-3">

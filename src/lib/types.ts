@@ -11,8 +11,6 @@ export type ContainerSize = 240 | 750 | 1100
 
 export type ContainerStatus = 'active' | 'decommissioned'
 
-export type BatchStatus = 'active' | 'completed'
-
 export type LocationType =
   | 'client_site'
   | 'plant_storage'
@@ -20,7 +18,7 @@ export type LocationType =
   | 'treatment'
 
 export type PhotoEventType =
-  | 'exchange'
+  | 'route'        // recorrido en punto de encuentro (antes 'exchange')
   | 'weighing'
   | 'storage'
   | 'treatment'
@@ -28,12 +26,18 @@ export type PhotoEventType =
 
 // Phase of the container in its current lifecycle
 export type ContainerPhase =
-  | 'exchange'     // delivered clean / collected dirty — in transit to plant
+  | 'route'        // delivered clean / collected dirty — in transit to plant (antes 'exchange')
   | 'weighing'     // weighed at plant, waiting for cold storage
   | 'cold_storage' // in cold storage room
   | 'treatment'    // type 1: being treated on-site
   | 'transfer'     // types 2–5: stored temporarily / transferred to external center
   | 'clean'        // cycle complete, available for redeployment
+
+// Horario fijo de los 6 recorridos por día
+export type RouteSlot = '06:30' | '10:30' | '13:20' | '14:30' | '18:30' | '21:00'
+
+export type RouteEventStatus = 'in_progress' | 'completed'
+export type WeighingSessionStatus = 'in_progress' | 'completed'
 
 // ─── Entities ─────────────────────────────────────────────────────────────────
 
@@ -44,27 +48,26 @@ export interface ClientLocation {
 
 export interface Client {
   id: string
-  name: string
-  code_letter: string // single uppercase letter, prefix for container IDs
+  name: string             // ej: 'Centro de la Salud'
   locations: ClientLocation[]
 }
 
+// Empresa operativa dentro de un Cliente. Los envases pertenecen a Empresa.
+export interface Company {
+  id: string
+  client_id: string        // FK → Client
+  name: string             // 'ION', 'Airkem'
+  code_letter: string      // 'I', 'A' — prefijo de envases
+}
+
 export interface Container {
-  id: string             // format: '{letter}-{number}', e.g. 'A-069'
-  client_id: string
+  id: string             // '{company.code_letter}-NNN' → 'I-001', 'A-007'
+  company_id: string     // FK → Company
   size_liters: ContainerSize
   tare_weight_kg: number
   waste_type: WasteType
   status: ContainerStatus
   registered_at: string  // ISO 8601 datetime
-}
-
-export interface Batch {
-  id: string
-  client_id: string
-  date: string           // ISO 8601 date, e.g. '2026-05-03'
-  status: BatchStatus
-  container_ids: string[]
 }
 
 export interface Photo {
@@ -73,24 +76,45 @@ export interface Photo {
   event_type: PhotoEventType
   event_id: string
   taken_at: string       // ISO 8601 datetime
-  label: string          // e.g. 'PTDP Ciudad Salud 01/03/2026 09:40 PM'
+  label: string          // ej: 'PTDP Centro Salud 01/03/2026 09:40 PM'
 }
 
-export interface ExchangeEvent {
+// Recorrido (antes ExchangeEvent). Un solo evento por (slot, día calendario).
+export interface RouteEvent {
   id: string
-  batch_id: string
-  timestamp: string
+  client_id: string             // FK → Client (un recorrido es para un cliente)
+  slot: RouteSlot
+  date: string                  // ISO date 'YYYY-MM-DD' — junto con slot identifica el recorrido del día
+  started_at: string            // ISO datetime — cuando se tocó "Iniciar recorrido"
+  ended_at: string | null       // null mientras está en curso
   operator_id: string
-  clean_containers_given: string[]    // container IDs
-  dirty_containers_received: string[] // container IDs
-  location: string
+  status: RouteEventStatus
+  // Envases involucrados en el intercambio limpio↔sucio (selección acumulativa)
+  containers_exchanged: string[]
+  // Ubicación del intercambio
+  floor: string
+  area: string
+  dock: string                  // andén
+  // Fotos ilimitadas
   photo_ids: string[]
+}
+
+// Sesión de pesaje. Agrupa N receptions creadas en el mismo "turno" de pesaje.
+export interface WeighingSession {
+  id: string
+  client_id: string
+  date: string                  // ISO date
+  started_at: string            // ISO datetime
+  ended_at: string | null
+  operator_id: string
+  status: WeighingSessionStatus
+  reception_ids: string[]
 }
 
 export interface ContainerReception {
   id: string
   container_id: string
-  batch_id: string
+  weighing_session_id: string | null   // ahora puede pertenecer a una sesión
   arrived_at: string
   gross_weight_kg: number
   // net_weight_kg is computed: gross_weight_kg - container.tare_weight_kg
@@ -101,7 +125,6 @@ export interface ContainerReception {
 export interface StorageEvent {
   id: string
   container_id: string
-  batch_id: string
   entry_at: string
   exit_at: string | null
   operator_id: string
@@ -111,7 +134,6 @@ export interface StorageEvent {
 export interface TreatmentRun {
   id: string
   container_id: string
-  batch_id: string
   started_at: string
   completed_at: string | null
   operator_id: string
@@ -120,7 +142,6 @@ export interface TreatmentRun {
 export interface ExternalTransfer {
   id: string
   container_id: string
-  batch_id: string
   storage_started_at: string
   transferred_at: string | null
   destination: string
@@ -150,10 +171,4 @@ export interface ContainerWithPhase extends Container {
   current_phase: ContainerPhase
   current_location: ContainerLocation | null
   latest_net_weight_kg: number | null
-}
-
-export interface BatchWithClient extends Batch {
-  client: Client
-  next_pending_step: ContainerPhase // earliest phase with incomplete containers
-  container_count: number
 }

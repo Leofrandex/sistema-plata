@@ -4,148 +4,132 @@ tags:
   - project
   - data
   - types
-updated: 2026-05-02
+updated: 2026-05-17
 ---
 
 # Modelo de Datos Conceptual
 
-> [!note]
-> Este modelo es conceptual — extraído del dominio antes de que exista código. Los nombres de tablas/colecciones y tipos exactos se definen cuando se elija el stack.
+> [!note] Actualización 2026-05-17
+> Cambios estructurales del rediseño operativo:
+> - Aparece la entidad **Company** (Empresa) como nivel intermedio entre Client y Container. Los envases ahora pertenecen a Empresa, no a Cliente directamente.
+> - El antiguo `code_letter` de Client se movió a Company.
+> - `ExchangeEvent` → renombrado a **`RouteEvent`** (Recorrido) y enriquecido con `slot`, `started_at`, `ended_at`, `status`, `floor`, `area`, `dock`.
+> - Aparece **`WeighingSession`** que agrupa N receptions del mismo turno de pesaje.
+> - Se **elimina** la entidad `Batch` — las unidades operativas pasan a ser RouteEvent (por slot/día) y WeighingSession (por turno).
 
 ## Entidades principales
 
-### Container (Envase / Tacho)
-La entidad central del sistema. Identificador físico real.
+### Container (Envase)
+Identificador físico real. Pertenece a una Empresa.
 
 | Campo | Tipo | Notas |
 |-------|------|-------|
-| id | string | Compuesto: `{letra_cliente}-{numero}` ej: `A-069` |
-| client_id | FK → Client | Un contenedor pertenece a un solo cliente |
+| id | string | Compuesto: `{letra_empresa}-{numero}` ej: `I-001` (ION), `A-001` (Airkem) |
+| company_id | FK → Company | Reemplaza al antiguo `client_id` directo |
 | size_liters | enum | 240 / 750 / 1100 |
 | tare_weight_kg | decimal | Peso en vacío, se registra una sola vez al dar de alta |
 | waste_type | enum | Ver [[WasteTypes]] |
-| status | enum | `active` / `decommissioned` (si se rompe, nunca se reutiliza) |
+| status | enum | `active` / `decommissioned` |
 | registered_at | datetime | Fecha de alta en el sistema |
 
-### Client (Cliente / Operación)
-Empresa o instalación hospitalaria a la que se le presta el servicio.
+### Client (Cliente)
+Entidad legal a la que se le presta el servicio. Agrupa varias Empresas.
 
 | Campo | Tipo | Notas |
 |-------|------|-------|
 | id | string | |
-| name | string | ej: "Ciudad de la Salud", "Agua Dulce" |
-| code_letter | string | Letra de prefijo para numeración de contenedores (ej: `A`, `B`) |
+| name | string | ej: "Centro de la Salud" |
 | locations | array | Ubicaciones / pisos donde tiene contenedores |
 
-### ExchangeEvent (Intercambio en punto de encuentro)
-Registro de cada intercambio entre Hospimed y la empresa de aseo.
+> [!note]
+> El antiguo campo `code_letter` ya **no existe** en Client. Pasó a vivir en Company.
+
+### Company (Empresa)
+Operación interna del cliente. Los envases se identifican por su prefijo. Ej: ION (I) y Airkem (A) dentro de "Centro de la Salud".
 
 | Campo | Tipo | Notas |
 |-------|------|-------|
 | id | string | |
-| timestamp | datetime | |
-| operator_id | FK → User | Quién registró |
-| clean_containers_given | array FK → Container | Contenedores limpios entregados |
-| dirty_containers_received | array FK → Container | Contenedores sucios recibidos |
-| location | string | Punto de encuentro |
-| photos | array FK → Photo | |
+| client_id | FK → Client | Cliente padre |
+| name | string | ej: "ION", "Airkem" |
+| code_letter | string | Letra única — prefijo de envases |
 
-### ContainerReception (Recepción en planta)
-Registro de llegada a la planta y pesaje.
+### RouteEvent (Recorrido)
+Antes llamado `ExchangeEvent`. Registro de un recorrido completo: intercambio limpio↔sucio en un punto de encuentro durante un slot horario fijo.
 
 | Campo | Tipo | Notas |
 |-------|------|-------|
 | id | string | |
-| container_id | FK → Container | |
-| arrived_at | datetime | |
-| gross_weight_kg | decimal | |
-| net_weight_kg | decimal (computed) | `gross_weight - tare_weight` |
-| origin_location | string | De dónde vino (hospital, piso, área) — para trazabilidad |
-| photos | array FK → Photo | Foto del envase + foto de balanza |
+| client_id | FK → Client | Un recorrido pertenece a un cliente |
+| slot | enum `RouteSlot` | `'06:30' \| '10:30' \| '13:20' \| '14:30' \| '18:30' \| '21:00'` |
+| date | date | `YYYY-MM-DD` — junto con slot, identifica un único recorrido por día |
+| started_at | datetime | Cuando se tocó "Iniciar recorrido" |
+| ended_at | datetime / null | null mientras está en curso |
 | operator_id | FK → User | |
+| status | enum | `'in_progress'` / `'completed'` |
+| containers_exchanged | array FK → Container | Selección acumulativa |
+| floor | string | Piso del recorrido |
+| area | string | Área / sala |
+| dock | string | Andén |
+| photo_ids | array FK → Photo | Fotos ilimitadas |
 
-### StorageEvent (Estancia en cámara fría)
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| id | string | |
-| container_id | FK → Container | |
-| entry_at | datetime | Cuándo entró a la cámara |
-| exit_at | datetime | nullable — cuándo salió para tratamiento |
+Los **slots** son fijos: 6:30 AM, 10:30 AM, 1:20 PM, 2:30 PM, 6:30 PM, 9:00 PM. Solo un RouteEvent activo o completado puede existir por (slot, fecha) — slots compartidos por todo el equipo.
 
-### TreatmentRun (Tratamiento en planta)
-Solo aplica a desecho peligroso infeccioso (tipo 1).
-
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| id | string | |
-| container_id | FK → Container | |
-| started_at | datetime | |
-| completed_at | datetime | nullable |
-| operator_id | FK → User | |
-
-### ExternalTransfer (Traslado externo)
-Para desechos tipos 2–5 que se trasladan a otro centro.
-
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| id | string | |
-| container_id | FK → Container | |
-| storage_started_at | datetime | Cuando llegó a almacenaje temporal |
-| transferred_at | datetime | Cuando salió hacia el centro externo |
-| destination | string | Centro externo de tratamiento |
-| operator_id | FK → User | |
-
-### CompactorEvent (Ciclo del compactador)
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| id | string | |
-| picked_up_at | datetime | Cuando fue recogido por tercero |
-| returned_at | datetime | nullable |
-| operator_id | FK → User | |
-
-### Photo
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| id | string | |
-| url | string | |
-| event_type | enum | `exchange` / `weighing` / `storage` / `other` |
-| event_id | string | FK polimórfico al evento correspondiente |
-| taken_at | datetime | |
-| label | string | ej: "PTDP Ciudad Salud 01/03/2026 09:40 PM" |
-
-### User (Operador)
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| id | string | |
-| name | string | |
-| role | enum | Por definir cuando se levanten los requisitos de acceso |
-
-## Relaciones clave
-
-- Un `Client` tiene muchos `Container`
-- Un `Container` tiene muchos `ContainerReception` (histórico de todos los pesajes)
-- Cada `ContainerReception` genera fotos en `Photo`
-- Un `Container` puede tener múltiples `StorageEvent` y `TreatmentRun` a lo largo de su vida
-
-## Lote (Batch)
-
-Unidad que agrupa todos los contenedores de un cliente procesados en un día calendario. Un cliente puede tener múltiples viajes/visitas en el día — todos se consolidan en un único lote.
+### WeighingSession (Sesión de pesaje)
+Agrupa todas las recepciones pesadas durante una misma sesión (cronómetro entre "Iniciar pesaje" y "Finalizar pesaje").
 
 | Campo | Tipo | Notas |
 |-------|------|-------|
 | id | string | |
 | client_id | FK → Client | |
-| date | date | Día del lote |
-| status | enum | `active` / `completed` |
-| containers | array FK → Container | Contenedores incluidos en este lote |
+| date | date | `YYYY-MM-DD` |
+| started_at | datetime | |
+| ended_at | datetime / null | null mientras está activa |
+| operator_id | FK → User | |
+| status | enum | `'in_progress'` / `'completed'` |
+| reception_ids | array FK → ContainerReception | Receptions creadas dentro de la sesión |
 
-> [!note] PENDIENTE DE CONFIRMAR CON FRANCESCA — 2026-05-03
-> **Pregunta:** ¿Un lote = todos los contenedores de un cliente en un día (independientemente de cuántos viajes hubo), o un lote = una visita específica?
-> **Asumido temporalmente:** Lote = todos los contenedores de un cliente en un día (opción B).
-> **Acción requerida:** Confirmar con Francesca en reunión 2026-05-08 y ajustar si es necesario.
+### ContainerReception (Recepción / Pesaje individual)
+
+| Campo | Tipo | Notas |
+|-------|------|-------|
+| id | string | |
+| container_id | FK → Container | |
+| weighing_session_id | FK → WeighingSession / null | Asociación a una sesión |
+| arrived_at | datetime | |
+| gross_weight_kg | decimal | |
+| net_weight_kg | decimal (computed) | `gross_weight - container.tare_weight` |
+| operator_id | FK → User | |
+| photo_ids | array FK → Photo | Foto del envase + foto de balanza |
+
+### StorageEvent, TreatmentRun, ExternalTransfer
+Sin cambios estructurales — solo se quitó el `batch_id` (que ya no existe).
+
+### Photo
+
+| Campo | Tipo | Notas |
+|-------|------|-------|
+| id | string | |
+| url | string | |
+| event_type | enum | `'route'` / `'weighing'` / `'storage'` / `'treatment'` / `'other'` |
+| event_id | string | FK polimórfico al evento correspondiente |
+| taken_at | datetime | |
+| label | string | ej: "PTDP Centro Salud 17/05/2026 07:00 AM" |
+
+## Relaciones clave
+
+- Un `Client` tiene muchas `Company`
+- Una `Company` tiene muchos `Container`
+- Un `Container` tiene muchos `ContainerReception` (histórico)
+- Un `RouteEvent` agrupa N envases intercambiados por (slot, día)
+- Un `WeighingSession` agrupa N receptions de una misma jornada de pesaje
+
+## Reportes
+
+El entregable de la directiva es un **PDF de Registro Fotográfico semanal por Cliente** (consolida todas las empresas hijas). Rango: lunes 00:00 → hoy 23:59 (cuando se genera un viernes cubre toda la semana). Orden: por etapa (recorrido → pesaje) y dentro de cada etapa, por empresa.
 
 ## Peso neto
 
 `net_weight_kg = gross_weight_kg - container.tare_weight_kg`
 
-Este es el valor que se factura al cliente.
+Es el valor que se factura al cliente.
