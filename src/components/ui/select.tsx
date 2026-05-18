@@ -6,7 +6,71 @@ import { Select as SelectPrimitive } from "@base-ui/react/select"
 import { cn } from "@/lib/utils"
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
 
-const Select = SelectPrimitive.Root
+// ─── Labels context ─────────────────────────────────────────────────────────
+// Cada SelectItem registra su `children` con su `value` al montarse. SelectValue
+// consume este map para mostrar el label legible en lugar del raw value (id).
+// Esto evita tener que pasar el label dos veces (en el Item y en el placeholder)
+// y mantiene los callers limpios.
+
+type LabelMap = Map<string, React.ReactNode>
+
+interface LabelsContextValue {
+  register: (value: string, label: React.ReactNode) => void
+  unregister: (value: string) => void
+  getLabel: (value: string) => React.ReactNode | undefined
+}
+
+const SelectLabelsContext = React.createContext<LabelsContextValue | null>(null)
+
+function SelectLabelsProvider({ children }: { children: React.ReactNode }) {
+  // Usamos useRef + forceUpdate para evitar re-renders del subtree cuando
+  // se registra cada item. Solo re-renderizamos cuando hay un cambio real.
+  const mapRef = React.useRef<LabelMap>(new Map())
+  const [, forceUpdate] = React.useReducer((x: number) => x + 1, 0)
+
+  const register = React.useCallback((value: string, label: React.ReactNode) => {
+    const prev = mapRef.current.get(value)
+    if (prev === label) return
+    mapRef.current.set(value, label)
+    forceUpdate()
+  }, [])
+
+  const unregister = React.useCallback((value: string) => {
+    if (!mapRef.current.has(value)) return
+    mapRef.current.delete(value)
+    forceUpdate()
+  }, [])
+
+  const getLabel = React.useCallback(
+    (value: string) => mapRef.current.get(value),
+    [],
+  )
+
+  const ctx = React.useMemo<LabelsContextValue>(
+    () => ({ register, unregister, getLabel }),
+    [register, unregister, getLabel],
+  )
+
+  return (
+    <SelectLabelsContext.Provider value={ctx}>
+      {children}
+    </SelectLabelsContext.Provider>
+  )
+}
+
+function useSelectLabels(): LabelsContextValue | null {
+  return React.useContext(SelectLabelsContext)
+}
+
+// ─── Select root ────────────────────────────────────────────────────────────
+
+function Select<Value>(props: SelectPrimitive.Root.Props<Value>) {
+  return (
+    <SelectLabelsProvider>
+      <SelectPrimitive.Root {...props} />
+    </SelectLabelsProvider>
+  )
+}
 
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   return (
@@ -18,13 +82,22 @@ function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   )
 }
 
-function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
+function SelectValue({ className, placeholder, ...props }: SelectPrimitive.Value.Props & { placeholder?: React.ReactNode }) {
+  const labels = useSelectLabels()
   return (
     <SelectPrimitive.Value
       data-slot="select-value"
       className={cn("flex flex-1 text-left", className)}
       {...props}
-    />
+    >
+      {(value: string) => {
+        if (value == null || value === "") {
+          return placeholder ? <span className="text-muted-foreground">{placeholder}</span> : null
+        }
+        const label = labels?.getLabel(value)
+        return label ?? value
+      }}
+    </SelectPrimitive.Value>
   )
 }
 
@@ -111,11 +184,22 @@ function SelectLabel({
 function SelectItem({
   className,
   children,
+  value,
   ...props
 }: SelectPrimitive.Item.Props) {
+  const labels = useSelectLabels()
+
+  // Registrar el label en el context cuando este item se monta o cambia.
+  React.useEffect(() => {
+    if (!labels || typeof value !== "string") return
+    labels.register(value, children)
+    return () => labels.unregister(value)
+  }, [labels, value, children])
+
   return (
     <SelectPrimitive.Item
       data-slot="select-item"
+      value={value}
       className={cn(
         "relative flex w-full cursor-default items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
         className
