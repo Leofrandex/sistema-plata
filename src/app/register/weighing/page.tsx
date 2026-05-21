@@ -21,7 +21,7 @@ import {
   todayLocal,
   type ActiveSession,
 } from '@/lib/active-session'
-import { getRouteEventIdsForContainer } from '@/lib/data/containers'
+import { getPendingWeighingContainerIds } from '@/lib/data/containers'
 
 export default function WeighingPage() {
   const router = useRouter()
@@ -76,14 +76,9 @@ export default function WeighingPage() {
   const isEditing = editingReceptionId != null
   const elapsed = useElapsed(activeSession?.started_at ?? null)
 
-  // Envases disponibles para pesar = envases activos que fueron recogidos sucios
-  // en algún recorrido y aún no tienen reception persistido en el store.
-  const pesadosIds = new Set(receptions.map((r) => r.container_id))
-  const availableContainers = containers.filter((c) => {
-    if (c.status !== 'active') return false
-    if (pesadosIds.has(c.id)) return false
-    return getRouteEventIdsForContainer(routeEvents, c.id).length > 0
-  })
+  // Envases disponibles para pesar = cola de trabajo del pesador (helper compartido con dashboard).
+  const pendingIds = new Set(getPendingWeighingContainerIds(containers, routeEvents, receptions))
+  const availableContainers = containers.filter((c) => pendingIds.has(c.id))
 
   function updateForm(updates: Partial<WeighingFormState>) {
     setFormState((prev) => ({ ...prev, ...updates }))

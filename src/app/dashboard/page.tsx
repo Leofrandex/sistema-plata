@@ -24,8 +24,8 @@ export default function DashboardPage() {
   const [month, setMonth] = useState<string>(currentMonth)
 
   const metrics = useMemo(
-    () => computeDashboardMetrics(containers, routeEvents, storageEvents, treatmentRuns),
-    [containers, routeEvents, storageEvents, treatmentRuns],
+    () => computeDashboardMetrics(containers, routeEvents, receptions, treatmentRuns),
+    [containers, routeEvents, receptions, treatmentRuns],
   )
 
   const circulation = useMemo(

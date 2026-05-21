@@ -1,35 +1,36 @@
-import { Boxes, Route, Snowflake, Flame, type LucideIcon } from 'lucide-react'
+import { Boxes, Route, Scale, Flame, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getPendingWeighingContainerIds } from '@/lib/data/containers'
 import type {
   Container,
+  ContainerReception,
   RouteEvent,
-  StorageEvent,
   TreatmentRun,
 } from '@/lib/types'
 
 interface DashboardMetrics {
   routesToday: number
   containersInCirculation: number
-  containersInStorage: number
+  containersPendingWeighing: number
   containersInTreatment: number
 }
 
 export function computeDashboardMetrics(
   containers: Container[],
   routeEvents: RouteEvent[],
-  storageEvents: StorageEvent[],
+  receptions: ContainerReception[],
   treatmentRuns: TreatmentRun[],
   today: string = new Date().toISOString().slice(0, 10)
 ): DashboardMetrics {
   const routesToday = routeEvents.filter((r) => r.date === today).length
   const containersInCirculation = containers.filter((c) => c.status === 'active').length
-  const containersInStorage = storageEvents.filter((s) => s.exit_at === null).length
+  const containersPendingWeighing = getPendingWeighingContainerIds(containers, routeEvents, receptions).length
   const containersInTreatment = treatmentRuns.filter((t) => t.completed_at === null).length
 
   return {
     routesToday,
     containersInCirculation,
-    containersInStorage,
+    containersPendingWeighing,
     containersInTreatment,
   }
 }
@@ -44,10 +45,10 @@ interface CardSpec {
 }
 
 const CARDS: CardSpec[] = [
-  { key: 'routesToday',             label: 'Recorridos hoy',         icon: Route,     iconBg: 'bg-accent/10',  iconText: 'text-accent',     decoration: 'from-accent/15    to-accent/0' },
-  { key: 'containersInCirculation', label: 'Envases en circulación', icon: Boxes,     iconBg: 'bg-primary/10', iconText: 'text-primary',    decoration: 'from-primary/15   to-primary/0' },
-  { key: 'containersInStorage',     label: 'En cámara fría',         icon: Snowflake, iconBg: 'bg-cyan-100',   iconText: 'text-cyan-700',   decoration: 'from-cyan-200/40  to-cyan-200/0' },
-  { key: 'containersInTreatment',   label: 'En tratamiento',         icon: Flame,     iconBg: 'bg-violet-100', iconText: 'text-violet-700', decoration: 'from-violet-200/40 to-violet-200/0' },
+  { key: 'routesToday',                label: 'Recorridos hoy',         icon: Route,  iconBg: 'bg-accent/10',  iconText: 'text-accent',     decoration: 'from-accent/15    to-accent/0' },
+  { key: 'containersInCirculation',    label: 'Envases en circulación', icon: Boxes,  iconBg: 'bg-primary/10', iconText: 'text-primary',    decoration: 'from-primary/15   to-primary/0' },
+  { key: 'containersPendingWeighing',  label: 'Pendientes de pesar',    icon: Scale,  iconBg: 'bg-amber-100',  iconText: 'text-amber-700',  decoration: 'from-amber-200/40 to-amber-200/0' },
+  { key: 'containersInTreatment',      label: 'En tratamiento',         icon: Flame,  iconBg: 'bg-violet-100', iconText: 'text-violet-700', decoration: 'from-violet-200/40 to-violet-200/0' },
 ]
 
 interface Props {

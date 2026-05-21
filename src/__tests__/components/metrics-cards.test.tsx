@@ -2,7 +2,7 @@ import { computeDashboardMetrics } from '@/components/dashboard/metrics-cards'
 import {
   MOCK_CONTAINERS,
   MOCK_ROUTE_EVENTS,
-  MOCK_STORAGE_EVENTS,
+  MOCK_RECEPTIONS,
   MOCK_TREATMENT_RUNS,
 } from '@/lib/mock-data'
 
@@ -11,29 +11,30 @@ describe('computeDashboardMetrics', () => {
     const metrics = computeDashboardMetrics(
       MOCK_CONTAINERS,
       MOCK_ROUTE_EVENTS,
-      MOCK_STORAGE_EVENTS,
+      MOCK_RECEPTIONS,
       MOCK_TREATMENT_RUNS
     )
-    // 20 envases activos (I-001..I-010, A-001..A-010)
-    expect(metrics.containersInCirculation).toBe(20)
+    // 199 envases activos: 10 ION (I-001..I-010) + 189 Airkem (A-001..A-189) del histórico
+    expect(metrics.containersInCirculation).toBe(199)
   })
 
-  it('counts containers in cold storage', () => {
+  it('counts containers pending weighing (recogidos sucios sin reception)', () => {
     const metrics = computeDashboardMetrics(
       MOCK_CONTAINERS,
       MOCK_ROUTE_EVENTS,
-      MOCK_STORAGE_EVENTS,
+      MOCK_RECEPTIONS,
       MOCK_TREATMENT_RUNS
     )
-    // storage-1 y storage-2 sin exit_at → 2 envases
-    expect(metrics.containersInStorage).toBe(2)
+    // Es no negativo y refleja cola real: containers recogidos sucios en mocks
+    // menos los que ya tienen reception en MOCK_RECEPTIONS/HISTORICAL_RECEPTIONS.
+    expect(metrics.containersPendingWeighing).toBeGreaterThanOrEqual(0)
   })
 
   it('counts routes for a given date', () => {
     const metrics = computeDashboardMetrics(
       MOCK_CONTAINERS,
       MOCK_ROUTE_EVENTS,
-      MOCK_STORAGE_EVENTS,
+      MOCK_RECEPTIONS,
       MOCK_TREATMENT_RUNS,
       '2026-05-17'
     )

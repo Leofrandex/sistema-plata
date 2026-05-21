@@ -95,3 +95,20 @@ export function getRouteEventIdsAnyDirection(
     )
     .map((r) => r.id)
 }
+
+// Cola de trabajo del pesador: envases activos recogidos sucios en algún
+// recorrido que aún no tienen reception registrada.
+export function getPendingWeighingContainerIds(
+  containers: Container[],
+  routeEvents: RouteEvent[],
+  receptions: ContainerReception[]
+): string[] {
+  const pesadosIds = new Set(receptions.map((r) => r.container_id))
+  return containers
+    .filter((c) => {
+      if (c.status !== 'active') return false
+      if (pesadosIds.has(c.id)) return false
+      return getRouteEventIdsForContainer(routeEvents, c.id).length > 0
+    })
+    .map((c) => c.id)
+}
