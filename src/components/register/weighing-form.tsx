@@ -26,6 +26,7 @@ export interface WeighingFormState {
   photo_container: string | null
   photo_scale: string | null
   gross_weight: string
+  observations: string                  // NEW
 }
 
 export const EMPTY_WEIGHING_FORM: WeighingFormState = {
@@ -33,6 +34,7 @@ export const EMPTY_WEIGHING_FORM: WeighingFormState = {
   photo_container: null,
   photo_scale: null,
   gross_weight: '',
+  observations: '',                     // NEW
 }
 
 interface Props {

@@ -172,6 +172,7 @@ export default function WeighingPage() {
       gross_weight_kg: gross,
       operator_id: 'user-1',
       photo_ids: [photoContainerId, photoScaleId],
+      observations: formState.observations,
     })
     updateWeighingSession(currentSessionId, {
       reception_ids: [...session.reception_ids, receptionId],
@@ -228,6 +229,7 @@ export default function WeighingPage() {
       photo_container: containerPhoto,
       photo_scale: scalePhoto,
       gross_weight: String(r.gross_weight_kg),
+      observations: r.observations,
     })
     setEditingReceptionId(receptionId)
     setDrawerOpen(false)

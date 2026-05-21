@@ -29,7 +29,7 @@ describe('types', () => {
     const r: ContainerReception = {
       id: 'r-1', container_id: 'I-001', weighing_session_id: null,
       arrived_at: '2026-05-03T09:00:00Z', gross_weight_kg: 45.2,
-      operator_id: 'user-1', photo_ids: [],
+      operator_id: 'user-1', photo_ids: [], observations: '',
     }
     const tare = 15.5
     const net = r.gross_weight_kg - tare

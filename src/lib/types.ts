@@ -122,6 +122,7 @@ export interface ContainerReception {
   // net_weight_kg is computed: gross_weight_kg - container.tare_weight_kg
   operator_id: string
   photo_ids: string[]
+  observations: string                  // texto libre del operador (e.g. "Yaris/Picanto sin tara"). Default ''.
 }
 
 export interface StorageEvent {
