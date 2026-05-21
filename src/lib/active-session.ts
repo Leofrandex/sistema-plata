@@ -1,5 +1,5 @@
 import { openDB } from 'idb'
-import type { RouteSlot } from './types'
+import type { RouteKind, RouteSlot } from './types'
 
 /**
  * Sesión activa persistida en IndexedDB. Permite que el cronómetro de un
@@ -24,7 +24,8 @@ export type SessionType = 'route' | 'weighing'
 export interface RouteSessionContext {
   type: 'route'
   client_id: string
-  slot: RouteSlot
+  kind: RouteKind
+  slot: RouteSlot | null
   date: string
   operator_id: string
   route_event_id: string
@@ -65,8 +66,13 @@ function getDB() {
   return dbPromise
 }
 
-export function routeSessionKey(date: string, slot: RouteSlot): string {
-  return `route:${date}:${slot}`
+export function routeAndenSessionKey(date: string, slot: RouteSlot): string {
+  return `route:anden:${date}:${slot}`
+}
+
+export function routeMorgueSessionKey(date: string, startedAt: string): string {
+  // Morgue puede tener más de uno por día. Distinguimos por started_at.
+  return `route:morgue:${date}:${startedAt}`
 }
 
 export function weighingSessionKey(date: string): string {

@@ -78,6 +78,7 @@ export const MOCK_ROUTE_EVENTS: RouteEvent[] = [
   {
     id: 'route-1',
     client_id: 'client-1',
+    kind: 'anden',
     slot: '06:30',
     date: '2026-05-17',
     started_at: '2026-05-17T06:30:00-05:00',
@@ -94,6 +95,7 @@ export const MOCK_ROUTE_EVENTS: RouteEvent[] = [
   {
     id: 'route-2',
     client_id: 'client-1',
+    kind: 'anden',
     slot: '10:30',
     date: '2026-05-17',
     started_at: '2026-05-17T10:30:00-05:00',

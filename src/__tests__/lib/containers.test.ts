@@ -103,6 +103,7 @@ describe('getContainerCurrentLocation', () => {
 describe('getRouteEventIdsForContainer', () => {
   const baseRoute: Omit<RouteEvent, 'id' | 'containers_dirty_received' | 'containers_clean_delivered'> = {
     client_id: 'client-1',
+    kind: 'anden',
     slot: '06:30',
     date: '2026-05-17',
     started_at: '2026-05-17T06:30:00Z',

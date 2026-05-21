@@ -36,6 +36,9 @@ export type ContainerPhase =
 // Horario fijo de los 6 recorridos por día
 export type RouteSlot = '06:30' | '10:30' | '13:20' | '14:30' | '18:30' | '21:00'
 
+// Tipo de recorrido. 'anden' usa los 6 slots fijos; 'morgue' es ad-hoc sin horario.
+export type RouteKind = 'anden' | 'morgue'
+
 export type RouteEventStatus = 'in_progress' | 'completed'
 export type WeighingSessionStatus = 'in_progress' | 'completed'
 
@@ -79,12 +82,13 @@ export interface Photo {
   label: string          // ej: 'PTDP Centro Salud 01/03/2026 09:40 PM'
 }
 
-// Recorrido (antes ExchangeEvent). Un solo evento por (slot, día calendario).
+// Recorrido (antes ExchangeEvent). Para 'anden': un evento por (slot, día). Para 'morgue': ad-hoc, sin slot.
 export interface RouteEvent {
   id: string
   client_id: string             // FK → Client (un recorrido es para un cliente)
-  slot: RouteSlot
-  date: string                  // ISO date 'YYYY-MM-DD' — junto con slot identifica el recorrido del día
+  kind: RouteKind               // 'anden' | 'morgue'
+  slot: RouteSlot | null        // requerido para anden, null para morgue
+  date: string                  // ISO date 'YYYY-MM-DD' — junto con slot identifica el recorrido del día (solo anden)
   started_at: string            // ISO datetime — cuando se tocó "Iniciar recorrido"
   ended_at: string | null       // null mientras está en curso
   operator_id: string
