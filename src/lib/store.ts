@@ -42,6 +42,16 @@ interface HospiwasteStore {
   users: User[]
   photos: Photo[]
 
+  /** uuid del operador autenticado (auth.users.id). Null antes de hidratar. */
+  currentProfileId: string | null
+  setCurrentProfileId: (id: string | null) => void
+
+  /**
+   * Reemplaza N campos del store de una vez (post-hidratación desde Supabase).
+   * Las claves no pasadas no se modifican.
+   */
+  hydrate: (patch: Partial<Omit<HospiwasteStore, 'hydrate' | 'setCurrentProfileId'>>) => void
+
   // Clientes / empresas
   addClient: (client: Client) => void
   updateClient: (id: string, updates: Partial<Client>) => void
@@ -86,6 +96,10 @@ export const useStore = create<HospiwasteStore>((set) => ({
   locations: MOCK_LOCATIONS,
   users: MOCK_USERS,
   photos: MOCK_PHOTOS,
+
+  currentProfileId: null,
+  setCurrentProfileId: (id) => set({ currentProfileId: id }),
+  hydrate: (patch) => set(patch),
 
   addClient: (client) =>
     set((s) => ({ clients: [...s.clients, client] })),

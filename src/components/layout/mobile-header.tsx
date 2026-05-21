@@ -21,6 +21,7 @@ const PAGE_TITLES: Record<string, string> = {
 
 export function MobileHeader() {
   const pathname = usePathname()
+  if (pathname === '/login' || pathname.startsWith('/auth/')) return null
   // matchear prefijo para rutas dinámicas (ej: /register/route/06:30)
   const title =
     PAGE_TITLES[pathname] ??

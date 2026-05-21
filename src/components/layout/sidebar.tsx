@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Package, Settings, ChevronDown, ClipboardList, FileText } from 'lucide-react'
+import { LayoutDashboard, Package, Settings, ChevronDown, ClipboardList, FileText, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_NAME } from '@/lib/constants'
 import { useState } from 'react'
@@ -32,12 +32,15 @@ export function Sidebar() {
   const [registerOpen, setRegisterOpen] = useState(pathname.startsWith('/register'))
   const [adminOpen, setAdminOpen] = useState(pathname.startsWith('/admin'))
 
+  // No mostrar shell en rutas de auth
+  if (pathname === '/login' || pathname.startsWith('/auth/')) return null
+
   return (
     <aside className="hidden md:flex w-56 flex-col border-r border-sidebar-border bg-sidebar h-screen sticky top-0">
       <div className="p-4 border-b border-sidebar-border">
         <span className="font-bold text-lg text-sidebar-foreground">{APP_NAME}</span>
       </div>
-      <nav className="flex-1 p-3 space-y-1">
+      <nav className="flex-1 p-3 space-y-1 flex flex-col">
         {TOP_NAV.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
@@ -120,6 +123,18 @@ export function Sidebar() {
               ))}
             </div>
           )}
+        </div>
+
+        <div className="mt-auto pt-4 border-t border-white/10">
+          <form action="/auth/signout" method="post">
+            <button
+              type="submit"
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Cerrar sesión</span>
+            </button>
+          </form>
         </div>
       </nav>
     </aside>

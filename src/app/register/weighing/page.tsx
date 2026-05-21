@@ -22,6 +22,8 @@ import {
   type ActiveSession,
 } from '@/lib/active-session'
 import { getPendingWeighingContainerIds } from '@/lib/data/containers'
+import { createClient } from '@/lib/supabase/client'
+import * as q from '@/lib/supabase/queries'
 
 export default function WeighingPage() {
   const router = useRouter()
@@ -30,7 +32,9 @@ export default function WeighingPage() {
     addWeighingSession, updateWeighingSession, deleteWeighingSession,
     addReception, updateReception,
     addPhoto, addStorageEvent, addLocation,
+    currentProfileId,
   } = useStore()
+  const supabase = createClient()
 
   const [today] = useState<string>(todayLocal)
   const [hydrated, setHydrated] = useState(false)
@@ -90,16 +94,30 @@ export default function WeighingPage() {
   }
 
   async function handleStart() {
-    if (!client) return
+    if (!client || !currentProfileId) return
     const now = new Date().toISOString()
-    const newSessionId = `weighing-${Date.now()}`
+    // Crear sesión en Supabase y usar el id que retorna
+    let createdId: string
+    try {
+      const row = await q.createWeighingSession(supabase, {
+        client_id: client.id,
+        date: today,
+        started_at: now,
+        operator_id: currentProfileId,
+        status: 'in_progress',
+      })
+      createdId = row.id
+    } catch (err) {
+      console.error('[pesaje] crear sesión falló:', err)
+      return
+    }
     addWeighingSession({
-      id: newSessionId,
+      id: createdId,
       client_id: client.id,
       date: today,
       started_at: now,
       ended_at: null,
-      operator_id: 'user-1',
+      operator_id: currentProfileId,
       status: 'in_progress',
       reception_ids: [],
     })
@@ -111,8 +129,8 @@ export default function WeighingPage() {
         type: 'weighing',
         client_id: client.id,
         date: today,
-        operator_id: 'user-1',
-        weighing_session_id: newSessionId,
+        operator_id: currentProfileId,
+        weighing_session_id: createdId,
       },
     }
     await startSession(newSession)
@@ -123,24 +141,41 @@ export default function WeighingPage() {
     return `PTDP ${client?.name ?? ''} ${new Date().toLocaleDateString('es-PA')} ${new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })}`
   }
 
-  function handleSubmitForm() {
-    if (!sessionId || !session) return
+  async function handleSubmitForm() {
+    if (!sessionId || !session || !currentProfileId) return
     const gross = parseFloat(formState.gross_weight)
     if (!formState.container_id || !formState.photo_container || !formState.photo_scale || Number.isNaN(gross)) return
 
     if (editingReceptionId) {
-      handleSaveEdit(editingReceptionId, gross)
+      await handleSaveEdit(editingReceptionId, gross)
     } else {
-      handleCreateReception(sessionId, gross)
+      await handleCreateReception(sessionId, gross)
     }
   }
 
-  function handleCreateReception(currentSessionId: string, gross: number) {
-    if (!session) return
+  async function handleCreateReception(currentSessionId: string, gross: number) {
+    if (!session || !currentProfileId) return
     const now = new Date().toISOString()
-    const receptionId = `reception-${Date.now()}`
     const label = buildPhotoLabel()
 
+    // 1) Insertar reception en Supabase para obtener el id real
+    let receptionId: string
+    try {
+      const row = await q.createReception(supabase, {
+        container_id: formState.container_id,
+        weighing_session_id: currentSessionId,
+        arrived_at: now,
+        gross_weight_kg: gross,
+        operator_id: currentProfileId,
+        observations: formState.observations,
+      })
+      receptionId = row.id
+    } catch (err) {
+      console.error('[pesaje] crear reception falló:', err)
+      return
+    }
+
+    // 2) Fotos: por ahora viven en memoria (mock). Fase 5 las sube a Storage.
     const photoContainerId = `photo-${Date.now()}-c`
     const photoScaleId = `photo-${Date.now()}-s`
     addPhoto({
@@ -159,13 +194,15 @@ export default function WeighingPage() {
       taken_at: now,
       label,
     })
+
+    // 3) Actualizar store
     addReception({
       id: receptionId,
       container_id: formState.container_id,
       weighing_session_id: currentSessionId,
       arrived_at: now,
       gross_weight_kg: gross,
-      operator_id: 'user-1',
+      operator_id: currentProfileId,
       photo_ids: [photoContainerId, photoScaleId],
       observations: formState.observations,
     })
@@ -176,14 +213,25 @@ export default function WeighingPage() {
     resetForm()
   }
 
-  function handleSaveEdit(receptionId: string, gross: number) {
+  async function handleSaveEdit(receptionId: string, gross: number) {
     const existing = receptions.find((r) => r.id === receptionId)
     if (!existing) return
     const now = new Date().toISOString()
     const label = buildPhotoLabel()
 
-    // Estrategia: reemplazar las fotos existentes por las nuevas si cambiaron
-    // dataURLs. Simplificación: siempre creamos fotos nuevas con IDs nuevos.
+    // 1) Actualizar reception en Supabase
+    try {
+      await q.updateReception(supabase, receptionId, {
+        container_id: formState.container_id,
+        gross_weight_kg: gross,
+        observations: formState.observations,
+      })
+    } catch (err) {
+      console.error('[pesaje] editar reception falló:', err)
+      return
+    }
+
+    // 2) Fotos en memoria (fase 5)
     const photoContainerId = `photo-${Date.now()}-c-edit`
     const photoScaleId = `photo-${Date.now()}-s-edit`
     addPhoto({
@@ -235,11 +283,14 @@ export default function WeighingPage() {
     resetForm()
   }
 
-  function handleDeleteEditing() {
+  async function handleDeleteEditing() {
     if (!editingReceptionId || !sessionId || !session) return
-    // Remover de la sesión. (No borramos el reception del store por simpleza
-    // — pero queda huérfano. Para el MVP es aceptable; podríamos hacer
-    // soft-delete en una fase posterior.)
+    try {
+      await q.deleteReception(supabase, editingReceptionId)
+    } catch (err) {
+      console.error('[pesaje] borrar reception falló:', err)
+      return
+    }
     updateWeighingSession(sessionId, {
       reception_ids: session.reception_ids.filter((id) => id !== editingReceptionId),
     })
@@ -249,7 +300,13 @@ export default function WeighingPage() {
   async function handleCancel() {
     if (!activeSession || activeSession.context.type !== 'weighing') return
     const ctx = activeSession.context
-    // Borra sesión + receptions + fotos de la sesión
+    // Borra sesión + receptions en Supabase, luego en store
+    try {
+      await q.deleteWeighingSession(supabase, ctx.weighing_session_id)
+    } catch (err) {
+      console.error('[pesaje] borrar sesión falló:', err)
+      return
+    }
     deleteWeighingSession(ctx.weighing_session_id)
     await endSession(activeSession.key)
     setActiveSession(null)
@@ -258,11 +315,20 @@ export default function WeighingPage() {
   }
 
   async function handleFinish() {
-    if (!activeSession || activeSession.context.type !== 'weighing' || !session) return
+    if (!activeSession || activeSession.context.type !== 'weighing' || !session || !currentProfileId) return
     const ctx = activeSession.context
     const now = new Date().toISOString()
 
-    // 1. Cerrar la sesión
+    // 1. Cerrar la sesión en Supabase y luego en store
+    try {
+      await q.updateWeighingSession(supabase, ctx.weighing_session_id, {
+        status: 'completed',
+        ended_at: now,
+      })
+    } catch (err) {
+      console.error('[pesaje] cerrar sesión falló:', err)
+      return
+    }
     updateWeighingSession(ctx.weighing_session_id, {
       status: 'completed',
       ended_at: now,
@@ -275,14 +341,14 @@ export default function WeighingPage() {
         container_id: r.container_id,
         entry_at: now,
         exit_at: null,
-        operator_id: 'user-1',
+        operator_id: currentProfileId,
         photo_ids: [],
       })
       addLocation({
         id: `loc-${Date.now()}-${idx}`,
         container_id: r.container_id,
         reported_at: now,
-        operator_id: 'user-1',
+        operator_id: currentProfileId,
         location_type: 'cold_storage',
         client_id: null,
         floor: null,

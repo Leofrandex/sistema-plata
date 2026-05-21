@@ -84,6 +84,20 @@ export async function listReceptionsBySession(
   )
 }
 
+export async function listReceptionsBySessionIds(
+  db: DB,
+  sessionIds: string[]
+): Promise<ReceptionRow[]> {
+  if (sessionIds.length === 0) return []
+  return unwrap(
+    await db
+      .from('container_receptions')
+      .select('*')
+      .in('weighing_session_id', sessionIds)
+      .order('arrived_at')
+  )
+}
+
 export async function listReceptionsWithNet(
   db: DB,
   opts: { from?: string; to?: string } = {}

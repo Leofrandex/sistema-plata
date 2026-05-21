@@ -1,21 +1,36 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { APP_NAME } from '@/lib/constants'
+import { createClient } from '@/lib/supabase/client'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
+  const params = useSearchParams()
+  const nextPath = params.get('next') || '/dashboard'
 
-  function handleSubmit(e: React.FormEvent) {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    // Auth logic will be added when Supabase is integrated (Plan 4)
-    setTimeout(() => router.push('/dashboard'), 500)
+    setError(null)
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
+      setError(traducir(error.message))
+      setLoading(false)
+      return
+    }
+    router.push(nextPath)
+    router.refresh()
   }
 
   return (
@@ -31,14 +46,34 @@ export default function LoginPage() {
               <label htmlFor="email" className="text-sm font-medium">
                 Correo electrónico
               </label>
-              <Input id="email" type="email" placeholder="operador@hospiwaste.com" required />
+              <Input
+                id="email"
+                type="email"
+                placeholder="operador@hospiwaste.com"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium">
                 Contraseña
               </label>
-              <Input id="password" type="password" required />
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
             </div>
+            {error && (
+              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                {error}
+              </p>
+            )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Ingresando...' : 'Ingresar'}
             </Button>
@@ -47,4 +82,18 @@ export default function LoginPage() {
       </Card>
     </div>
   )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  )
+}
+
+function traducir(msg: string): string {
+  if (/invalid login credentials/i.test(msg)) return 'Correo o contraseña incorrectos.'
+  if (/email not confirmed/i.test(msg)) return 'Tu correo aún no está confirmado.'
+  return msg
 }

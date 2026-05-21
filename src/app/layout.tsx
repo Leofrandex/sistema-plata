@@ -6,6 +6,7 @@ import { MobileHeader } from '@/components/layout/mobile-header'
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav'
 import { SyncIndicator } from '@/components/layout/sync-indicator'
 import { SWCleanup } from '@/components/layout/sw-cleanup'
+import { SupabaseHydrator } from '@/components/supabase-hydrator'
 import { APP_NAME, APP_DESCRIPTION, APP_TAGLINE } from '@/lib/constants'
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es">
       <body className={`${plusJakartaSans.variable} font-sans`}>
         <SWCleanup />
+        <SupabaseHydrator />
         <div className="flex min-h-screen bg-background">
           <Sidebar />
           <div className="flex-1 flex flex-col">

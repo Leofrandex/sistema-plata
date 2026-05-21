@@ -3,8 +3,14 @@ import { NextResponse, type NextRequest } from 'next/server'
 import type { Database } from './database.types'
 
 /**
- * Refresca la sesión Supabase en cada request (cookies de auth).
- * Llamar desde src/middleware.ts.
+ * Rutas públicas (no requieren sesión). El resto se protege con redirect
+ * a /login?next=<ruta-original>.
+ */
+const PUBLIC_PATHS = ['/login', '/auth']
+
+/**
+ * Refresca la sesión Supabase en cada request (cookies de auth) y aplica el
+ * auth gate: usuarios sin sesión van a /login. Llamar desde src/middleware.ts.
  */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request })
@@ -32,7 +38,30 @@ export async function updateSession(request: NextRequest) {
 
   // IMPORTANTE: getUser() valida el token contra el servidor de Auth.
   // No usar getSession() en server — devuelve datos sin validar.
-  await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const pathname = request.nextUrl.pathname
+  const isPublic = PUBLIC_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`)
+  )
+
+  // Sin sesión y ruta protegida → redirect a login
+  if (!user && !isPublic) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    url.searchParams.set('next', pathname)
+    return NextResponse.redirect(url)
+  }
+
+  // Con sesión y en /login → al dashboard
+  if (user && pathname === '/login') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
+    url.search = ''
+    return NextResponse.redirect(url)
+  }
 
   return response
 }
