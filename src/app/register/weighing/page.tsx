@@ -34,7 +34,6 @@ export default function WeighingPage() {
     addPhoto, addStorageEvent, addLocation,
     currentProfileId,
   } = useStore()
-  const supabase = createClient()
 
   const [today] = useState<string>(todayLocal)
   const [hydrated, setHydrated] = useState(false)
@@ -99,6 +98,7 @@ export default function WeighingPage() {
     // Crear sesión en Supabase y usar el id que retorna
     let createdId: string
     try {
+      const supabase = createClient()
       const row = await q.createWeighingSession(supabase, {
         client_id: client.id,
         date: today,
@@ -161,6 +161,7 @@ export default function WeighingPage() {
     // 1) Insertar reception en Supabase para obtener el id real
     let receptionId: string
     try {
+      const supabase = createClient()
       const row = await q.createReception(supabase, {
         container_id: formState.container_id,
         weighing_session_id: currentSessionId,
@@ -221,6 +222,7 @@ export default function WeighingPage() {
 
     // 1) Actualizar reception en Supabase
     try {
+      const supabase = createClient()
       await q.updateReception(supabase, receptionId, {
         container_id: formState.container_id,
         gross_weight_kg: gross,
@@ -286,6 +288,7 @@ export default function WeighingPage() {
   async function handleDeleteEditing() {
     if (!editingReceptionId || !sessionId || !session) return
     try {
+      const supabase = createClient()
       await q.deleteReception(supabase, editingReceptionId)
     } catch (err) {
       console.error('[pesaje] borrar reception falló:', err)
@@ -302,6 +305,7 @@ export default function WeighingPage() {
     const ctx = activeSession.context
     // Borra sesión + receptions en Supabase, luego en store
     try {
+      const supabase = createClient()
       await q.deleteWeighingSession(supabase, ctx.weighing_session_id)
     } catch (err) {
       console.error('[pesaje] borrar sesión falló:', err)
@@ -321,6 +325,7 @@ export default function WeighingPage() {
 
     // 1. Cerrar la sesión en Supabase y luego en store
     try {
+      const supabase = createClient()
       await q.updateWeighingSession(supabase, ctx.weighing_session_id, {
         status: 'completed',
         ended_at: now,
