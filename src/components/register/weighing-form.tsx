@@ -142,24 +142,6 @@ export function WeighingForm({
         )}
       </div>
 
-      {/* Fotos */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <PhotoCapture
-          label="Foto del envase"
-          required
-          preview={state.photo_container}
-          onCapture={(url) => onChange({ photo_container: url })}
-          onRemove={() => onChange({ photo_container: null })}
-        />
-        <PhotoCapture
-          label="Foto de la balanza"
-          required
-          preview={state.photo_scale}
-          onCapture={(url) => onChange({ photo_scale: url })}
-          onRemove={() => onChange({ photo_scale: null })}
-        />
-      </div>
-
       {/* Peso bruto */}
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-foreground">
@@ -187,6 +169,42 @@ export function WeighingForm({
             El peso bruto debe ser mayor que la tara ({selectedContainer.tare_weight_kg} kg).
           </p>
         )}
+      </div>
+
+      {/* Observaciones */}
+      <div className="space-y-1.5">
+        <label htmlFor="weighing-observations" className="text-sm font-medium text-foreground">
+          Observaciones
+        </label>
+        <textarea
+          id="weighing-observations"
+          value={state.observations}
+          onChange={(e) => onChange({ observations: e.target.value })}
+          placeholder="Ej: Yaris #3, Picanto rojo, tacho con daño en tapa…"
+          rows={2}
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
+        />
+        <p className="text-xs text-muted-foreground">
+          Opcional. Útil para anotar identificador manual de envases sin tara registrada (Yaris, Picanto) o cualquier detalle del pesaje.
+        </p>
+      </div>
+
+      {/* Fotos */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <PhotoCapture
+          label="Foto del envase"
+          required
+          preview={state.photo_container}
+          onCapture={(url) => onChange({ photo_container: url })}
+          onRemove={() => onChange({ photo_container: null })}
+        />
+        <PhotoCapture
+          label="Foto de la balanza"
+          required
+          preview={state.photo_scale}
+          onCapture={(url) => onChange({ photo_scale: url })}
+          onRemove={() => onChange({ photo_scale: null })}
+        />
       </div>
 
       {/* Acciones */}
