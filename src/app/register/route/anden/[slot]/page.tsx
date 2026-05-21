@@ -14,7 +14,7 @@ import {
   startSession,
   endSession,
   getActiveSession,
-  routeSessionKey,
+  routeAndenSessionKey,
   todayLocal,
   type ActiveSession,
 } from '@/lib/active-session'
@@ -61,7 +61,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   // incremental del form y dispararía hidrataciones en loop.
   useEffect(() => {
     let cancelled = false
-    const key = routeSessionKey(today, slotId)
+    const key = routeAndenSessionKey(today, slotId)
     getActiveSession(key)
       .then((session) => {
         if (cancelled) return
@@ -96,7 +96,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   }, [today, slotId])
 
   const completedEvent = routeEvents.find(
-    (r) => r.slot === slotId && r.date === today && r.status === 'completed',
+    (r) => r.kind === 'anden' && r.slot === slotId && r.date === today && r.status === 'completed',
   )
   const elapsed = useElapsed(activeSession?.started_at ?? null)
 
@@ -121,6 +121,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     addRouteEvent({
       id: routeEventId,
       client_id: client.id,
+      kind: 'anden',
       slot: slotId,
       date: today,
       started_at: now,
@@ -135,12 +136,13 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       photo_ids: [],
     })
     const session: ActiveSession = {
-      key: routeSessionKey(today, slotId),
+      key: routeAndenSessionKey(today, slotId),
       type: 'route',
       started_at: now,
       context: {
         type: 'route',
         client_id: client.id,
+        kind: 'anden',
         slot: slotId,
         date: today,
         operator_id: 'user-1',
@@ -160,7 +162,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     await endSession(activeSession.key)
     setActiveSession(null)
     setFormState({ dirtyReceivedIds: [], cleanDeliveredIds: [], floor: '', area: '', dock: '', photos: [] })
-    router.push('/register/route')
+    router.push('/register/route/anden')
   }
 
   async function handleFinish() {
@@ -202,7 +204,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     setActiveSession(null)
 
     // 4. Volver al listado
-    router.push('/register/route')
+    router.push('/register/route/anden')
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -338,7 +340,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
 function Header({ slot }: { slot: ReturnType<typeof getRouteSlotDefinition> }) {
   return (
     <div className="flex items-center gap-3">
-      <Link href="/register/route">
+      <Link href="/register/route/anden">
         <Button variant="ghost" size="icon" aria-label="Volver">
           <ArrowLeft className="h-4 w-4" />
         </Button>
