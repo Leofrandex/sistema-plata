@@ -3,12 +3,18 @@ title: Roadmap
 tags:
   - project
   - roadmap
-updated: 2026-05-17
+updated: 2026-05-21
 ---
 
 # Roadmap de Módulos
 
 **Enfoque acordado:** Frontend primero (UI + funcionalidades), luego conectar base de datos.
+
+> [!important] Backlog de lanzamiento PTDP (acordado 2026-05-18)
+> 12 cambios definidos para llegar al **piloto 2026-05-21** y **lanzamiento oficial 2026-06-01**. Detalle, prioridad y división en sesiones en `logs/2026-05-18-reunion-ptdp-demo-piloto.md`.
+> - **Sesión 1:** Pesaje (observaciones + reordenar), Recorridos (selector tipo desecho), Dashboard (quitar cámara fría) + Supabase + GitHub + hosting.
+> - **Sesión 2:** Reportes (formato Mantis, logos PNG/JPG, rango fechas, export Excel), Dashboard (tendencia anual, cliente padre), Admin envases (carga masiva + edición).
+> - **Fase 2 (post-lanzamiento, cotizar aparte):** validaciones esterilización, checklists turno, KPIs operadores, base instalada equipos + mantenimiento, módulo compras no-SAP, reporte limpieza profunda.
 
 ## Módulos planificados
 

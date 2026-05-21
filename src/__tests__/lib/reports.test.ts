@@ -71,9 +71,9 @@ describe('buildPhotographicReportData (por empresa)', () => {
     // Airkem tiene los mismos recorridos (porque incluyen envases de ambas
     // empresas) pero el comentario solo lista los envases de cada empresa.
     expect(ion.meta.routeEventCount).toBe(airkem.meta.routeEventCount)
-    // El total de receptions de Airkem en la semana del 11 al 17 es 0 (hoy
-    // los receptions son solo de ION).
-    expect(airkem.meta.weighingReceptionCount).toBe(0)
+    // Airkem en la semana 11-17 de mayo: 106 receptions históricas del día 11
+    // (último día capturado en el Excel) + 0 del mock vivo de esta semana = 106
+    expect(airkem.meta.weighingReceptionCount).toBe(106)
   })
 
   it('returns empty when range has no activity', () => {
