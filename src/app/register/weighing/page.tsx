@@ -211,6 +211,7 @@ export default function WeighingPage() {
       container_id: formState.container_id,
       gross_weight_kg: gross,
       photo_ids: [photoContainerId, photoScaleId],
+      observations: formState.observations,
     })
 
     resetForm()
