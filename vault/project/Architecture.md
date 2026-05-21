@@ -4,7 +4,7 @@ tags:
   - project
   - architecture
   - tech
-updated: 2026-05-03
+updated: 2026-05-21
 ---
 
 # Arquitectura del Sistema
@@ -24,6 +24,10 @@ updated: 2026-05-03
 | PWA | next-pwa | 5.x |
 | Íconos | lucide-react | 1.x |
 | Tests | Vitest (design system) + Jest (lógica) | — |
+| Backend / BD | Supabase (Postgres 17) | — |
+| Auth | Supabase Auth (email/password) | — |
+| Storage | Supabase Storage (bucket `photos`, privado) | — |
+| Cliente Supabase | @supabase/supabase-js + @supabase/ssr | — |
 
 ## Estructura de carpetas
 
@@ -52,7 +56,19 @@ src/
 
 ## Integraciones externas
 
-*(Pendiente de definir — APIs backend, servicios de terceros)*
+### Supabase
+
+- **Proyecto:** `hospiwaste` (org Oito) — ref `xqqnthyipkdkwyknbtnw`
+- **URL:** `https://xqqnthyipkdkwyknbtnw.supabase.co`
+- **Región:** us-east-2
+- **Plan:** Free
+- **Migrations locales:** `supabase/migrations/`
+- **Tipos generados:** `src/lib/supabase/database.types.ts`
+- **Clientes:** `src/lib/supabase/{client,server,middleware}.ts`
+- **Middleware Next.js:** `src/middleware.ts` refresca cookies de sesión en cada request.
+- **Variables de entorno:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (ver `.env.local.example`).
+
+**Decisiones clave:** ver `decisions/2026-05-21-supabase-integracion.md`.
 
 ## Dependencias principales
 
