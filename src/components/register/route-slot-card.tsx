@@ -25,7 +25,7 @@ const STATUS_LABEL: Record<RouteSlotStatus, string> = {
 
 export function RouteSlotCard({ slot, status, startedAt, completedAt }: Props) {
   const elapsed = useElapsed(status === 'in_progress' ? startedAt ?? null : null)
-  const href = `/register/route/${encodeURIComponent(slot.id)}`
+  const href = `/register/route/anden/${encodeURIComponent(slot.id)}`
   const clickable = status !== 'completed'
 
   const content = (

@@ -8,6 +8,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/containers': 'Envases',
   '/reports': 'Reportes',
   '/register/route': 'Recorridos',
+  '/register/route/anden': 'Recorridos de andén',
+  '/register/route/morgue': 'Recorrido de Morgue',
   '/register/weighing': 'Pesaje',
   '/register/treatment': 'Registrar Tratamiento',
   '/register/transfer': 'Registrar Traslado',

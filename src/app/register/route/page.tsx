@@ -1,88 +1,55 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { ROUTE_SLOTS } from '@/lib/constants'
-import { useStore } from '@/lib/store'
-import {
-  listActiveSessions,
-  routeSessionKey,
-  todayLocal,
-  type ActiveSession,
-} from '@/lib/active-session'
-import { RouteSlotCard, type RouteSlotStatus } from '@/components/register/route-slot-card'
-import type { RouteSlot } from '@/lib/types'
+import Link from 'next/link'
+import { Building2, Skull, ChevronRight } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
 
-interface SlotState {
-  status: RouteSlotStatus
-  startedAt?: string | null
-  completedAt?: string | null
-}
+const OPTIONS = [
+  {
+    href: '/register/route/anden',
+    label: 'Recorrido de andén',
+    description: 'Peligroso infeccioso y citotóxico. 6 horarios fijos por día.',
+    icon: Building2,
+    iconBg: 'bg-accent/10',
+    iconText: 'text-accent',
+  },
+  {
+    href: '/register/route/morgue',
+    label: 'Recorrido de Morgue',
+    description: 'Sin horario fijo. Se ejecuta cuando lo requiere la operación (aprox. cada 15 días).',
+    icon: Skull,
+    iconBg: 'bg-violet-100',
+    iconText: 'text-violet-700',
+  },
+] as const
 
 export default function RegisterRoutesPage() {
-  const { routeEvents } = useStore()
-  const [today, setToday] = useState<string>(todayLocal)
-  const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
-
-  // Refresca la fecha cada minuto por si pasamos medianoche con la app abierta
-  useEffect(() => {
-    const interval = setInterval(() => setToday(todayLocal()), 60_000)
-    return () => clearInterval(interval)
-  }, [])
-
-  // Carga las sesiones activas desde IndexedDB (cronómetros persistentes).
-  // Se re-ejecuta cuando cambia `routeEvents` para reflejar finalizaciones.
-  useEffect(() => {
-    let cancelled = false
-    listActiveSessions('route')
-      .then((sessions) => {
-        if (!cancelled) setActiveSessions(sessions)
-      })
-      .catch((err) => {
-        // eslint-disable-next-line no-console
-        console.error('[route-list] Error leyendo sesiones activas:', err)
-        if (!cancelled) setActiveSessions([])
-      })
-    return () => { cancelled = true }
-  }, [today, routeEvents])
-
-  function computeStatus(slot: RouteSlot): SlotState {
-    const inProgressKey = routeSessionKey(today, slot)
-    const inProgressSession = activeSessions.find((s) => s.key === inProgressKey)
-    if (inProgressSession) {
-      return { status: 'in_progress', startedAt: inProgressSession.started_at }
-    }
-    const completed = routeEvents.find(
-      (r) => r.slot === slot && r.date === today && r.status === 'completed',
-    )
-    if (completed) {
-      return { status: 'completed', completedAt: completed.ended_at }
-    }
-    return { status: 'available' }
-  }
-
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <header>
         <h1 className="text-2xl font-bold text-foreground">Recorridos</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          6 recorridos diarios con horario fijo. Una vez finalizada una ruta del día,
-          no se puede volver a iniciar hasta el día siguiente.
+          Elegí el tipo de recorrido a registrar.
         </p>
       </header>
 
       <div className="space-y-3">
-        {ROUTE_SLOTS.map((slot) => {
-          const state = computeStatus(slot.id)
-          return (
-            <RouteSlotCard
-              key={slot.id}
-              slot={slot}
-              status={state.status}
-              startedAt={state.startedAt}
-              completedAt={state.completedAt}
-            />
-          )
-        })}
+        {OPTIONS.map(({ href, label, description, icon: Icon, iconBg, iconText }) => (
+          <Link key={href} href={href} className="block">
+            <Card className="hover:border-accent/40 hover:bg-accent/5 transition-colors cursor-pointer">
+              <CardContent className="pt-4 flex items-center gap-4">
+                <span className={`flex size-12 items-center justify-center rounded-lg ring-1 ring-foreground/5 ${iconBg} ${iconText}`}>
+                  <Icon aria-hidden className="size-5" />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-foreground">{label}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
+                </div>
+                <ChevronRight aria-hidden className="size-5 text-muted-foreground shrink-0" />
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
       </div>
     </div>
   )
