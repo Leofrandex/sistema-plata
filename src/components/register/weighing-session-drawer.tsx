@@ -133,6 +133,11 @@ export function WeighingSessionDrawer({
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {new Date(r.arrived_at).toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })}
                       </p>
+                      {r.observations && r.observations.trim().length > 0 && (
+                        <p className="text-xs text-foreground/80 italic mt-1 line-clamp-2">
+                          “{r.observations}”
+                        </p>
+                      )}
                     </div>
                     <Pencil aria-hidden className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
                   </div>
