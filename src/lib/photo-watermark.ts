@@ -69,13 +69,15 @@ function drawTimestamp(
 ) {
   const text = formatTimestamp(date)
 
-  // Tamaño relativo: ~3.5% de la altura, mínimo 14px, máximo 36px.
-  const fontSize = Math.max(14, Math.min(36, Math.round(height * 0.035)))
-  const paddingX = Math.round(fontSize * 0.6)
-  const paddingY = Math.round(fontSize * 0.4)
+  // Tamaño relativo: ~4.5% del lado mayor, mínimo 22px, máximo 56px.
+  // Más grande que antes para que sea claramente legible en pantalla y en el PDF.
+  const referenceSide = Math.max(width, height)
+  const fontSize = Math.max(22, Math.min(56, Math.round(referenceSide * 0.045)))
+  const paddingX = Math.round(fontSize * 0.7)
+  const paddingY = Math.round(fontSize * 0.45)
   const margin = Math.round(fontSize * 0.6)
 
-  ctx.font = `600 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`
+  ctx.font = `bold ${fontSize}px Arial, Helvetica, sans-serif`
   ctx.textBaseline = 'alphabetic'
 
   const metrics = ctx.measureText(text)
@@ -83,20 +85,24 @@ function drawTimestamp(
   const boxWidth = textWidth + paddingX * 2
   const boxHeight = fontSize + paddingY * 2
 
-  // Caja semi-transparente al fondo para asegurar contraste sobre cualquier foto.
-  const boxX = margin
+  // Esquina inferior derecha. Caja negra ~75% opaca para contraste fuerte.
+  const boxX = width - margin - boxWidth
   const boxY = height - margin - boxHeight
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.55)'
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.75)'
   roundRect(ctx, boxX, boxY, boxWidth, boxHeight, Math.round(fontSize * 0.25))
   ctx.fill()
 
-  // Texto en blanco con leve sombra.
+  // Texto blanco con sombra negra para legibilidad sobre fotos muy claras.
   ctx.fillStyle = '#ffffff'
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.6)'
-  ctx.shadowBlur = 2
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.8)'
+  ctx.shadowBlur = 3
+  ctx.shadowOffsetX = 0
+  ctx.shadowOffsetY = 1
   ctx.fillText(text, boxX + paddingX, boxY + boxHeight - paddingY)
   ctx.shadowColor = 'transparent'
   ctx.shadowBlur = 0
+  ctx.shadowOffsetX = 0
+  ctx.shadowOffsetY = 0
 }
 
 function roundRect(
