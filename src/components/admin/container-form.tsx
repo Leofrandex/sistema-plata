@@ -34,6 +34,7 @@ export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props)
   const [size, setSize] = useState<ContainerSize | ''>('')
   const [wasteType, setWasteType] = useState<WasteType | ''>('')
   const [tare, setTare] = useState('')
+  const [isYaris, setIsYaris] = useState(false)
 
   const companiesOfClient = useMemo(
     () => companies.filter((c) => c.client_id === clientId),
@@ -59,6 +60,7 @@ export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props)
       size_liters: size as ContainerSize,
       waste_type: wasteType as WasteType,
       tare_weight_kg: parseFloat(tare),
+      is_yaris_dedicated: isYaris,
     })
   }
 
@@ -152,6 +154,21 @@ export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props)
           onChange={(e) => setTare(e.target.value)}
         />
       </div>
+
+      <label className="flex items-start gap-3 rounded-lg border border-border bg-card p-3 cursor-pointer hover:bg-muted/30">
+        <input
+          type="checkbox"
+          checked={isYaris}
+          onChange={(e) => setIsYaris(e.target.checked)}
+          className="mt-0.5 h-4 w-4"
+        />
+        <div className="flex-1">
+          <p className="text-sm font-medium">Envase dedicado a Yaris</p>
+          <p className="text-xs text-muted-foreground">
+            Marcalo si este envase se usa solo para pesaje de cargas Yaris/Picanto. Aparece en una lista aparte en el formulario de pesaje.
+          </p>
+        </div>
+      </label>
 
       <div className="flex gap-3">
         <Button type="button" variant="outline" onClick={onCancel} className="flex-1">Cancelar</Button>

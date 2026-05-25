@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { RouteForm, type RouteFormState } from '@/components/register/route-form'
 import { useStore } from '@/lib/store'
+import { createClient } from '@/lib/supabase/client'
+import * as q from '@/lib/supabase/queries'
 import { getRouteSlotDefinition } from '@/lib/constants'
 import { useElapsed, formatElapsed } from '@/hooks/use-elapsed'
 import {
@@ -37,10 +39,10 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   const {
     clients, companies, containers, routeEvents,
     addRouteEvent, updateRouteEvent, deleteRouteEvent, addPhoto,
+    currentProfileId,
   } = useStore()
 
   const [today] = useState<string>(todayLocal)
-  const [hydrated, setHydrated] = useState(false)
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null)
   const [formState, setFormState] = useState<RouteFormState>({
     dirtyReceivedIds: [],
@@ -64,12 +66,10 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     const key = routeAndenSessionKey(today, slotId)
     getActiveSession(key)
       .then((session) => {
-        if (cancelled) return
-        setActiveSession(session ?? null)
-        if (session && session.context.type === 'route') {
+        if (cancelled || !session) return
+        setActiveSession(session)
+        if (session.context.type === 'route') {
           const ctx = session.context
-          // Leemos el routeEvent vía getState() para evitar acoplar este
-          // effect a `routeEvents` (snapshot puntual, no suscripción).
           const event = useStore.getState().routeEvents.find((r) => r.id === ctx.route_event_id)
           if (event) {
             setFormState({
@@ -84,13 +84,8 @@ export default function RegisterRouteSlotPage({ params }: Props) {
         }
       })
       .catch((err) => {
-        // Si IndexedDB falla, no dejamos el spinner colgado: seguimos como
-        // si no hubiera sesión activa.
         // eslint-disable-next-line no-console
         console.error('[route] Error hidratando sesión activa:', err)
-      })
-      .finally(() => {
-        if (!cancelled) setHydrated(true)
       })
     return () => { cancelled = true }
   }, [today, slotId])
@@ -115,9 +110,28 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   }
 
   async function handleStart() {
-    if (!client) return
+    if (!client || !currentProfileId) return
     const now = new Date().toISOString()
-    const routeEventId = `route-${Date.now()}`
+
+    // Crear el recorrido en Supabase y usar el id (uuid) que retorna.
+    let routeEventId: string
+    try {
+      const supabase = createClient()
+      const row = await q.createRouteEvent(supabase, {
+        client_id: client.id,
+        kind: 'anden',
+        slot: slotId,
+        date: today,
+        started_at: now,
+        operator_id: currentProfileId,
+        status: 'in_progress',
+      })
+      routeEventId = row.id
+    } catch (err) {
+      console.error('[recorrido andén] crear recorrido falló:', err)
+      return
+    }
+
     addRouteEvent({
       id: routeEventId,
       client_id: client.id,
@@ -126,7 +140,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       date: today,
       started_at: now,
       ended_at: null,
-      operator_id: 'user-1',
+      operator_id: currentProfileId,
       status: 'in_progress',
       containers_dirty_received: formState.dirtyReceivedIds,
       containers_clean_delivered: formState.cleanDeliveredIds,
@@ -145,7 +159,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
         kind: 'anden',
         slot: slotId,
         date: today,
-        operator_id: 'user-1',
+        operator_id: currentProfileId,
         route_event_id: routeEventId,
       },
     }
@@ -156,7 +170,14 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   async function handleCancel() {
     if (!activeSession || activeSession.context.type !== 'route') return
     const ctx = activeSession.context
-    // Borrar el RouteEvent del store (también limpia sus fotos persistidas)
+    // Borrar el RouteEvent en Supabase (cascade limpia las join tables) y luego en store.
+    try {
+      const supabase = createClient()
+      await q.deleteRouteEvent(supabase, ctx.route_event_id)
+    } catch (err) {
+      console.error('[recorrido andén] borrar recorrido falló:', err)
+      return
+    }
     deleteRouteEvent(ctx.route_event_id)
     // Borrar la ActiveSession de IndexedDB
     await endSession(activeSession.key)
@@ -186,7 +207,25 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       photoIds.push(photoId)
     })
 
-    // 2. Cerrar el RouteEvent en el store
+    // 2. Persistir el cierre en Supabase: actualizar el recorrido y sincronizar
+    //    las join tables de envases (sucios recogidos / limpios entregados).
+    try {
+      const supabase = createClient()
+      await q.updateRouteEvent(supabase, routeEventId, {
+        status: 'completed',
+        ended_at: now,
+        floor: formState.floor,
+        area: formState.area,
+        dock: formState.dock,
+      })
+      await q.setRouteContainersDirty(supabase, routeEventId, formState.dirtyReceivedIds)
+      await q.setRouteContainersClean(supabase, routeEventId, formState.cleanDeliveredIds)
+    } catch (err) {
+      console.error('[recorrido andén] cerrar recorrido falló:', err)
+      return
+    }
+
+    // 3. Cerrar el RouteEvent en el store
     const patch: Partial<RouteEvent> = {
       status: 'completed',
       ended_at: now,
@@ -199,24 +238,15 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     }
     updateRouteEvent(routeEventId, patch)
 
-    // 3. Borrar la ActiveSession de IndexedDB
+    // 4. Borrar la ActiveSession de IndexedDB
     await endSession(activeSession.key)
     setActiveSession(null)
 
-    // 4. Volver al listado
+    // 5. Volver al listado
     router.push('/register/route/anden')
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
-
-  // Loading skeleton mientras hidrata IndexedDB
-  if (!hydrated) {
-    return (
-      <div className="max-w-2xl mx-auto py-12 text-center text-muted-foreground">
-        Cargando…
-      </div>
-    )
-  }
 
   // Estado: ya completado hoy → read-only
   if (completedEvent) {

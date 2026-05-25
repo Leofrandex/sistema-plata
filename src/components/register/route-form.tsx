@@ -1,10 +1,11 @@
 'use client'
 
-import { X, Trash2, Sparkles } from 'lucide-react'
+import { useState } from 'react'
+import { X, Trash2, Sparkles, Plus } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ContainerSelector } from '@/components/register/container-selector'
+import { ContainerPickerSheet } from '@/components/register/container-picker-sheet'
 import { PhotoCaptureMulti } from '@/components/register/photo-capture-multi'
 import { cn } from '@/lib/utils'
 import type { Container, Company } from '@/lib/types'
@@ -29,6 +30,8 @@ interface Props {
 }
 
 export function RouteForm({ state, onChange, containers, companies, locked }: Props) {
+  const [pickerOpen, setPickerOpen] = useState<'dirty' | 'clean' | null>(null)
+
   const dirtyContainers = containers.filter((c) => state.dirtyReceivedIds.includes(c.id))
   const cleanContainers = containers.filter((c) => state.cleanDeliveredIds.includes(c.id))
 
@@ -37,18 +40,8 @@ export function RouteForm({ state, onChange, containers, companies, locked }: Pr
   const dirtyCatalog = containers.filter((c) => !state.cleanDeliveredIds.includes(c.id))
   const cleanCatalog = containers.filter((c) => !state.dirtyReceivedIds.includes(c.id))
 
-  function addDirty(container: Container) {
-    if (state.dirtyReceivedIds.includes(container.id)) return
-    onChange({ dirtyReceivedIds: [...state.dirtyReceivedIds, container.id] })
-  }
-
   function removeDirty(id: string) {
     onChange({ dirtyReceivedIds: state.dirtyReceivedIds.filter((cid) => cid !== id) })
-  }
-
-  function addClean(container: Container) {
-    if (state.cleanDeliveredIds.includes(container.id)) return
-    onChange({ cleanDeliveredIds: [...state.cleanDeliveredIds, container.id] })
   }
 
   function removeClean(id: string) {
@@ -74,34 +67,48 @@ export function RouteForm({ state, onChange, containers, companies, locked }: Pr
       {/* Envases sucios recogidos */}
       <section className="space-y-3">
         <header className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-100 text-amber-700">
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-red-100 text-red-700">
             <Trash2 className="h-3.5 w-3.5" />
           </div>
-          <div>
-            <h2 className="text-sm font-semibold text-foreground">Envases sucios recogidos</h2>
+          <div className="flex-1">
+            <h2 className="text-sm font-semibold text-red-900">Envases sucios recogidos</h2>
             <p className="text-xs text-muted-foreground">Pasarán a pesaje en planta.</p>
           </div>
         </header>
-        <ContainerSelector
-          containers={dirtyCatalog}
-          companies={companies}
-          onSelect={addDirty}
-        />
+
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setPickerOpen('dirty')}
+          className="w-full h-14 gap-2 justify-center border-red-200 bg-red-50/50 hover:bg-red-50 text-red-900"
+        >
+          <Plus className="h-5 w-5" />
+          <span className="font-medium">
+            {dirtyContainers.length === 0
+              ? 'Agregar envases sucios'
+              : `Agregar / editar (${dirtyContainers.length} seleccionado${dirtyContainers.length !== 1 ? 's' : ''})`}
+          </span>
+        </Button>
+
         {dirtyContainers.length > 0 && (
-          <div className="space-y-1.5">
-            <p className="text-xs text-muted-foreground">
-              {dirtyContainers.length} envase{dirtyContainers.length !== 1 ? 's' : ''} recogido{dirtyContainers.length !== 1 ? 's' : ''}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {dirtyContainers.map((c) => (
-                <Badge key={c.id} variant="secondary" className="gap-1 bg-amber-50 text-amber-900 hover:bg-amber-100">
-                  <span className="font-mono">{c.id}</span>
-                  <button type="button" onClick={() => removeDirty(c.id)} aria-label={`Quitar ${c.id}`}>
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))}
-            </div>
+          <div className="flex flex-wrap gap-2">
+            {dirtyContainers.map((c) => (
+              <Badge
+                key={c.id}
+                variant="secondary"
+                className="gap-1.5 bg-red-100 text-red-900 hover:bg-red-200 border border-red-200 py-1.5 pl-2.5 pr-1.5 text-sm"
+              >
+                <span className="font-mono font-semibold">{c.id}</span>
+                <button
+                  type="button"
+                  onClick={() => removeDirty(c.id)}
+                  aria-label={`Quitar ${c.id}`}
+                  className="ml-0.5 rounded-full p-0.5 hover:bg-red-300/60"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </Badge>
+            ))}
           </div>
         )}
       </section>
@@ -112,31 +119,45 @@ export function RouteForm({ state, onChange, containers, companies, locked }: Pr
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-100 text-emerald-700">
             <Sparkles className="h-3.5 w-3.5" />
           </div>
-          <div>
-            <h2 className="text-sm font-semibold text-foreground">Envases limpios entregados</h2>
+          <div className="flex-1">
+            <h2 className="text-sm font-semibold text-emerald-900">Envases limpios entregados</h2>
             <p className="text-xs text-muted-foreground">Envases vacíos y lavados que se dejan al cliente.</p>
           </div>
         </header>
-        <ContainerSelector
-          containers={cleanCatalog}
-          companies={companies}
-          onSelect={addClean}
-        />
+
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setPickerOpen('clean')}
+          className="w-full h-14 gap-2 justify-center border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50 text-emerald-900"
+        >
+          <Plus className="h-5 w-5" />
+          <span className="font-medium">
+            {cleanContainers.length === 0
+              ? 'Agregar envases limpios'
+              : `Agregar / editar (${cleanContainers.length} seleccionado${cleanContainers.length !== 1 ? 's' : ''})`}
+          </span>
+        </Button>
+
         {cleanContainers.length > 0 && (
-          <div className="space-y-1.5">
-            <p className="text-xs text-muted-foreground">
-              {cleanContainers.length} envase{cleanContainers.length !== 1 ? 's' : ''} entregado{cleanContainers.length !== 1 ? 's' : ''}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {cleanContainers.map((c) => (
-                <Badge key={c.id} variant="secondary" className="gap-1 bg-emerald-50 text-emerald-900 hover:bg-emerald-100">
-                  <span className="font-mono">{c.id}</span>
-                  <button type="button" onClick={() => removeClean(c.id)} aria-label={`Quitar ${c.id}`}>
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))}
-            </div>
+          <div className="flex flex-wrap gap-2">
+            {cleanContainers.map((c) => (
+              <Badge
+                key={c.id}
+                variant="secondary"
+                className="gap-1.5 bg-emerald-100 text-emerald-900 hover:bg-emerald-200 border border-emerald-200 py-1.5 pl-2.5 pr-1.5 text-sm"
+              >
+                <span className="font-mono font-semibold">{c.id}</span>
+                <button
+                  type="button"
+                  onClick={() => removeClean(c.id)}
+                  aria-label={`Quitar ${c.id}`}
+                  className="ml-0.5 rounded-full p-0.5 hover:bg-emerald-300/60"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </Badge>
+            ))}
           </div>
         )}
       </section>
@@ -197,6 +218,26 @@ export function RouteForm({ state, onChange, containers, companies, locked }: Pr
           </Button>
         </div>
       )}
+
+      {/* Picker modal full-screen — fuera del wrapper "locked" para no heredar el pointer-events-none */}
+      <ContainerPickerSheet
+        open={pickerOpen === 'dirty'}
+        variant="dirty"
+        containers={dirtyCatalog}
+        companies={companies}
+        selectedIds={state.dirtyReceivedIds}
+        onClose={() => setPickerOpen(null)}
+        onConfirm={(ids) => onChange({ dirtyReceivedIds: ids })}
+      />
+      <ContainerPickerSheet
+        open={pickerOpen === 'clean'}
+        variant="clean"
+        containers={cleanCatalog}
+        companies={companies}
+        selectedIds={state.cleanDeliveredIds}
+        onClose={() => setPickerOpen(null)}
+        onConfirm={(ids) => onChange({ cleanDeliveredIds: ids })}
+      />
     </div>
   )
 }

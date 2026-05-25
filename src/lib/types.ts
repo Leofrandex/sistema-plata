@@ -71,6 +71,10 @@ export interface Container {
   waste_type: WasteType
   status: ContainerStatus
   registered_at: string  // ISO 8601 datetime
+  /** true: envase reservado para pesaje de cargas Yaris/Picanto. Solo aparece
+   *  como opción en /register/weighing cuando el operador activa el modo Yaris.
+   *  Opcional para compat con data histórica/mocks; undefined === false. */
+  is_yaris_dedicated?: boolean
 }
 
 export interface Photo {

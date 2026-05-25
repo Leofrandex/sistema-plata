@@ -36,7 +36,6 @@ export default function WeighingPage() {
   } = useStore()
 
   const [today] = useState<string>(todayLocal)
-  const [hydrated, setHydrated] = useState(false)
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null)
   const [editingReceptionId, setEditingReceptionId] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -46,21 +45,20 @@ export default function WeighingPage() {
 
   const client = clients[0]
 
-  // Hidrata desde IndexedDB al montar. Si falla, seguimos sin sesión activa.
+  // Hidrata desde IndexedDB en background. No bloqueamos el render: si IDB
+  // está lento o falla, la página sigue siendo usable como si no hubiera
+  // sesión activa (start arranca una nueva).
   useEffect(() => {
     let cancelled = false
     const key = weighingSessionKey(today)
     getActiveSession(key)
       .then((session) => {
         if (cancelled) return
-        setActiveSession(session ?? null)
+        if (session) setActiveSession(session)
       })
       .catch((err) => {
         // eslint-disable-next-line no-console
         console.error('[weighing] Error hidratando sesión activa:', err)
-      })
-      .finally(() => {
-        if (!cancelled) setHydrated(true)
       })
     return () => { cancelled = true }
   }, [today])
@@ -80,8 +78,14 @@ export default function WeighingPage() {
   const elapsed = useElapsed(activeSession?.started_at ?? null)
 
   // Envases disponibles para pesar = cola de trabajo del pesador (helper compartido con dashboard).
+  // Excluimos los dedicados a Yaris: éstos viven en una lista aparte y solo se eligen cuando el operador activa el modo Yaris.
   const pendingIds = new Set(getPendingWeighingContainerIds(containers, routeEvents, receptions))
-  const availableContainers = containers.filter((c) => pendingIds.has(c.id))
+  const availableContainers = containers.filter(
+    (c) => pendingIds.has(c.id) && !c.is_yaris_dedicated,
+  )
+  const yarisContainers = containers.filter(
+    (c) => c.is_yaris_dedicated && c.status === 'active',
+  )
 
   function updateForm(updates: Partial<WeighingFormState>) {
     setFormState((prev) => ({ ...prev, ...updates }))
@@ -270,12 +274,14 @@ export default function WeighingPage() {
     const containerPhoto = photos.find((p) => p.id === r.photo_ids[0])?.url ?? null
     const scalePhoto = photos.find((p) => p.id === r.photo_ids[1])?.url ?? null
 
+    const container = containers.find((c) => c.id === r.container_id)
     setFormState({
       container_id: r.container_id,
       photo_container: containerPhoto,
       photo_scale: scalePhoto,
       gross_weight: String(r.gross_weight_kg),
       observations: r.observations,
+      is_yaris_weighing: container?.is_yaris_dedicated === true,
     })
     setEditingReceptionId(receptionId)
     setDrawerOpen(false)
@@ -372,14 +378,6 @@ export default function WeighingPage() {
 
   // ── Render ────────────────────────────────────────────────────────────────
 
-  if (!hydrated) {
-    return (
-      <div className="max-w-2xl mx-auto py-12 text-center text-muted-foreground">
-        Cargando…
-      </div>
-    )
-  }
-
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-20">
       <header>
@@ -452,6 +450,7 @@ export default function WeighingPage() {
         state={formState}
         onChange={updateForm}
         availableContainers={availableContainers}
+        yarisContainers={yarisContainers}
         allContainers={containers}
         companies={companies}
         locked={!isRunning}

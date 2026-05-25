@@ -8,6 +8,7 @@ import type {
   Container,
   WeighingSession,
   ContainerReception,
+  RouteEvent,
 } from '@/lib/types'
 
 /**
@@ -18,10 +19,11 @@ import type {
  * Para el piloto solo migramos el dominio de pesaje:
  *  - containers      ← Supabase
  *  - weighingSessions + receptions ← Supabase (computa reception_ids[] localmente)
+ *  - routeEvents     ← Supabase (merge con join tables dirty/clean)
  *  - currentProfileId ← profile del usuario logueado
  *
- * Lo demás (clients, companies, routeEvents, photos, storage…) sigue saliendo
- * de los mocks hasta que se migre en sesiones posteriores.
+ * Lo demás (clients, companies, photos, storage…) sigue saliendo de los mocks
+ * hasta que se migre en sesiones posteriores.
  */
 export function SupabaseHydrator() {
   useEffect(() => {
@@ -39,13 +41,18 @@ export function SupabaseHydrator() {
         // Sin sesión → no traer datos (el middleware redirige a /login)
         if (!profile) return
 
-        const [containersRaw, sessionsRaw] = await Promise.all([
-          q.listContainers(supabase),
-          q.listWeighingSessions(supabase),
-        ])
+        const [containersRaw, sessionsRaw, routeEventsRaw, dirtyLinks, cleanLinks] =
+          await Promise.all([
+            q.listContainers(supabase),
+            q.listWeighingSessions(supabase),
+            q.listRouteEvents(supabase),
+            q.listAllRouteContainersDirty(supabase),
+            q.listAllRouteContainersClean(supabase),
+          ])
         if (cancelled) return
 
         const containers = containersRaw.map(rowToContainer)
+        const routeEvents = mapRouteEvents(routeEventsRaw, dirtyLinks, cleanLinks)
 
         // Traer todas las receptions de las sesiones en una sola query y
         // luego agruparlas para derivar reception_ids[] por sesión.
@@ -81,6 +88,7 @@ export function SupabaseHydrator() {
           containers,
           weighingSessions,
           receptions,
+          routeEvents,
         })
       } catch (err) {
         // No-op: si falla la hidratación, la app sigue con mocks.
@@ -118,6 +126,7 @@ function rowToContainer(r: q.ContainerRow): Container {
     waste_type: r.waste_type,
     status: r.status,
     registered_at: r.registered_at,
+    is_yaris_dedicated: r.is_yaris_dedicated,
   }
 }
 
@@ -132,4 +141,45 @@ function rowToReception(r: q.ReceptionRow): ContainerReception {
     photo_ids: [], // fotos por ahora viven en memoria (mock); fase 5 las trae de Storage
     observations: r.observations,
   }
+}
+
+/**
+ * Combina las filas de `route_events` con sus join tables dirty/clean para
+ * reconstruir los `RouteEvent` del store (que llevan los IDs de envases inline).
+ * Pura y exportada para poder testearla sin Supabase.
+ */
+export function mapRouteEvents(
+  events: q.RouteEventRow[],
+  dirtyLinks: q.RouteContainerLink[],
+  cleanLinks: q.RouteContainerLink[]
+): RouteEvent[] {
+  const dirtyByEvent = groupContainers(dirtyLinks)
+  const cleanByEvent = groupContainers(cleanLinks)
+  return events.map((e) => ({
+    id: e.id,
+    client_id: e.client_id,
+    kind: e.kind,
+    slot: e.slot,
+    date: e.date,
+    started_at: e.started_at,
+    ended_at: e.ended_at,
+    operator_id: e.operator_id,
+    status: e.status,
+    containers_dirty_received: dirtyByEvent.get(e.id) ?? [],
+    containers_clean_delivered: cleanByEvent.get(e.id) ?? [],
+    floor: e.floor,
+    area: e.area,
+    dock: e.dock,
+    photo_ids: [], // fotos en memoria (mock) hasta migrar Storage
+  }))
+}
+
+function groupContainers(links: q.RouteContainerLink[]): Map<string, string[]> {
+  const map = new Map<string, string[]>()
+  for (const l of links) {
+    const arr = map.get(l.route_event_id) ?? []
+    arr.push(l.container_id)
+    map.set(l.route_event_id, arr)
+  }
+  return map
 }

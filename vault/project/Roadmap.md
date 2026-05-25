@@ -16,6 +16,12 @@ updated: 2026-05-21
 > - **Sesión 2:** Reportes (formato Mantis, logos PNG/JPG, rango fechas, export Excel), Dashboard (tendencia anual, cliente padre), Admin envases (carga masiva + edición).
 > - **Fase 2 (post-lanzamiento, cotizar aparte):** validaciones esterilización, checklists turno, KPIs operadores, base instalada equipos + mantenimiento, módulo compras no-SAP, reporte limpieza profunda.
 
+> [!important] Bloqueantes antes de 2026-06-01 (sostenibilidad)
+> Ver ADR `decisions/2026-05-21-estado-envase-derivado.md`.
+> - **[P1] "Deshacer pesaje" en la UI** con soft-delete en `container_receptions` (`voided_at`, `voided_by`, `void_reason`).
+> - **[P1] Vista de Postgres `v_containers_pending_weighing`** que reemplace `getPendingWeighingContainerIds` en cliente.
+> - **[P2 post-lanzamiento]** Columna `current_phase` en `containers` mantenida por triggers; vista materializada para dashboard cuando el volumen lo justifique.
+
 ## Módulos planificados
 
 | Módulo | Prioridad | Estado | Descripción |

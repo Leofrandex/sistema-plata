@@ -210,6 +210,7 @@ export type Database = {
         Row: {
           company_id: string | null
           id: string
+          is_yaris_dedicated: boolean
           registered_at: string
           size_liters: Database["public"]["Enums"]["container_size"]
           status: Database["public"]["Enums"]["container_status"]
@@ -219,6 +220,7 @@ export type Database = {
         Insert: {
           company_id?: string | null
           id: string
+          is_yaris_dedicated?: boolean
           registered_at?: string
           size_liters: Database["public"]["Enums"]["container_size"]
           status?: Database["public"]["Enums"]["container_status"]
@@ -228,6 +230,7 @@ export type Database = {
         Update: {
           company_id?: string | null
           id?: string
+          is_yaris_dedicated?: boolean
           registered_at?: string
           size_liters?: Database["public"]["Enums"]["container_size"]
           status?: Database["public"]["Enums"]["container_status"]

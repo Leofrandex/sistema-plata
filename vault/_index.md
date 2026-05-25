@@ -38,6 +38,7 @@ updated: 2026-05-21
 | Cliente / Empresa / Recorrido | 🟢 | `decisions/2026-05-17-cliente-empresa-recorrido.md` |
 | Rediseño operativo (5 fases) | 🟢 Completado | `logs/2026-05-17-recorridos-pesaje-reportes-dashboard.md` |
 | Integración Supabase (schema + auth + storage) | 🟢 Provisionado | `decisions/2026-05-21-supabase-integracion.md` · `logs/2026-05-21-supabase-bootstrap.md` |
+| Recorridos → Supabase (write-through + hidratación) | 🟢 Completado | `logs/2026-05-25-recorridos-supabase-writethrough.md` |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completo · ⚠️ Tiene incoherencias
 
@@ -61,6 +62,7 @@ updated: 2026-05-21
 - `decisions/2026-05-03-border-radius-global.md`
 - `decisions/2026-05-17-cliente-empresa-recorrido.md`
 - `decisions/2026-05-21-supabase-integracion.md`
+- `decisions/2026-05-21-estado-envase-derivado.md` — estado derivado de eventos; revisar P1 antes de 2026-06-01
 
 ### Logs de cambios
 - `logs/2026-05-03-branding-system.md`
@@ -70,6 +72,8 @@ updated: 2026-05-21
 - `logs/2026-05-18-historico-airkem-dashboard.md`
 - `logs/2026-05-18-reunion-ptdp-demo-piloto.md`
 - `logs/2026-05-21-supabase-bootstrap.md`
+- `logs/2026-05-25-recorridos-supabase-writethrough.md`
+- `logs/2026-05-25-pesaje-ux-yaris-recorridos-modal.md`
 
 ---
 
@@ -78,6 +82,13 @@ updated: 2026-05-21
 *(Vacío)*
 
 ## Notas del último procesamiento
+
+**2026-05-25** — Fix: los envases sucios de un recorrido no aparecían en Pesaje.
+Causa: `routeEvents` salía de mocks en memoria y el flujo de recorrido nunca
+escribía a Supabase, mientras pesaje leía `containers`/`receptions` de Supabase.
+Solución: migración completa de recorridos a Supabase (write-through en andén +
+morgue, e hidratación de `route_events` + join tables en `SupabaseHydrator`).
+Log: `logs/2026-05-25-recorridos-supabase-writethrough.md`.
 
 **2026-05-21** — Bootstrap de Supabase para el piloto (sin migrar el store aún).
 Proyecto `hospiwaste` (ref `xqqnthyipkdkwyknbtnw`, us-east-2, Free). 14 tablas + 9 enums + vista `container_receptions_with_net` + trigger `on_auth_user_created`. RLS habilitado con policies "authenticated full access" (decisión piloto). Bucket Storage `photos` privado. Cliente Next.js: `@supabase/ssr` con browser/server/middleware clients y `src/middleware.ts` para refresco de sesión. Tipos TS en `src/lib/supabase/database.types.ts`. Migration en `supabase/migrations/`.

@@ -77,6 +77,26 @@ export async function listContainersCleanForRoute(
   return rows.map((r) => r.container_id)
 }
 
+// ─── bulk: traer todas las asociaciones (para hidratación del store) ─────────
+
+export type RouteContainerLink = { route_event_id: string; container_id: string }
+
+export async function listAllRouteContainersDirty(
+  db: DB
+): Promise<RouteContainerLink[]> {
+  return unwrap(
+    await db.from('route_event_containers_dirty').select('route_event_id, container_id')
+  )
+}
+
+export async function listAllRouteContainersClean(
+  db: DB
+): Promise<RouteContainerLink[]> {
+  return unwrap(
+    await db.from('route_event_containers_clean').select('route_event_id, container_id')
+  )
+}
+
 export async function setRouteContainersDirty(
   db: DB,
   routeEventId: string,

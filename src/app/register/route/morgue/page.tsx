@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { RouteForm, type RouteFormState } from '@/components/register/route-form'
 import { useStore } from '@/lib/store'
+import { createClient } from '@/lib/supabase/client'
+import * as q from '@/lib/supabase/queries'
 import { useElapsed, formatElapsed } from '@/hooks/use-elapsed'
 import {
   startSession,
@@ -24,10 +26,10 @@ export default function RegisterMorgueRoutePage() {
   const {
     clients, companies, containers,
     addRouteEvent, updateRouteEvent, deleteRouteEvent, addPhoto,
+    currentProfileId,
   } = useStore()
 
   const [today] = useState<string>(todayLocal)
-  const [hydrated, setHydrated] = useState(false)
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null)
   const [formState, setFormState] = useState<RouteFormState>({
     dirtyReceivedIds: [],
@@ -50,8 +52,9 @@ export default function RegisterMorgueRoutePage() {
         const morgue = sessions.find(
           (s) => s.context.type === 'route' && s.context.kind === 'morgue' && s.context.date === today,
         )
-        setActiveSession(morgue ?? null)
-        if (morgue && morgue.context.type === 'route') {
+        if (!morgue) return
+        setActiveSession(morgue)
+        if (morgue.context.type === 'route') {
           const ctx = morgue.context
           const event = useStore.getState().routeEvents.find((r) => r.id === ctx.route_event_id)
           if (event) {
@@ -69,9 +72,6 @@ export default function RegisterMorgueRoutePage() {
       .catch((err) => {
         // eslint-disable-next-line no-console
         console.error('[morgue] Error hidratando sesión activa:', err)
-      })
-      .finally(() => {
-        if (!cancelled) setHydrated(true)
       })
     return () => { cancelled = true }
   }, [today])
@@ -92,9 +92,28 @@ export default function RegisterMorgueRoutePage() {
   }
 
   async function handleStart() {
-    if (!client) return
+    if (!client || !currentProfileId) return
     const now = new Date().toISOString()
-    const routeEventId = `route-morgue-${Date.now()}`
+
+    // Crear el recorrido en Supabase y usar el id (uuid) que retorna.
+    let routeEventId: string
+    try {
+      const supabase = createClient()
+      const row = await q.createRouteEvent(supabase, {
+        client_id: client.id,
+        kind: 'morgue',
+        slot: null,
+        date: today,
+        started_at: now,
+        operator_id: currentProfileId,
+        status: 'in_progress',
+      })
+      routeEventId = row.id
+    } catch (err) {
+      console.error('[recorrido morgue] crear recorrido falló:', err)
+      return
+    }
+
     addRouteEvent({
       id: routeEventId,
       client_id: client.id,
@@ -103,7 +122,7 @@ export default function RegisterMorgueRoutePage() {
       date: today,
       started_at: now,
       ended_at: null,
-      operator_id: 'user-1',
+      operator_id: currentProfileId,
       status: 'in_progress',
       containers_dirty_received: formState.dirtyReceivedIds,
       containers_clean_delivered: formState.cleanDeliveredIds,
@@ -122,7 +141,7 @@ export default function RegisterMorgueRoutePage() {
         kind: 'morgue',
         slot: null,
         date: today,
-        operator_id: 'user-1',
+        operator_id: currentProfileId,
         route_event_id: routeEventId,
       },
     }
@@ -133,6 +152,14 @@ export default function RegisterMorgueRoutePage() {
   async function handleCancel() {
     if (!activeSession || activeSession.context.type !== 'route') return
     const ctx = activeSession.context
+    // Borrar en Supabase (cascade limpia las join tables) y luego en store.
+    try {
+      const supabase = createClient()
+      await q.deleteRouteEvent(supabase, ctx.route_event_id)
+    } catch (err) {
+      console.error('[recorrido morgue] borrar recorrido falló:', err)
+      return
+    }
     deleteRouteEvent(ctx.route_event_id)
     await endSession(activeSession.key)
     setActiveSession(null)
@@ -160,6 +187,23 @@ export default function RegisterMorgueRoutePage() {
       photoIds.push(photoId)
     })
 
+    // Persistir el cierre en Supabase + sincronizar envases sucios/limpios.
+    try {
+      const supabase = createClient()
+      await q.updateRouteEvent(supabase, routeEventId, {
+        status: 'completed',
+        ended_at: now,
+        floor: formState.floor,
+        area: formState.area,
+        dock: formState.dock,
+      })
+      await q.setRouteContainersDirty(supabase, routeEventId, formState.dirtyReceivedIds)
+      await q.setRouteContainersClean(supabase, routeEventId, formState.cleanDeliveredIds)
+    } catch (err) {
+      console.error('[recorrido morgue] cerrar recorrido falló:', err)
+      return
+    }
+
     const patch: Partial<RouteEvent> = {
       status: 'completed',
       ended_at: now,
@@ -178,13 +222,6 @@ export default function RegisterMorgueRoutePage() {
     router.push('/register/route')
   }
 
-  if (!hydrated) {
-    return (
-      <div className="max-w-2xl mx-auto py-12 text-center text-muted-foreground">
-        Cargando…
-      </div>
-    )
-  }
 
   const isRunning = !!activeSession
   const totalContainers = formState.dirtyReceivedIds.length + formState.cleanDeliveredIds.length

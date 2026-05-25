@@ -32,7 +32,7 @@ export interface CirculationBreakdown {
 const BUCKET_DEFINITIONS: Array<{ key: CirculationBucket; label: string; color: string }> = [
   { key: 'en_planta',    label: 'En planta',         color: '#2A27E9' }, // accent
   { key: 'en_cliente',   label: 'En cliente',        color: '#10B981' }, // emerald
-  { key: 'en_transito',  label: 'En tránsito',       color: '#F59E0B' }, // amber
+  { key: 'en_transito',  label: 'Pendiente por pesar', color: '#F59E0B' }, // amber
   { key: 'sin_registro', label: 'Sin registro',      color: '#94A3B8' }, // slate
 ]
 
