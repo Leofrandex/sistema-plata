@@ -1,9 +1,10 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import Image from 'next/image'
-import { Camera, X, Plus } from 'lucide-react'
+import { Camera, X, Plus, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { watermarkPhoto } from '@/lib/photo-watermark'
 
 interface Props {
   label: string
@@ -20,15 +21,24 @@ interface Props {
  */
 export function PhotoCaptureMulti({ label, required, disabled, photos, onAdd, onRemove }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const [processing, setProcessing] = useState(0)
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? [])
-    files.forEach((file) => {
-      const reader = new FileReader()
-      reader.onload = () => onAdd(reader.result as string)
-      reader.readAsDataURL(file)
-    })
-    if (inputRef.current) inputRef.current.value = ''
+    if (files.length === 0) return
+    setProcessing((n) => n + files.length)
+    try {
+      // El timestamp se toma al inicio del batch (igual a “momento del click
+      // de captura”). Aceptable para fotos que se eligen rápido en secuencia.
+      const capturedAt = new Date()
+      const results = await Promise.all(
+        files.map((file) => watermarkPhoto(file, capturedAt)),
+      )
+      results.forEach((dataUrl) => onAdd(dataUrl))
+    } finally {
+      setProcessing((n) => Math.max(0, n - files.length))
+      if (inputRef.current) inputRef.current.value = ''
+    }
   }
 
   return (
@@ -74,9 +84,15 @@ export function PhotoCaptureMulti({ label, required, disabled, photos, onAdd, on
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="aspect-[4/3] rounded-lg border-2 border-dashed border-slate-300 hover:border-blue-400 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-blue-500 transition-colors"
+            disabled={processing > 0}
+            className="aspect-[4/3] rounded-lg border-2 border-dashed border-slate-300 hover:border-blue-400 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-blue-500 transition-colors disabled:opacity-60 disabled:cursor-wait"
           >
-            {photos.length === 0 ? (
+            {processing > 0 ? (
+              <>
+                <Loader2 className="h-7 w-7 animate-spin" />
+                <span className="text-xs">Procesando…</span>
+              </>
+            ) : photos.length === 0 ? (
               <>
                 <Camera className="h-7 w-7" />
                 <span className="text-xs">Tomar foto</span>

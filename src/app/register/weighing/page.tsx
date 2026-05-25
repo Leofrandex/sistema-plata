@@ -22,6 +22,7 @@ import {
   type ActiveSession,
 } from '@/lib/active-session'
 import { getPendingWeighingContainerIds } from '@/lib/data/containers'
+import { uploadEventPhotos } from '@/lib/data/photos'
 import { createClient } from '@/lib/supabase/client'
 import * as q from '@/lib/supabase/queries'
 
@@ -157,6 +158,30 @@ export default function WeighingPage() {
     }
   }
 
+  /**
+   * Sube las fotos de una recepción a Storage, las registra en `public.photos`
+   * y las refleja en el store con su URL firmada para mostrarse al instante.
+   * Devuelve los IDs reales (de la BD) de las fotos subidas con éxito.
+   */
+  async function persistWeighingPhotos(
+    receptionId: string,
+    label: string,
+    takenAt: string,
+    dataUrls: (string | null | undefined)[]
+  ): Promise<string[]> {
+    const supabase = createClient()
+    const uploaded = await uploadEventPhotos(supabase, {
+      dataUrls,
+      eventType: 'weighing',
+      eventId: receptionId,
+      label,
+      uploadedBy: currentProfileId,
+      takenAt,
+    })
+    uploaded.forEach(addPhoto)
+    return uploaded.map((p) => p.id)
+  }
+
   async function handleCreateReception(currentSessionId: string, gross: number) {
     if (!session || !currentProfileId) return
     const now = new Date().toISOString()
@@ -180,25 +205,11 @@ export default function WeighingPage() {
       return
     }
 
-    // 2) Fotos: por ahora viven en memoria (mock). Fase 5 las sube a Storage.
-    const photoContainerId = `photo-${Date.now()}-c`
-    const photoScaleId = `photo-${Date.now()}-s`
-    addPhoto({
-      id: photoContainerId,
-      url: formState.photo_container!,
-      event_type: 'weighing',
-      event_id: receptionId,
-      taken_at: now,
-      label,
-    })
-    addPhoto({
-      id: photoScaleId,
-      url: formState.photo_scale!,
-      event_type: 'weighing',
-      event_id: receptionId,
-      taken_at: now,
-      label,
-    })
+    // 2) Subir fotos a Storage + registrar en public.photos
+    const photoIds = await persistWeighingPhotos(receptionId, label, now, [
+      formState.photo_container,
+      formState.photo_scale,
+    ])
 
     // 3) Actualizar store
     addReception({
@@ -208,7 +219,7 @@ export default function WeighingPage() {
       arrived_at: now,
       gross_weight_kg: gross,
       operator_id: currentProfileId,
-      photo_ids: [photoContainerId, photoScaleId],
+      photo_ids: photoIds,
       observations: formState.observations,
     })
     updateWeighingSession(currentSessionId, {
@@ -237,29 +248,15 @@ export default function WeighingPage() {
       return
     }
 
-    // 2) Fotos en memoria (fase 5)
-    const photoContainerId = `photo-${Date.now()}-c-edit`
-    const photoScaleId = `photo-${Date.now()}-s-edit`
-    addPhoto({
-      id: photoContainerId,
-      url: formState.photo_container!,
-      event_type: 'weighing',
-      event_id: receptionId,
-      taken_at: now,
-      label,
-    })
-    addPhoto({
-      id: photoScaleId,
-      url: formState.photo_scale!,
-      event_type: 'weighing',
-      event_id: receptionId,
-      taken_at: now,
-      label,
-    })
+    // 2) Subir fotos a Storage + registrar en public.photos
+    const photoIds = await persistWeighingPhotos(receptionId, label, now, [
+      formState.photo_container,
+      formState.photo_scale,
+    ])
     updateReception(receptionId, {
       container_id: formState.container_id,
       gross_weight_kg: gross,
-      photo_ids: [photoContainerId, photoScaleId],
+      photo_ids: photoIds,
       observations: formState.observations,
     })
 

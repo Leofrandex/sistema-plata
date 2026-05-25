@@ -39,6 +39,7 @@ updated: 2026-05-21
 | Rediseño operativo (5 fases) | 🟢 Completado | `logs/2026-05-17-recorridos-pesaje-reportes-dashboard.md` |
 | Integración Supabase (schema + auth + storage) | 🟢 Provisionado | `decisions/2026-05-21-supabase-integracion.md` · `logs/2026-05-21-supabase-bootstrap.md` |
 | Recorridos → Supabase (write-through + hidratación) | 🟢 Completado | `logs/2026-05-25-recorridos-supabase-writethrough.md` |
+| Fotos → Supabase Storage (upload + URLs firmadas) | 🟢 Completado | `logs/2026-05-25-fotos-supabase-storage.md` |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completo · ⚠️ Tiene incoherencias
 
@@ -74,6 +75,7 @@ updated: 2026-05-21
 - `logs/2026-05-21-supabase-bootstrap.md`
 - `logs/2026-05-25-recorridos-supabase-writethrough.md`
 - `logs/2026-05-25-pesaje-ux-yaris-recorridos-modal.md`
+- `logs/2026-05-25-fotos-supabase-storage.md`
 
 ---
 
@@ -82,6 +84,15 @@ updated: 2026-05-21
 *(Vacío)*
 
 ## Notas del último procesamiento
+
+**2026-05-25** — Fotos migradas a Supabase Storage (última pieza de la integración).
+Las pantallas guardaban data URLs solo en memoria (`addPhoto`); `uploadPhoto` existía
+pero no se llamaba. Ahora pesaje (`handleCreateReception`/`handleSaveEdit`) y recorridos
+(`handleFinish` andén + morgue) suben las fotos al bucket privado `photos` y registran en
+`public.photos`; el hydrator firma URLs (24 h) y reconstruye los `photo_ids` de receptions
+y routeEvents. Helper compartido `uploadEventPhotos` (`src/lib/data/photos.ts`, best-effort).
+`next.config.ts` permite `*.supabase.co` en `next/image`. Pendiente: E2E manual.
+Log: `logs/2026-05-25-fotos-supabase-storage.md`.
 
 **2026-05-25** — Fix: los envases sucios de un recorrido no aparecían en Pesaje.
 Causa: `routeEvents` salía de mocks en memoria y el flujo de recorrido nunca

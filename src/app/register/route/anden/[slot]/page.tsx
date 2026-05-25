@@ -10,6 +10,7 @@ import { RouteForm, type RouteFormState } from '@/components/register/route-form
 import { useStore } from '@/lib/store'
 import { createClient } from '@/lib/supabase/client'
 import * as q from '@/lib/supabase/queries'
+import { uploadEventPhotos } from '@/lib/data/photos'
 import { getRouteSlotDefinition } from '@/lib/constants'
 import { useElapsed, formatElapsed } from '@/hooks/use-elapsed'
 import {
@@ -20,7 +21,7 @@ import {
   todayLocal,
   type ActiveSession,
 } from '@/lib/active-session'
-import type { RouteSlot, RouteEvent, Photo } from '@/lib/types'
+import type { RouteSlot, RouteEvent } from '@/lib/types'
 
 interface Props {
   params: Promise<{ slot: string }>
@@ -191,26 +192,24 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     const now = new Date().toISOString()
     const routeEventId = activeSession.context.route_event_id
 
-    // 1. Persistir todas las photos al store
-    const photoIds: string[] = []
-    formState.photos.forEach((dataUrl, idx) => {
-      const photoId = `photo-${Date.now()}-${idx}`
-      const photo: Photo = {
-        id: photoId,
-        url: dataUrl,
-        event_type: 'route',
-        event_id: routeEventId,
-        taken_at: now,
-        label: `PTDP ${client?.name ?? ''} ${new Date().toLocaleDateString('es-PA')} ${new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })}`,
-      }
-      addPhoto(photo)
-      photoIds.push(photoId)
+    const supabase = createClient()
+    const label = `PTDP ${client?.name ?? ''} ${new Date().toLocaleDateString('es-PA')} ${new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })}`
+
+    // 1. Subir las fotos a Storage + registrar en public.photos
+    const uploadedPhotos = await uploadEventPhotos(supabase, {
+      dataUrls: formState.photos,
+      eventType: 'route',
+      eventId: routeEventId,
+      label,
+      uploadedBy: currentProfileId,
+      takenAt: now,
     })
+    uploadedPhotos.forEach(addPhoto)
+    const photoIds = uploadedPhotos.map((p) => p.id)
 
     // 2. Persistir el cierre en Supabase: actualizar el recorrido y sincronizar
     //    las join tables de envases (sucios recogidos / limpios entregados).
     try {
-      const supabase = createClient()
       await q.updateRouteEvent(supabase, routeEventId, {
         status: 'completed',
         ended_at: now,

@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'placehold.co' },
+      // URLs firmadas del bucket `photos` de Supabase Storage
+      { protocol: 'https', hostname: '*.supabase.co', pathname: '/storage/v1/object/**' },
     ],
   },
   transpilePackages: ['@react-pdf/renderer'],

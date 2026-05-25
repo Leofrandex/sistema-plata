@@ -9,6 +9,7 @@ import type {
   WeighingSession,
   ContainerReception,
   RouteEvent,
+  Photo,
 } from '@/lib/types'
 
 /**
@@ -20,9 +21,10 @@ import type {
  *  - containers      ← Supabase
  *  - weighingSessions + receptions ← Supabase (computa reception_ids[] localmente)
  *  - routeEvents     ← Supabase (merge con join tables dirty/clean)
+ *  - photos          ← Supabase Storage (URLs firmadas) + tabla public.photos
  *  - currentProfileId ← profile del usuario logueado
  *
- * Lo demás (clients, companies, photos, storage…) sigue saliendo de los mocks
+ * Lo demás (clients, companies, storage…) sigue saliendo de los mocks
  * hasta que se migre en sesiones posteriores.
  */
 export function SupabaseHydrator() {
@@ -41,18 +43,41 @@ export function SupabaseHydrator() {
         // Sin sesión → no traer datos (el middleware redirige a /login)
         if (!profile) return
 
-        const [containersRaw, sessionsRaw, routeEventsRaw, dirtyLinks, cleanLinks] =
+        const [containersRaw, sessionsRaw, routeEventsRaw, dirtyLinks, cleanLinks, photosRaw] =
           await Promise.all([
             q.listContainers(supabase),
             q.listWeighingSessions(supabase),
             q.listRouteEvents(supabase),
             q.listAllRouteContainersDirty(supabase),
             q.listAllRouteContainersClean(supabase),
+            q.listAllPhotos(supabase),
           ])
         if (cancelled) return
 
         const containers = containersRaw.map(rowToContainer)
-        const routeEvents = mapRouteEvents(routeEventsRaw, dirtyLinks, cleanLinks)
+
+        // Fotos: URLs firmadas + índice event_id → photo_ids[] para reconstruir
+        // los `photo_ids` inline de recepciones y recorridos.
+        const urlMap = await q.getPhotoUrls(supabase, photosRaw)
+        if (cancelled) return
+        const photos: Photo[] = photosRaw.map((p) => ({
+          id: p.id,
+          url: urlMap.get(p.id) ?? p.url ?? '',
+          event_type: p.event_type,
+          event_id: p.event_id,
+          taken_at: p.taken_at,
+          label: p.label,
+        }))
+        const photoIdsByEvent = new Map<string, string[]>()
+        for (const p of photosRaw) {
+          const arr = photoIdsByEvent.get(p.event_id) ?? []
+          arr.push(p.id)
+          photoIdsByEvent.set(p.event_id, arr)
+        }
+
+        const routeEvents = mapRouteEvents(routeEventsRaw, dirtyLinks, cleanLinks).map(
+          (e) => ({ ...e, photo_ids: photoIdsByEvent.get(e.id) ?? [] })
+        )
 
         // Traer todas las receptions de las sesiones en una sola query y
         // luego agruparlas para derivar reception_ids[] por sesión.
@@ -82,13 +107,17 @@ export function SupabaseHydrator() {
           reception_ids: receptionIdsBySession.get(s.id) ?? [],
         }))
 
-        const receptions: ContainerReception[] = receptionsRaw.map(rowToReception)
+        const receptions: ContainerReception[] = receptionsRaw.map((r) => ({
+          ...rowToReception(r),
+          photo_ids: photoIdsByEvent.get(r.id) ?? [],
+        }))
 
         useStore.getState().hydrate({
           containers,
           weighingSessions,
           receptions,
           routeEvents,
+          photos,
         })
       } catch (err) {
         // No-op: si falla la hidratación, la app sigue con mocks.
@@ -138,7 +167,7 @@ function rowToReception(r: q.ReceptionRow): ContainerReception {
     arrived_at: r.arrived_at,
     gross_weight_kg: Number(r.gross_weight_kg),
     operator_id: r.operator_id,
-    photo_ids: [], // fotos por ahora viven en memoria (mock); fase 5 las trae de Storage
+    photo_ids: [], // el hydrator los rellena desde photoIdsByEvent
     observations: r.observations,
   }
 }
@@ -170,7 +199,7 @@ export function mapRouteEvents(
     floor: e.floor,
     area: e.area,
     dock: e.dock,
-    photo_ids: [], // fotos en memoria (mock) hasta migrar Storage
+    photo_ids: [], // el hydrator los rellena desde photoIdsByEvent
   }))
 }
 

@@ -1,9 +1,10 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import Image from 'next/image'
-import { Camera, X } from 'lucide-react'
+import { Camera, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { watermarkPhoto } from '@/lib/photo-watermark'
 
 interface Props {
   label: string
@@ -15,13 +16,19 @@ interface Props {
 
 export function PhotoCapture({ label, required, onCapture, onRemove, preview }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const [processing, setProcessing] = useState(false)
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => onCapture(reader.result as string)
-    reader.readAsDataURL(file)
+    setProcessing(true)
+    try {
+      const stamped = await watermarkPhoto(file, new Date())
+      onCapture(stamped)
+    } finally {
+      setProcessing(false)
+      if (inputRef.current) inputRef.current.value = ''
+    }
   }
 
   return (
@@ -52,10 +59,20 @@ export function PhotoCapture({ label, required, onCapture, onRemove, preview }: 
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="w-full aspect-[4/3] rounded-lg border-2 border-dashed border-slate-300 hover:border-blue-400 flex flex-col items-center justify-center gap-2 text-slate-400 hover:text-blue-500 transition-colors"
+          disabled={processing}
+          className="w-full aspect-[4/3] rounded-lg border-2 border-dashed border-slate-300 hover:border-blue-400 flex flex-col items-center justify-center gap-2 text-slate-400 hover:text-blue-500 transition-colors disabled:opacity-60 disabled:cursor-wait"
         >
-          <Camera className="h-8 w-8" />
-          <span className="text-sm">Tomar foto</span>
+          {processing ? (
+            <>
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span className="text-sm">Procesando…</span>
+            </>
+          ) : (
+            <>
+              <Camera className="h-8 w-8" />
+              <span className="text-sm">Tomar foto</span>
+            </>
+          )}
         </button>
       )}
       <input

@@ -5,7 +5,9 @@ export type PhotoRow = Tables<'photos'>
 export type PhotoEventType = PhotoRow['event_type']
 
 const BUCKET = 'photos'
-const SIGNED_URL_TTL_SECONDS = 60 * 60 // 1 h
+// 24 h: cubre cómodamente una jornada de pilotaje + la generación de reportes
+// posteriores sin que el operador tenga que recargar para refrescar las URLs.
+const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24
 
 /**
  * Sube un archivo al bucket `photos` y registra la fila en `public.photos`.
@@ -49,6 +51,28 @@ export async function uploadPhoto(
   return unwrap(await db.from('photos').insert(insert).select().single())
 }
 
+/**
+ * Variante de `uploadPhoto` que recibe un data URL (`data:image/...;base64,...`),
+ * tal como lo producen los componentes de captura (`PhotoCapture` /
+ * `PhotoCaptureMulti` vía `FileReader.readAsDataURL`). Convierte a Blob y sube.
+ */
+export async function uploadPhotoFromDataUrl(
+  db: DB,
+  args: {
+    dataUrl: string
+    eventType: PhotoEventType
+    eventId: string
+    label?: string
+    uploadedBy?: string | null
+    takenAt?: string
+  }
+): Promise<PhotoRow> {
+  const file = dataUrlToBlob(args.dataUrl)
+  const { dataUrl: _omit, ...rest } = args
+  void _omit
+  return uploadPhoto(db, { ...rest, file })
+}
+
 export async function listPhotosByEvent(
   db: DB,
   eventType: PhotoEventType,
@@ -62,6 +86,44 @@ export async function listPhotosByEvent(
       .eq('event_id', eventId)
       .order('taken_at')
   )
+}
+
+/** Trae todas las fotos (para hidratar el store al arrancar). */
+export async function listAllPhotos(db: DB): Promise<PhotoRow[]> {
+  return unwrap(await db.from('photos').select('*').order('taken_at'))
+}
+
+/**
+ * Genera URLs firmadas en lote para un conjunto de fotos. Devuelve un Map
+ * `photo.id → url` resoluble (firmada o `url` directa legacy). Las fotos cuya
+ * firma falle se omiten del Map.
+ */
+export async function getPhotoUrls(
+  db: DB,
+  photos: PhotoRow[]
+): Promise<Map<string, string>> {
+  const result = new Map<string, string>()
+  const toSign: PhotoRow[] = []
+
+  for (const p of photos) {
+    if (p.url) result.set(p.id, p.url)
+    else if (p.storage_path) toSign.push(p)
+  }
+
+  if (toSign.length > 0) {
+    const { data, error } = await db.storage
+      .from(BUCKET)
+      .createSignedUrls(
+        toSign.map((p) => p.storage_path as string),
+        SIGNED_URL_TTL_SECONDS
+      )
+    if (error) throw new Error(`Signed URLs failed: ${error.message}`)
+    data.forEach((res, idx) => {
+      if (res.signedUrl) result.set(toSign[idx].id, res.signedUrl)
+    })
+  }
+
+  return result
 }
 
 /**
@@ -91,6 +153,17 @@ export async function deletePhoto(db: DB, photoId: string): Promise<void> {
 }
 
 // ─── helpers ────────────────────────────────────────────────────────────────
+
+/** Convierte un data URL (`data:image/jpeg;base64,...`) a Blob. */
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [header, base64] = dataUrl.split(',')
+  const mimeMatch = /data:([^;]+)/.exec(header)
+  const mime = mimeMatch?.[1] ?? 'image/jpeg'
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return new Blob([bytes], { type: mime })
+}
 
 function blobExtension(file: Blob): string {
   const map: Record<string, string> = {

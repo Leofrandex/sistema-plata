@@ -10,6 +10,7 @@ import { RouteForm, type RouteFormState } from '@/components/register/route-form
 import { useStore } from '@/lib/store'
 import { createClient } from '@/lib/supabase/client'
 import * as q from '@/lib/supabase/queries'
+import { uploadEventPhotos } from '@/lib/data/photos'
 import { useElapsed, formatElapsed } from '@/hooks/use-elapsed'
 import {
   startSession,
@@ -19,7 +20,7 @@ import {
   todayLocal,
   type ActiveSession,
 } from '@/lib/active-session'
-import type { RouteEvent, Photo } from '@/lib/types'
+import type { RouteEvent } from '@/lib/types'
 
 export default function RegisterMorgueRoutePage() {
   const router = useRouter()
@@ -172,24 +173,23 @@ export default function RegisterMorgueRoutePage() {
     const now = new Date().toISOString()
     const routeEventId = activeSession.context.route_event_id
 
-    const photoIds: string[] = []
-    formState.photos.forEach((dataUrl, idx) => {
-      const photoId = `photo-${Date.now()}-${idx}`
-      const photo: Photo = {
-        id: photoId,
-        url: dataUrl,
-        event_type: 'route',
-        event_id: routeEventId,
-        taken_at: now,
-        label: `PTDP Morgue ${client?.name ?? ''} ${new Date().toLocaleDateString('es-PA')} ${new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })}`,
-      }
-      addPhoto(photo)
-      photoIds.push(photoId)
+    const supabase = createClient()
+    const label = `PTDP Morgue ${client?.name ?? ''} ${new Date().toLocaleDateString('es-PA')} ${new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })}`
+
+    // Subir las fotos a Storage + registrar en public.photos
+    const uploadedPhotos = await uploadEventPhotos(supabase, {
+      dataUrls: formState.photos,
+      eventType: 'route',
+      eventId: routeEventId,
+      label,
+      uploadedBy: currentProfileId,
+      takenAt: now,
     })
+    uploadedPhotos.forEach(addPhoto)
+    const photoIds = uploadedPhotos.map((p) => p.id)
 
     // Persistir el cierre en Supabase + sincronizar envases sucios/limpios.
     try {
-      const supabase = createClient()
       await q.updateRouteEvent(supabase, routeEventId, {
         status: 'completed',
         ended_at: now,
