@@ -66,30 +66,68 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     let cancelled = false
     const key = routeAndenSessionKey(today, slotId)
     getActiveSession(key)
-      .then((session) => {
-        if (cancelled || !session) return
-        setActiveSession(session)
-        if (session.context.type === 'route') {
-          const ctx = session.context
-          const event = useStore.getState().routeEvents.find((r) => r.id === ctx.route_event_id)
-          if (event) {
-            setFormState({
-              dirtyReceivedIds: event.containers_dirty_received,
-              cleanDeliveredIds: event.containers_clean_delivered,
-              floor: event.floor,
-              area: event.area,
-              dock: event.dock,
-              photos: [],
-            })
+      .then(async (session) => {
+        if (cancelled) return
+
+        // Caso 1: ya hay sesión activa en IndexedDB → restauramos su contexto.
+        if (session) {
+          setActiveSession(session)
+          if (session.context.type === 'route') {
+            const ctx = session.context
+            const event = useStore.getState().routeEvents.find((r) => r.id === ctx.route_event_id)
+            if (event) {
+              setFormState({
+                dirtyReceivedIds: event.containers_dirty_received,
+                cleanDeliveredIds: event.containers_clean_delivered,
+                floor: event.floor,
+                area: event.area,
+                dock: event.dock,
+                photos: [],
+              })
+            }
           }
+          return
         }
+
+        // Caso 2: no hay sesión local pero quizá quedó un route_event in_progress
+        // en Supabase (operador cerró la app sin finalizar, o cambió de dispositivo).
+        // Lo reanudamos reconstruyendo la ActiveSession a partir del evento.
+        const orphan = useStore.getState().routeEvents.find(
+          (r) => r.kind === 'anden' && r.slot === slotId && r.date === today && r.status === 'in_progress',
+        )
+        if (!orphan || !currentProfileId) return
+        const recovered: ActiveSession = {
+          key,
+          type: 'route',
+          started_at: orphan.started_at,
+          context: {
+            type: 'route',
+            client_id: orphan.client_id,
+            kind: 'anden',
+            slot: slotId,
+            date: today,
+            operator_id: orphan.operator_id,
+            route_event_id: orphan.id,
+          },
+        }
+        await startSession(recovered)
+        if (cancelled) return
+        setActiveSession(recovered)
+        setFormState({
+          dirtyReceivedIds: orphan.containers_dirty_received,
+          cleanDeliveredIds: orphan.containers_clean_delivered,
+          floor: orphan.floor,
+          area: orphan.area,
+          dock: orphan.dock,
+          photos: [],
+        })
       })
       .catch((err) => {
         // eslint-disable-next-line no-console
         console.error('[route] Error hidratando sesión activa:', err)
       })
     return () => { cancelled = true }
-  }, [today, slotId])
+  }, [today, slotId, currentProfileId])
 
   const completedEvent = routeEvents.find(
     (r) => r.kind === 'anden' && r.slot === slotId && r.date === today && r.status === 'completed',
@@ -115,9 +153,12 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     const now = new Date().toISOString()
 
     // Crear el recorrido en Supabase y usar el id (uuid) que retorna.
+    // Si ya existe uno in_progress (por unique parcial (date, slot) WHERE kind='anden'),
+    // lo recuperamos y reanudamos en vez de fallar.
+    const supabase = createClient()
     let routeEventId: string
+    let startedAt = now
     try {
-      const supabase = createClient()
       const row = await q.createRouteEvent(supabase, {
         client_id: client.id,
         kind: 'anden',
@@ -129,8 +170,20 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       })
       routeEventId = row.id
     } catch (err) {
-      console.error('[recorrido andén] crear recorrido falló:', err)
-      return
+      // Probable 409 por (date, slot) ya in_progress → recuperar.
+      console.warn('[recorrido andén] crear falló, intentando recuperar in_progress:', err)
+      try {
+        const existing = await q.findAndenInProgress(supabase, today, slotId)
+        if (!existing) {
+          console.error('[recorrido andén] no se pudo recuperar evento existente')
+          return
+        }
+        routeEventId = existing.id
+        startedAt = existing.started_at
+      } catch (lookupErr) {
+        console.error('[recorrido andén] lookup de recuperación falló:', lookupErr)
+        return
+      }
     }
 
     addRouteEvent({
@@ -139,7 +192,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       kind: 'anden',
       slot: slotId,
       date: today,
-      started_at: now,
+      started_at: startedAt,
       ended_at: null,
       operator_id: currentProfileId,
       status: 'in_progress',
@@ -153,7 +206,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     const session: ActiveSession = {
       key: routeAndenSessionKey(today, slotId),
       type: 'route',
-      started_at: now,
+      started_at: startedAt,
       context: {
         type: 'route',
         client_id: client.id,

@@ -34,6 +34,24 @@ export async function createRouteEvent(
   return unwrap(await db.from('route_events').insert(input).select().single())
 }
 
+/** Devuelve el route_event 'anden' in_progress para (date, slot) si existe. */
+export async function findAndenInProgress(
+  db: DB,
+  date: string,
+  slot: NonNullable<Tables<'route_events'>['slot']>
+): Promise<RouteEventRow | null> {
+  return unwrapOrNull(
+    await db
+      .from('route_events')
+      .select('*')
+      .eq('kind', 'anden')
+      .eq('date', date)
+      .eq('slot', slot)
+      .eq('status', 'in_progress')
+      .maybeSingle()
+  )
+}
+
 export async function updateRouteEvent(
   db: DB,
   id: string,
