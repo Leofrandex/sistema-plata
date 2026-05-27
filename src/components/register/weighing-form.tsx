@@ -295,21 +295,22 @@ export function WeighingForm({
         />
       </div>
 
-      {/* Fotos */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <PhotoCapture
-          label="Foto del envase"
-          required
-          preview={state.photo_container}
-          onCapture={(url) => onChange({ photo_container: url })}
-          onRemove={() => onChange({ photo_container: null })}
-        />
+      {/* Fotos — balanza arriba, envase abajo (solo orden visual; el orden de
+          subida photo_container/photo_scale no cambia para no romper el reporte) */}
+      <div className="grid grid-cols-1 gap-4">
         <PhotoCapture
           label="Foto de la balanza"
           required
           preview={state.photo_scale}
           onCapture={(url) => onChange({ photo_scale: url })}
           onRemove={() => onChange({ photo_scale: null })}
+        />
+        <PhotoCapture
+          label="Foto del envase"
+          required
+          preview={state.photo_container}
+          onCapture={(url) => onChange({ photo_container: url })}
+          onRemove={() => onChange({ photo_container: null })}
         />
       </div>
 
