@@ -119,10 +119,13 @@ export function SupabaseHydrator() {
           routeEvents,
           photos,
         })
+        // Éxito: marcamos la conexión como online.
+        useStore.getState().setConnectionStatus('online')
       } catch (err) {
-        // No-op: si falla la hidratación, la app sigue con mocks.
+        // Falla: la app sigue con mocks, pero avisamos al usuario vía banner.
         // eslint-disable-next-line no-console
         console.error('[SupabaseHydrator] hydration failed:', err)
+        if (!cancelled) useStore.getState().setConnectionStatus('error')
       }
     }
 
@@ -135,9 +138,20 @@ export function SupabaseHydrator() {
       }
     })
 
+    // Reintentar cuando vuelve la conexión, cuando la pestaña vuelve a foco,
+    // o cuando el usuario toca "Reintentar" en el banner.
+    function retry() { load() }
+    function onVisible() { if (document.visibilityState === 'visible') load() }
+    window.addEventListener('online', retry)
+    window.addEventListener('hospiwaste:retry-hydration', retry)
+    document.addEventListener('visibilitychange', onVisible)
+
     return () => {
       cancelled = true
       sub.subscription.unsubscribe()
+      window.removeEventListener('online', retry)
+      window.removeEventListener('hospiwaste:retry-hydration', retry)
+      document.removeEventListener('visibilitychange', onVisible)
     }
   }, [])
 

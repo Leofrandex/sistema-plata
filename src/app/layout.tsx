@@ -6,6 +6,7 @@ import { MobileHeader } from '@/components/layout/mobile-header'
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav'
 import { SyncIndicator } from '@/components/layout/sync-indicator'
 import { SWCleanup } from '@/components/layout/sw-cleanup'
+import { ConnectionBanner } from '@/components/layout/connection-banner'
 import { SupabaseHydrator } from '@/components/supabase-hydrator'
 import { APP_NAME, APP_DESCRIPTION, APP_TAGLINE } from '@/lib/constants'
 
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Sidebar />
           <div className="flex-1 flex flex-col">
             <MobileHeader />
+            <ConnectionBanner />
             <main className="flex-1 p-4 md:p-6 pb-24 md:pb-6">{children}</main>
             <SyncIndicator />
           </div>

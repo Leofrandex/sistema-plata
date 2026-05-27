@@ -47,6 +47,15 @@ interface HospiwasteStore {
   setCurrentProfileId: (id: string | null) => void
 
   /**
+   * Estado de la conexión con Supabase para la hidratación de datos.
+   * - 'connecting': intento en curso (aún no hubo éxito).
+   * - 'online': la última hidratación fue exitosa → datos reales.
+   * - 'error': la última hidratación falló → la UI puede estar mostrando mocks.
+   */
+  connectionStatus: 'connecting' | 'online' | 'error'
+  setConnectionStatus: (status: 'connecting' | 'online' | 'error') => void
+
+  /**
    * Reemplaza N campos del store de una vez (post-hidratación desde Supabase).
    * Las claves no pasadas no se modifican.
    */
@@ -99,6 +108,10 @@ export const useStore = create<HospiwasteStore>((set) => ({
 
   currentProfileId: null,
   setCurrentProfileId: (id) => set({ currentProfileId: id }),
+
+  connectionStatus: 'connecting',
+  setConnectionStatus: (status) => set({ connectionStatus: status }),
+
   hydrate: (patch) => set(patch),
 
   addClient: (client) =>

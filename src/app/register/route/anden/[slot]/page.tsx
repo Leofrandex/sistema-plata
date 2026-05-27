@@ -149,7 +149,11 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   }
 
   async function handleStart() {
-    if (!client || !currentProfileId) return
+    if (!currentProfileId) {
+      alert('Todavía no se cargó tu sesión (sin conexión con el servidor). Esperá a reconectar e intentá de nuevo.')
+      return
+    }
+    if (!client) return
     const now = new Date().toISOString()
 
     // Crear el recorrido en Supabase y usar el id (uuid) que retorna.
