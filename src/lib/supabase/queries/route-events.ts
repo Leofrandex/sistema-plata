@@ -34,13 +34,14 @@ export async function createRouteEvent(
   return unwrap(await db.from('route_events').insert(input).select().single())
 }
 
-/** Devuelve el route_event 'anden' in_progress para (date, slot) si existe. */
-export async function findAndenInProgress(
+/** Devuelve los route_events 'anden' in_progress para (date, slot). Puede haber
+ *  varios (multi-andén): uno por andén guardado en la sesión del horario. */
+export async function listAndenInProgress(
   db: DB,
   date: string,
   slot: NonNullable<Tables<'route_events'>['slot']>
-): Promise<RouteEventRow | null> {
-  return unwrapOrNull(
+): Promise<RouteEventRow[]> {
+  return unwrap(
     await db
       .from('route_events')
       .select('*')
@@ -48,7 +49,7 @@ export async function findAndenInProgress(
       .eq('date', date)
       .eq('slot', slot)
       .eq('status', 'in_progress')
-      .maybeSingle()
+      .order('started_at')
   )
 }
 
