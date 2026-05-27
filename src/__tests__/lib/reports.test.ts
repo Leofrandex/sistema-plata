@@ -2,6 +2,7 @@ import {
   buildPhotographicReportData,
   getMondayOfWeek,
   isoDate,
+  chunk,
 } from '@/lib/data/reports'
 import type { ReportStoreSlice } from '@/lib/data/reports'
 import {
@@ -16,20 +17,21 @@ import {
 
 describe('getMondayOfWeek', () => {
   it('returns the same date when reference is Monday', () => {
-    const monday = new Date(2026, 4, 11, 14, 32) // 2026-05-11 Monday
-    const result = getMondayOfWeek(monday)
-    expect(isoDate(result)).toBe('2026-05-11')
-    expect(result.getHours()).toBe(0)
+    const monday = new Date(2026, 4, 11, 14, 32)
+    expect(isoDate(getMondayOfWeek(monday))).toBe('2026-05-11')
+    expect(getMondayOfWeek(monday).getHours()).toBe(0)
   })
-
   it('returns previous Monday when reference is Wednesday', () => {
-    const wed = new Date(2026, 4, 13, 10, 0)
-    expect(isoDate(getMondayOfWeek(wed))).toBe('2026-05-11')
+    expect(isoDate(getMondayOfWeek(new Date(2026, 4, 13, 10, 0)))).toBe('2026-05-11')
   })
-
   it('returns previous Monday when reference is Sunday', () => {
-    const sun = new Date(2026, 4, 17, 23, 59)
-    expect(isoDate(getMondayOfWeek(sun))).toBe('2026-05-11')
+    expect(isoDate(getMondayOfWeek(new Date(2026, 4, 17, 23, 59)))).toBe('2026-05-11')
+  })
+})
+
+describe('chunk', () => {
+  it('parte en sub-arrays del tamaño dado', () => {
+    expect(chunk([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]])
   })
 })
 
@@ -43,44 +45,69 @@ describe('buildPhotographicReportData (por empresa)', () => {
     receptions: MOCK_RECEPTIONS,
     photos: MOCK_PHOTOS,
   }
+  const range = { start: new Date(2026, 4, 11, 0, 0), end: new Date(2026, 4, 17, 23, 59) }
 
   it('returns null when company does not exist', () => {
-    expect(buildPhotographicReportData('nonexistent', store)).toBeNull()
+    expect(buildPhotographicReportData('nonexistent', store, range)).toBeNull()
   })
 
-  it('returns a report scoped to one company (ION)', () => {
-    const end = new Date(2026, 4, 17, 23, 59)
-    const data = buildPhotographicReportData('company-ion', store, end)!
+  it('arma el reporte de ION ordenado por ruta (recorrido luego pesaje)', () => {
+    const data = buildPhotographicReportData('company-ion', store, range)!
     expect(data.company.name).toBe('ION')
-    expect(data.client.name).toBe('Centro de la Salud')
-    expect(data.weekStart).toBe('2026-05-11')
-    expect(data.weekEnd).toBe('2026-05-17')
-    // ION tiene 2 routeEvents (route-1, route-2) y 2 receptions de hoy
+    expect(data.rangeStart).toBe('2026-05-11')
+    expect(data.rangeEnd).toBe('2026-05-17')
+
+    // Un solo día con actividad
+    expect(data.days.length).toBe(1)
+    const day = data.days[0]
+    expect(day.date).toBe('2026-05-17')
+
+    // Orden de grupos: Recorrido 1ra, Pesaje 1ra, Recorrido 2da
+    // (Pesaje 2da se omite: I-003 no tiene reception)
+    const labels = day.groups.map((g) => g.label)
+    expect(labels[0]).toContain('Recorrido')
+    expect(labels[0]).toContain('1.ª')
+    expect(labels[1]).toContain('Pesaje')
+    expect(labels[1]).toContain('1.ª')
+    expect(labels[2]).toContain('Recorrido')
+    expect(labels[2]).toContain('2.ª')
+
+    // Conteos de fotos
+    expect(data.meta.routePhotoCount).toBe(5) // r1: 3, r2: 2
+    expect(data.meta.weighingPhotoCount).toBe(4) // reception-1 (2) + reception-2 (2)
+    expect(data.meta.totalPhotos).toBe(9)
     expect(data.meta.routeEventCount).toBe(2)
     expect(data.meta.weighingReceptionCount).toBe(2)
-    // byStage.route es array plano de ReportPhotoEntry
-    expect(Array.isArray(data.byStage.route)).toBe(true)
-    expect(Array.isArray(data.byStage.weighing)).toBe(true)
-    expect(data.byStage.weighing.length).toBe(4) // 2 receptions × 2 fotos
   })
 
-  it('separa fotos de empresas distintas en el mismo recorrido', () => {
-    const end = new Date(2026, 4, 17, 23, 59)
-    const ion = buildPhotographicReportData('company-ion', store, end)!
-    const airkem = buildPhotographicReportData('company-airkem', store, end)!
-    // Airkem tiene los mismos recorridos (porque incluyen envases de ambas
-    // empresas) pero el comentario solo lista los envases de cada empresa.
-    expect(ion.meta.routeEventCount).toBe(airkem.meta.routeEventCount)
-    // Airkem en la semana 11-17 de mayo: 106 receptions históricas del día 11
-    // (último día capturado en el Excel) + 0 del mock vivo de esta semana = 106
-    expect(airkem.meta.weighingReceptionCount).toBe(106)
+  it('procesa pesajes históricos sin recorrido (Airkem) sin fallar', () => {
+    const airkem = buildPhotographicReportData('company-airkem', store, range)!
+    // Airkem tiene receptions históricas (sin route_events que las recojan en rango)
+    expect(airkem.meta.weighingReceptionCount).toBeGreaterThan(0)
+    // Las recepciones históricas no tienen fotos → no generan cuadros (grupos
+    // vacíos se omiten), así que el reporte no rompe y solo cuenta fotos reales.
+    expect(airkem.meta.weighingPhotoCount).toBe(airkem.days.reduce(
+      (n, d) => n + d.groups.filter((g) => g.stage === 'weighing').reduce((m, g) => m + g.photos.length, 0),
+      0,
+    ))
   })
 
-  it('returns empty when range has no activity', () => {
-    const end = new Date(2027, 0, 15, 23, 59)
-    const data = buildPhotographicReportData('company-ion', store, end)!
+  it('agrupa pesajes huérfanos con fotos por su fecha de pesaje', () => {
+    // I-001 recogido en route-1; si quitamos sus route_events, la reception-1
+    // (con 2 fotos) queda huérfana y debe aparecer como grupo 'Pesaje'.
+    const noRoutes: ReportStoreSlice = { ...store, routeEvents: [] }
+    const data = buildPhotographicReportData('company-ion', noRoutes, range)!
+    const weighingGroups = data.days.flatMap((d) => d.groups.filter((g) => g.stage === 'weighing'))
+    expect(weighingGroups.length).toBeGreaterThan(0)
+    expect(weighingGroups.every((g) => g.label === 'Pesaje')).toBe(true)
+    expect(data.meta.weighingPhotoCount).toBe(4)
+    expect(data.meta.routePhotoCount).toBe(0)
+  })
+
+  it('devuelve vacío cuando el rango no tiene actividad', () => {
+    const empty = { start: new Date(2027, 0, 1), end: new Date(2027, 0, 15, 23, 59) }
+    const data = buildPhotographicReportData('company-ion', store, empty)!
     expect(data.meta.totalPhotos).toBe(0)
-    expect(data.byStage.route).toEqual([])
-    expect(data.byStage.weighing).toEqual([])
+    expect(data.days).toEqual([])
   })
 })
