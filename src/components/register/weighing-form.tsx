@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PhotoCapture } from '@/components/register/photo-capture'
 import { cn } from '@/lib/utils'
 import { computeNetWeight } from '@/lib/data/containers'
-import { CheckSquare, Square, Car } from 'lucide-react'
+import { CheckSquare, Square } from 'lucide-react'
 import type { Container, Company, WasteType } from '@/lib/types'
 
 const WASTE_LABELS: Record<WasteType, string> = {
@@ -152,8 +152,7 @@ export function WeighingForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
-            <Car className="h-3.5 w-3.5 text-muted-foreground" />
+          <label className="text-sm font-medium text-foreground">
             Envase Yaris {isYaris && <span className="text-red-500">*</span>}
           </label>
           <Select
@@ -201,7 +200,7 @@ export function WeighingForm({
           </Badge>
           {selectedContainer.is_yaris_dedicated && (
             <Badge variant="outline" className="font-normal bg-amber-50 border-amber-300 text-amber-900">
-              <Car className="h-3 w-3 mr-1" /> Dedicado a Yaris
+              Dedicado a Yaris
             </Badge>
           )}
         </div>
@@ -276,7 +275,7 @@ export function WeighingForm({
           <p className={cn('text-xs', isYaris ? 'text-amber-800/80' : 'text-muted-foreground')}>
             {isYaris
               ? 'Activado. Seleccioná un envase dedicado a Yaris arriba.'
-              : 'Marcá esta opción si la carga viene de un vehículo Yaris/Picanto.'}
+              : 'Marcá esta opción si la carga viene de un tacho Yaris.'}
           </p>
         </div>
       </button>
