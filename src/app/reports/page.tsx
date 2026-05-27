@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { Calendar } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { useStore } from '@/lib/store'
 import {
   buildPhotographicReportData,
@@ -25,27 +26,34 @@ export default function ReportsPage() {
   const [companyId, setCompanyId] = useState<string>(companies[0]?.id ?? '')
 
   const now = useMemo(() => new Date(), [])
-  const monday = useMemo(() => getMondayOfWeek(now), [now])
-  const weekStartLabel = isoDate(monday)
-  const weekEndLabel = isoDate(now)
+  const defaultStart = useMemo(() => isoDate(getMondayOfWeek(now)), [now])
+  const defaultEnd = useMemo(() => isoDate(now), [now])
+
+  const [startStr, setStartStr] = useState<string>(defaultStart)
+  const [endStr, setEndStr] = useState<string>(defaultEnd)
+
+  const invalidRange = startStr > endStr
 
   const reportData = useMemo(() => {
-    if (!companyId) return null
+    if (!companyId || invalidRange) return null
+    // input date (YYYY-MM-DD) → rango local [00:00, 23:59:59]
+    const start = new Date(`${startStr}T00:00:00`)
+    const end = new Date(`${endStr}T23:59:59`)
     return buildPhotographicReportData(
       companyId,
       { clients, companies, containers, routeEvents, weighingSessions, receptions, photos },
-      now,
+      { start, end },
     )
-  }, [companyId, clients, companies, containers, routeEvents, weighingSessions, receptions, photos, now])
+  }, [companyId, startStr, endStr, invalidRange, clients, companies, containers, routeEvents, weighingSessions, receptions, photos])
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <header>
         <h1 className="text-2xl font-bold text-foreground">Reportes</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Genera el registro fotográfico semanal por empresa. El rango incluye
-          todas las fotos de recorridos y pesajes desde el lunes hasta el momento actual.
-          Si querés reportes de varias empresas, descargá uno por cada una.
+          Genera el registro fotográfico por empresa. Por defecto cubre la semana actual,
+          pero podés elegir cualquier rango de fechas. Las fotos se ordenan por día,
+          ruta y etapa (recorrido y luego pesaje). Un PDF por empresa.
         </p>
       </header>
 
@@ -67,13 +75,30 @@ export default function ReportsPage() {
             </Select>
           </div>
 
-          <div className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
-            <Calendar className="h-4 w-4" />
-            <span>
-              Rango automático: <strong className="text-foreground">{weekStartLabel}</strong>{' '}
-              al <strong className="text-foreground">{weekEndLabel}</strong>
-            </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">Desde</label>
+              <Input type="date" value={startStr} max={endStr} onChange={(e) => setStartStr(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">Hasta</label>
+              <Input type="date" value={endStr} min={startStr} onChange={(e) => setEndStr(e.target.value)} />
+            </div>
           </div>
+
+          {invalidRange ? (
+            <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2.5 text-sm text-red-700">
+              La fecha &quot;Desde&quot; no puede ser posterior a &quot;Hasta&quot;.
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
+              <Calendar className="h-4 w-4" />
+              <span>
+                Rango: <strong className="text-foreground">{startStr}</strong> al{' '}
+                <strong className="text-foreground">{endStr}</strong>
+              </span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -82,7 +107,7 @@ export default function ReportsPage() {
       ) : (
         <Card>
           <CardContent className="pt-6 text-center text-muted-foreground">
-            Selecciona una empresa para ver el reporte de esta semana.
+            {invalidRange ? 'Corregí el rango de fechas para ver el reporte.' : 'Selecciona una empresa para ver el reporte.'}
           </CardContent>
         </Card>
       )}

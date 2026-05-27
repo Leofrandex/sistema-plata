@@ -18,10 +18,10 @@ interface Props {
 }
 
 export function ReportPreview({ data }: Props) {
-  const { company, client, weekStart, weekEnd, meta, byStage } = data
+  const { company, client, rangeStart, rangeEnd, meta } = data
 
   const safeName = company.name.replace(/[^a-z0-9]/gi, '_')
-  const filename = `${APP_NAME}_RegistroFotografico_${safeName}_${weekStart}_${weekEnd}.pdf`
+  const filename = `${APP_NAME}_RegistroFotografico_${safeName}_${rangeStart}_${rangeEnd}.pdf`
 
   return (
     <Card>
@@ -35,7 +35,7 @@ export function ReportPreview({ data }: Props) {
               Registro fotográfico — {company.name}
             </h2>
             <p className="text-sm text-muted-foreground">
-              {client.name} · Semana del {weekStart} al {weekEnd}
+              {client.name} · {rangeStart} al {rangeEnd}
             </p>
           </div>
         </header>
@@ -45,13 +45,13 @@ export function ReportPreview({ data }: Props) {
             icon={<Route className="h-4 w-4" />}
             label="Recorridos"
             value={meta.routeEventCount}
-            secondary={`${byStage.route.length} foto${byStage.route.length !== 1 ? 's' : ''}`}
+            secondary={`${meta.routePhotoCount} foto${meta.routePhotoCount !== 1 ? 's' : ''}`}
           />
           <MetricBox
             icon={<Scale className="h-4 w-4" />}
             label="Pesajes"
             value={meta.weighingReceptionCount}
-            secondary={`${byStage.weighing.length} foto${byStage.weighing.length !== 1 ? 's' : ''}`}
+            secondary={`${meta.weighingPhotoCount} foto${meta.weighingPhotoCount !== 1 ? 's' : ''}`}
           />
           <MetricBox
             icon={<FileText className="h-4 w-4" />}
