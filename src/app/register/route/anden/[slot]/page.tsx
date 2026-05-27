@@ -1,16 +1,18 @@
 'use client'
 
-import { use, useEffect, useState } from 'react'
+import { use, useEffect, useMemo, useState } from 'react'
 import { notFound, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Play, StopCircle, AlertCircle, X } from 'lucide-react'
+import { ArrowLeft, Play, StopCircle, AlertCircle, X, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { RouteForm, type RouteFormState } from '@/components/register/route-form'
+import { RouteSessionDrawer } from '@/components/register/route-session-drawer'
 import { useStore } from '@/lib/store'
 import { createClient } from '@/lib/supabase/client'
 import * as q from '@/lib/supabase/queries'
 import { uploadEventPhotos } from '@/lib/data/photos'
+import { getSlotAndenEvents, mergePhotoIds } from '@/lib/data/route-sessions'
 import { getRouteSlotDefinition } from '@/lib/constants'
 import { useElapsed, formatElapsed } from '@/hooks/use-elapsed'
 import {
@@ -21,14 +23,22 @@ import {
   todayLocal,
   type ActiveSession,
 } from '@/lib/active-session'
-import type { RouteSlot, RouteEvent } from '@/lib/types'
+import type { RouteSlot } from '@/lib/types'
 
 interface Props {
   params: Promise<{ slot: string }>
 }
 
-// Slots válidos para validar el path param
 const VALID_SLOTS: RouteSlot[] = ['06:30', '10:30', '13:20', '14:30', '18:30', '21:00']
+
+const EMPTY_FORM: RouteFormState = {
+  dirtyReceivedIds: [],
+  cleanDeliveredIds: [],
+  floor: '',
+  area: '',
+  dock: '',
+  photos: [],
+}
 
 export default function RegisterRouteSlotPage({ params }: Props) {
   const { slot: rawSlot } = use(params)
@@ -45,82 +55,59 @@ export default function RegisterRouteSlotPage({ params }: Props) {
 
   const [today] = useState<string>(todayLocal)
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null)
-  const [formState, setFormState] = useState<RouteFormState>({
-    dirtyReceivedIds: [],
-    cleanDeliveredIds: [],
-    floor: '',
-    area: '',
-    dock: '',
-    photos: [],
-  })
+  const [formState, setFormState] = useState<RouteFormState>(EMPTY_FORM)
+  // Andén actualmente en edición (null = creando uno nuevo).
+  const [editingAndenId, setEditingAndenId] = useState<string | null>(null)
+  // photo_ids existentes del andén en edición que se conservan (no se re-suben).
+  const [existingPhotoIds, setExistingPhotoIds] = useState<string[]>([])
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [confirmingFinish, setConfirmingFinish] = useState(false)
   const [confirmingCancel, setConfirmingCancel] = useState(false)
 
-  // Cliente: por ahora tomamos el primero (Centro de la Salud).
   const client = clients[0]
 
-  // Hidrata el estado desde IndexedDB y el store al montar (una sola vez por
-  // slot/día). NO depender de `routeEvents` porque cambia con cada edición
-  // incremental del form y dispararía hidrataciones en loop.
+  // Andenes in_progress de este horario/día = la sesión abierta.
+  const sessionAndenes = useMemo(
+    () => getSlotAndenEvents(routeEvents, today, slotId, 'in_progress'),
+    [routeEvents, today, slotId],
+  )
+  const completedAndenes = useMemo(
+    () => getSlotAndenEvents(routeEvents, today, slotId, 'completed'),
+    [routeEvents, today, slotId],
+  )
+
+  // Hidrata la sesión abierta desde IndexedDB. Si no hay ActiveSession pero
+  // existen andenes in_progress (app cerrada a mitad), reconstruye la sesión.
   useEffect(() => {
     let cancelled = false
     const key = routeAndenSessionKey(today, slotId)
     getActiveSession(key)
       .then(async (session) => {
         if (cancelled) return
-
-        // Caso 1: ya hay sesión activa en IndexedDB → restauramos su contexto.
         if (session) {
           setActiveSession(session)
-          if (session.context.type === 'route') {
-            const ctx = session.context
-            const event = useStore.getState().routeEvents.find((r) => r.id === ctx.route_event_id)
-            if (event) {
-              setFormState({
-                dirtyReceivedIds: event.containers_dirty_received,
-                cleanDeliveredIds: event.containers_clean_delivered,
-                floor: event.floor,
-                area: event.area,
-                dock: event.dock,
-                photos: [],
-              })
-            }
-          }
           return
         }
-
-        // Caso 2: no hay sesión local pero quizá quedó un route_event in_progress
-        // en Supabase (operador cerró la app sin finalizar, o cambió de dispositivo).
-        // Lo reanudamos reconstruyendo la ActiveSession a partir del evento.
-        const orphan = useStore.getState().routeEvents.find(
-          (r) => r.kind === 'anden' && r.slot === slotId && r.date === today && r.status === 'in_progress',
+        const orphans = getSlotAndenEvents(
+          useStore.getState().routeEvents, today, slotId, 'in_progress',
         )
-        if (!orphan || !currentProfileId) return
+        if (orphans.length === 0 || !currentProfileId) return
         const recovered: ActiveSession = {
           key,
           type: 'route',
-          started_at: orphan.started_at,
+          started_at: orphans[0].started_at,
           context: {
             type: 'route',
-            client_id: orphan.client_id,
+            client_id: orphans[0].client_id,
             kind: 'anden',
             slot: slotId,
             date: today,
-            operator_id: orphan.operator_id,
-            route_event_id: orphan.id,
+            operator_id: orphans[0].operator_id,
+            route_event_id: '', // ya no se usa un id único; la sesión agrupa por (date, slot)
           },
         }
         await startSession(recovered)
-        if (cancelled) return
-        setActiveSession(recovered)
-        setFormState({
-          dirtyReceivedIds: orphan.containers_dirty_received,
-          cleanDeliveredIds: orphan.containers_clean_delivered,
-          floor: orphan.floor,
-          area: orphan.area,
-          dock: orphan.dock,
-          photos: [],
-        })
+        if (!cancelled) setActiveSession(recovered)
       })
       .catch((err) => {
         // eslint-disable-next-line no-console
@@ -129,39 +116,40 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     return () => { cancelled = true }
   }, [today, slotId, currentProfileId])
 
-  const completedEvent = routeEvents.find(
-    (r) => r.kind === 'anden' && r.slot === slotId && r.date === today && r.status === 'completed',
-  )
   const elapsed = useElapsed(activeSession?.started_at ?? null)
+  const isRunning = !!activeSession
+  const isEditing = editingAndenId != null
 
   function updateForm(updates: Partial<RouteFormState>) {
     setFormState((prev) => ({ ...prev, ...updates }))
-    // Si hay un RouteEvent activo, persistimos los cambios incrementales en el store.
-    if (activeSession?.context.type === 'route') {
-      updateRouteEvent(activeSession.context.route_event_id, {
-        ...(updates.dirtyReceivedIds !== undefined && { containers_dirty_received: updates.dirtyReceivedIds }),
-        ...(updates.cleanDeliveredIds !== undefined && { containers_clean_delivered: updates.cleanDeliveredIds }),
-        ...(updates.floor !== undefined && { floor: updates.floor }),
-        ...(updates.area !== undefined && { area: updates.area }),
-        ...(updates.dock !== undefined && { dock: updates.dock }),
-      })
+  }
+
+  function resetForm() {
+    setFormState(EMPTY_FORM)
+    setEditingAndenId(null)
+    setExistingPhotoIds([])
+  }
+
+  function buildLabel(): string {
+    return `PTDP ${client?.name ?? ''} ${new Date().toLocaleDateString('es-PA')} ${new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })}`
+  }
+
+  async function handleSaveAnden() {
+    if (!currentProfileId || !client) return
+    if (editingAndenId) {
+      await handleUpdateAnden(editingAndenId)
+    } else {
+      await handleCreateAnden()
     }
   }
 
-  async function handleStart() {
-    if (!currentProfileId) {
-      alert('Todavía no se cargó tu sesión (sin conexión con el servidor). Esperá a reconectar e intentá de nuevo.')
-      return
-    }
-    if (!client) return
+  async function handleCreateAnden() {
+    if (!currentProfileId || !client) return
     const now = new Date().toISOString()
-
-    // Crear el recorrido en Supabase y usar el id (uuid) que retorna.
-    // Si ya existe uno in_progress (por unique parcial (date, slot) WHERE kind='anden'),
-    // lo recuperamos y reanudamos en vez de fallar.
     const supabase = createClient()
+
+    // 1) Crear el route_event (in_progress) del andén
     let routeEventId: string
-    let startedAt = now
     try {
       const row = await q.createRouteEvent(supabase, {
         client_id: client.id,
@@ -174,29 +162,45 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       })
       routeEventId = row.id
     } catch (err) {
-      // Probable 409 por (date, slot) ya in_progress → recuperar.
-      console.warn('[recorrido andén] crear falló, intentando recuperar in_progress:', err)
-      try {
-        const existing = await q.findAndenInProgress(supabase, today, slotId)
-        if (!existing) {
-          console.error('[recorrido andén] no se pudo recuperar evento existente')
-          return
-        }
-        routeEventId = existing.id
-        startedAt = existing.started_at
-      } catch (lookupErr) {
-        console.error('[recorrido andén] lookup de recuperación falló:', lookupErr)
-        return
-      }
+      console.error('[recorrido andén] crear andén falló:', err)
+      alert('No se pudo guardar el andén. Revisá tu conexión e intentá de nuevo.')
+      return
     }
 
+    // 2) Asociar envases
+    try {
+      await q.setRouteContainersDirty(supabase, routeEventId, formState.dirtyReceivedIds)
+      await q.setRouteContainersClean(supabase, routeEventId, formState.cleanDeliveredIds)
+    } catch (err) {
+      console.error('[recorrido andén] asociar envases falló:', err)
+    }
+
+    // 3) Subir fotos AHORA (evita pérdida al editar luego)
+    let photoIds: string[] = []
+    try {
+      const uploaded = await uploadEventPhotos(supabase, {
+        dataUrls: formState.photos,
+        eventType: 'route',
+        eventId: routeEventId,
+        label: buildLabel(),
+        uploadedBy: currentProfileId,
+        takenAt: now,
+      })
+      uploaded.forEach(addPhoto)
+      photoIds = uploaded.map((p) => p.id)
+    } catch (err) {
+      console.error('[recorrido andén] subir fotos falló:', err)
+      alert('El andén se guardó, pero algunas fotos no se subieron por la conexión.')
+    }
+
+    // 4) Reflejar en el store
     addRouteEvent({
       id: routeEventId,
       client_id: client.id,
       kind: 'anden',
       slot: slotId,
       date: today,
-      started_at: startedAt,
+      started_at: now,
       ended_at: null,
       operator_id: currentProfileId,
       status: 'in_progress',
@@ -205,12 +209,101 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       floor: formState.floor,
       area: formState.area,
       dock: formState.dock,
-      photo_ids: [],
+      photo_ids: photoIds,
     })
+
+    resetForm()
+  }
+
+  function handleSelectAnden(id: string) {
+    const ev = routeEvents.find((r) => r.id === id)
+    if (!ev) return
+    setFormState({
+      dirtyReceivedIds: ev.containers_dirty_received,
+      cleanDeliveredIds: ev.containers_clean_delivered,
+      floor: ev.floor,
+      area: ev.area,
+      dock: ev.dock,
+      photos: [], // las nuevas a subir; las existentes se preservan por id
+    })
+    setExistingPhotoIds(ev.photo_ids)
+    setEditingAndenId(id)
+    setDrawerOpen(false)
+  }
+
+  async function handleUpdateAnden(id: string) {
+    if (!currentProfileId) return
+    const now = new Date().toISOString()
+    const supabase = createClient()
+
+    // 1) Actualizar ubicación + envases
+    try {
+      await q.updateRouteEvent(supabase, id, {
+        floor: formState.floor,
+        area: formState.area,
+        dock: formState.dock,
+      })
+      await q.setRouteContainersDirty(supabase, id, formState.dirtyReceivedIds)
+      await q.setRouteContainersClean(supabase, id, formState.cleanDeliveredIds)
+    } catch (err) {
+      console.error('[recorrido andén] actualizar andén falló:', err)
+      alert('No se pudieron guardar los cambios. Revisá tu conexión.')
+      return
+    }
+
+    // 2) Subir SOLO las fotos nuevas; preservar las existentes por id
+    let newPhotoIds: string[] = []
+    try {
+      const uploaded = await uploadEventPhotos(supabase, {
+        dataUrls: formState.photos,
+        eventType: 'route',
+        eventId: id,
+        label: buildLabel(),
+        uploadedBy: currentProfileId,
+        takenAt: now,
+      })
+      uploaded.forEach(addPhoto)
+      newPhotoIds = uploaded.map((p) => p.id)
+    } catch (err) {
+      console.error('[recorrido andén] subir fotos nuevas falló:', err)
+      alert('Los cambios se guardaron, pero algunas fotos nuevas no se subieron.')
+    }
+
+    updateRouteEvent(id, {
+      containers_dirty_received: formState.dirtyReceivedIds,
+      containers_clean_delivered: formState.cleanDeliveredIds,
+      floor: formState.floor,
+      area: formState.area,
+      dock: formState.dock,
+      photo_ids: mergePhotoIds(existingPhotoIds, newPhotoIds),
+    })
+
+    resetForm()
+  }
+
+  async function handleDeleteAnden(id: string) {
+    try {
+      const supabase = createClient()
+      await q.deleteRouteEvent(supabase, id)
+    } catch (err) {
+      console.error('[recorrido andén] borrar andén falló:', err)
+      return
+    }
+    deleteRouteEvent(id)
+    resetForm()
+  }
+
+  async function handleStart() {
+    if (!currentProfileId) {
+      alert('Todavía no se cargó tu sesión (sin conexión con el servidor). Esperá a reconectar e intentá de nuevo.')
+      return
+    }
+    if (!client) return
+    const now = new Date().toISOString()
     const session: ActiveSession = {
       key: routeAndenSessionKey(today, slotId),
       type: 'route',
-      started_at: startedAt,
+      started_at: now,
       context: {
         type: 'route',
         client_id: client.id,
@@ -218,103 +311,60 @@ export default function RegisterRouteSlotPage({ params }: Props) {
         slot: slotId,
         date: today,
         operator_id: currentProfileId,
-        route_event_id: routeEventId,
+        route_event_id: '',
       },
     }
     await startSession(session)
     setActiveSession(session)
   }
 
-  async function handleCancel() {
-    if (!activeSession || activeSession.context.type !== 'route') return
-    const ctx = activeSession.context
-    // Borrar el RouteEvent en Supabase (cascade limpia las join tables) y luego en store.
-    try {
-      const supabase = createClient()
-      await q.deleteRouteEvent(supabase, ctx.route_event_id)
-    } catch (err) {
-      console.error('[recorrido andén] borrar recorrido falló:', err)
-      return
-    }
-    deleteRouteEvent(ctx.route_event_id)
-    // Borrar la ActiveSession de IndexedDB
-    await endSession(activeSession.key)
-    setActiveSession(null)
-    setFormState({ dirtyReceivedIds: [], cleanDeliveredIds: [], floor: '', area: '', dock: '', photos: [] })
-    router.push('/register/route/anden')
-  }
-
   async function handleFinish() {
-    if (!activeSession || activeSession.context.type !== 'route') return
+    if (!activeSession) return
     const now = new Date().toISOString()
-    const routeEventId = activeSession.context.route_event_id
-
     const supabase = createClient()
-    const label = `PTDP ${client?.name ?? ''} ${new Date().toLocaleDateString('es-PA')} ${new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })}`
-
-    // 1. PRIMERO lo crítico: cerrar el recorrido y sincronizar los envases.
-    //    Esto es rápido y es lo que NO debe quedar a medias. Si falla (sin
-    //    señal), abortamos sin tocar fotos y el recorrido sigue editable.
+    // Marcar todos los andenes in_progress del horario como completed.
     try {
-      await q.updateRouteEvent(supabase, routeEventId, {
-        status: 'completed',
-        ended_at: now,
-        floor: formState.floor,
-        area: formState.area,
-        dock: formState.dock,
-      })
-      await q.setRouteContainersDirty(supabase, routeEventId, formState.dirtyReceivedIds)
-      await q.setRouteContainersClean(supabase, routeEventId, formState.cleanDeliveredIds)
+      await Promise.all(
+        sessionAndenes.map((a) =>
+          q.updateRouteEvent(supabase, a.id, { status: 'completed', ended_at: now }),
+        ),
+      )
     } catch (err) {
-      console.error('[recorrido andén] cerrar recorrido falló:', err)
+      console.error('[recorrido andén] finalizar falló:', err)
       alert('No se pudo finalizar el recorrido. Revisá tu conexión e intentá de nuevo.')
       return
     }
-
-    // 2. DESPUÉS las fotos (lento). El recorrido ya quedó cerrado, así que si
-    //    las fotos fallan no dejamos un evento huérfano: solo se pierden fotos.
-    let photoIds: string[] = []
-    try {
-      const uploadedPhotos = await uploadEventPhotos(supabase, {
-        dataUrls: formState.photos,
-        eventType: 'route',
-        eventId: routeEventId,
-        label,
-        uploadedBy: currentProfileId,
-        takenAt: now,
-      })
-      uploadedPhotos.forEach(addPhoto)
-      photoIds = uploadedPhotos.map((p) => p.id)
-    } catch (err) {
-      console.error('[recorrido andén] subir fotos falló (recorrido ya cerrado):', err)
-      alert('El recorrido se finalizó, pero algunas fotos no se subieron por la conexión.')
-    }
-
-    // 3. Cerrar el RouteEvent en el store
-    const patch: Partial<RouteEvent> = {
-      status: 'completed',
-      ended_at: now,
-      photo_ids: photoIds,
-      containers_dirty_received: formState.dirtyReceivedIds,
-      containers_clean_delivered: formState.cleanDeliveredIds,
-      floor: formState.floor,
-      area: formState.area,
-      dock: formState.dock,
-    }
-    updateRouteEvent(routeEventId, patch)
-
-    // 4. Borrar la ActiveSession de IndexedDB
+    sessionAndenes.forEach((a) =>
+      updateRouteEvent(a.id, { status: 'completed', ended_at: now }),
+    )
     await endSession(activeSession.key)
     setActiveSession(null)
+    resetForm()
+    router.push('/register/route/anden')
+  }
 
-    // 5. Volver al listado
+  async function handleCancel() {
+    if (!activeSession) return
+    const supabase = createClient()
+    try {
+      await Promise.all(sessionAndenes.map((a) => q.deleteRouteEvent(supabase, a.id)))
+    } catch (err) {
+      console.error('[recorrido andén] cancelar falló:', err)
+      return
+    }
+    sessionAndenes.forEach((a) => deleteRouteEvent(a.id))
+    await endSession(activeSession.key)
+    setActiveSession(null)
+    resetForm()
     router.push('/register/route/anden')
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
-  // Estado: ya completado hoy → read-only
-  if (completedEvent) {
+  // Completado hoy (hay andenes completed y ninguno in_progress, sin sesión abierta)
+  if (!isRunning && completedAndenes.length > 0 && sessionAndenes.length === 0) {
+    const totalDirty = completedAndenes.reduce((n, a) => n + a.containers_dirty_received.length, 0)
+    const totalClean = completedAndenes.reduce((n, a) => n + a.containers_clean_delivered.length, 0)
     return (
       <div className="max-w-2xl mx-auto space-y-6">
         <Header slot={slot} />
@@ -322,15 +372,8 @@ export default function RegisterRouteSlotPage({ params }: Props) {
           <CardContent className="pt-4 space-y-2">
             <p className="font-semibold text-emerald-800">Recorrido completado</p>
             <p className="text-sm text-emerald-700">
-              Iniciado {new Date(completedEvent.started_at).toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })} ·
-              Finalizado {completedEvent.ended_at ? new Date(completedEvent.ended_at).toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' }) : '—'}
-            </p>
-            <p className="text-sm text-emerald-700">
-              {completedEvent.containers_dirty_received.length} recogido{completedEvent.containers_dirty_received.length !== 1 ? 's' : ''}
-              {' · '}
-              {completedEvent.containers_clean_delivered.length} entregado{completedEvent.containers_clean_delivered.length !== 1 ? 's' : ''}
-              {' · '}
-              Piso {completedEvent.floor || '—'}, {completedEvent.area || '—'}, {completedEvent.dock || '—'}
+              {completedAndenes.length} andén{completedAndenes.length !== 1 ? 'es' : ''} ·{' '}
+              {totalDirty} recogido{totalDirty !== 1 ? 's' : ''} · {totalClean} entregado{totalClean !== 1 ? 's' : ''}
             </p>
             <p className="text-xs text-emerald-700/80 mt-2">
               No se puede reiniciar la ruta de hoy. Disponible nuevamente mañana.
@@ -341,13 +384,14 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     )
   }
 
-  const isRunning = !!activeSession
-
-  const totalContainers = formState.dirtyReceivedIds.length + formState.cleanDeliveredIds.length
-  const canFinish = totalContainers > 0 && formState.photos.length > 0
+  const canSaveAnden =
+    isRunning &&
+    (formState.dirtyReceivedIds.length + formState.cleanDeliveredIds.length > 0) &&
+    (formState.photos.length > 0 || existingPhotoIds.length > 0)
+  const canFinish = sessionAndenes.length > 0
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6 pb-20">
       <Header slot={slot} />
 
       {/* Banner de estado */}
@@ -357,8 +401,11 @@ export default function RegisterRouteSlotPage({ params }: Props) {
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-accent">Recorrido en curso</p>
               <p className="text-3xl font-bold tabular-nums text-foreground mt-1">{formatElapsed(elapsed)}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {sessionAndenes.length} andén{sessionAndenes.length !== 1 ? 'es' : ''} registrado{sessionAndenes.length !== 1 ? 's' : ''}
+              </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 shrink-0 flex-wrap justify-end">
               <Button
                 variant="outline"
                 onClick={() => setConfirmingCancel(true)}
@@ -367,13 +414,9 @@ export default function RegisterRouteSlotPage({ params }: Props) {
                 <X className="h-4 w-4" />
                 Cancelar
               </Button>
-              <Button
-                onClick={() => setConfirmingFinish(true)}
-                disabled={!canFinish}
-                className="gap-2"
-              >
+              <Button onClick={() => setConfirmingFinish(true)} disabled={!canFinish} className="gap-2">
                 <StopCircle className="h-4 w-4" />
-                Finalizar
+                Finalizar recorrido
               </Button>
             </div>
           </CardContent>
@@ -381,11 +424,9 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       ) : (
         <Card className="bg-card">
           <CardContent className="pt-4 flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">
-                El formulario está bloqueado. Inicia el recorrido para empezar el cronómetro y registrar.
-              </p>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              El formulario está bloqueado. Inicia el recorrido para registrar los andenes.
+            </p>
             <Button onClick={handleStart} className="gap-2 shrink-0">
               <Play className="h-4 w-4" />
               Iniciar recorrido
@@ -394,7 +435,14 @@ export default function RegisterRouteSlotPage({ params }: Props) {
         </Card>
       )}
 
-      {/* Formulario */}
+      {/* Banner de modo edición */}
+      {isEditing && (
+        <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-2.5 text-sm text-amber-800">
+          Editando un andén ya registrado. Las fotos existentes se conservan; podés agregar nuevas.
+        </div>
+      )}
+
+      {/* Formulario del andén */}
       <RouteForm
         state={formState}
         onChange={updateForm}
@@ -403,12 +451,42 @@ export default function RegisterRouteSlotPage({ params }: Props) {
         locked={!isRunning}
       />
 
-      {/* Modal de confirmación de finalización */}
+      {/* Acción: guardar andén y agregar otro */}
+      {isRunning && (
+        <div className="flex flex-col gap-3 sm:flex-row-reverse">
+          <Button onClick={handleSaveAnden} disabled={!canSaveAnden} size="lg" className="gap-2 sm:flex-1">
+            <Plus className="h-4 w-4" />
+            {isEditing ? 'Guardar cambios del andén' : 'Guardar andén y agregar otro'}
+          </Button>
+          {isEditing && (
+            <>
+              <Button variant="outline" onClick={resetForm} className="sm:flex-1">
+                Cancelar edición
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => handleDeleteAnden(editingAndenId!)}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 sm:flex-none"
+              >
+                Eliminar andén
+              </Button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Drawer de andenes */}
+      <RouteSessionDrawer
+        andenes={sessionAndenes}
+        selectedAndenId={editingAndenId}
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        onSelectAnden={handleSelectAnden}
+      />
+
       {confirmingFinish && (
         <ConfirmFinishDialog
-          dirtyCount={formState.dirtyReceivedIds.length}
-          cleanCount={formState.cleanDeliveredIds.length}
-          photoCount={formState.photos.length}
+          andenCount={sessionAndenes.length}
           elapsed={elapsed}
           onCancel={() => setConfirmingFinish(false)}
           onConfirm={async () => {
@@ -418,9 +496,9 @@ export default function RegisterRouteSlotPage({ params }: Props) {
         />
       )}
 
-      {/* Modal de confirmación de cancelación (destructiva) */}
       {confirmingCancel && (
         <ConfirmCancelDialog
+          andenCount={sessionAndenes.length}
           onCancel={() => setConfirmingCancel(false)}
           onConfirm={async () => {
             setConfirmingCancel(false)
@@ -449,20 +527,19 @@ function Header({ slot }: { slot: ReturnType<typeof getRouteSlotDefinition> }) {
 }
 
 interface DialogProps {
-  dirtyCount: number
-  cleanCount: number
-  photoCount: number
+  andenCount: number
   elapsed: number
   onCancel: () => void
   onConfirm: () => void
 }
 
 interface CancelDialogProps {
+  andenCount: number
   onCancel: () => void
   onConfirm: () => void
 }
 
-function ConfirmCancelDialog({ onCancel, onConfirm }: CancelDialogProps) {
+function ConfirmCancelDialog({ andenCount, onCancel, onConfirm }: CancelDialogProps) {
   return (
     <div
       role="dialog"
@@ -470,10 +547,7 @@ function ConfirmCancelDialog({ onCancel, onConfirm }: CancelDialogProps) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4"
       onClick={onCancel}
     >
-      <div
-        className="bg-card rounded-xl ring-1 ring-red-200 p-6 max-w-sm w-full space-y-4 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="bg-card rounded-xl ring-1 ring-red-200 p-6 max-w-sm w-full space-y-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-700">
             <X className="h-5 w-5" />
@@ -481,27 +555,20 @@ function ConfirmCancelDialog({ onCancel, onConfirm }: CancelDialogProps) {
           <div className="space-y-1">
             <h2 className="text-base font-semibold text-foreground">¿Cancelar el recorrido?</h2>
             <p className="text-sm text-muted-foreground">
-              Esta acción <strong className="text-red-700">descarta</strong> todos los datos
-              ingresados durante el recorrido (envases, ubicación, fotos). El slot vuelve a
-              quedar disponible para iniciar.
+              Esta acción <strong className="text-red-700">descarta</strong> los {andenCount} andén{andenCount !== 1 ? 'es' : ''} registrado{andenCount !== 1 ? 's' : ''} (envases, ubicación y fotos). El horario vuelve a quedar disponible.
             </p>
           </div>
         </div>
         <div className="flex gap-3 justify-end">
           <Button variant="outline" onClick={onCancel}>Seguir registrando</Button>
-          <Button
-            onClick={onConfirm}
-            className="bg-red-600 hover:bg-red-700 text-white"
-          >
-            Sí, cancelar
-          </Button>
+          <Button onClick={onConfirm} className="bg-red-600 hover:bg-red-700 text-white">Sí, cancelar</Button>
         </div>
       </div>
     </div>
   )
 }
 
-function ConfirmFinishDialog({ dirtyCount, cleanCount, photoCount, elapsed, onCancel, onConfirm }: DialogProps) {
+function ConfirmFinishDialog({ andenCount, elapsed, onCancel, onConfirm }: DialogProps) {
   return (
     <div
       role="dialog"
@@ -509,10 +576,7 @@ function ConfirmFinishDialog({ dirtyCount, cleanCount, photoCount, elapsed, onCa
       className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4"
       onClick={onCancel}
     >
-      <div
-        className="bg-card rounded-xl ring-1 ring-foreground/10 p-6 max-w-sm w-full space-y-4 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="bg-card rounded-xl ring-1 ring-foreground/10 p-6 max-w-sm w-full space-y-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
             <AlertCircle className="h-5 w-5" />
@@ -526,9 +590,7 @@ function ConfirmFinishDialog({ dirtyCount, cleanCount, photoCount, elapsed, onCa
         </div>
         <div className="rounded-lg bg-muted/30 p-3 text-sm space-y-1">
           <p>Duración: <strong className="font-mono">{formatElapsed(elapsed)}</strong></p>
-          <p>Sucios recogidos: <strong>{dirtyCount}</strong></p>
-          <p>Limpios entregados: <strong>{cleanCount}</strong></p>
-          <p>Fotos: <strong>{photoCount}</strong></p>
+          <p>Andenes registrados: <strong>{andenCount}</strong></p>
         </div>
         <div className="flex gap-3 justify-end">
           <Button variant="outline" onClick={onCancel}>Seguir registrando</Button>
