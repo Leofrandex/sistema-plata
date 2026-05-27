@@ -176,19 +176,7 @@ export default function RegisterMorgueRoutePage() {
     const supabase = createClient()
     const label = `PTDP Morgue ${client?.name ?? ''} ${new Date().toLocaleDateString('es-PA')} ${new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })}`
 
-    // Subir las fotos a Storage + registrar en public.photos
-    const uploadedPhotos = await uploadEventPhotos(supabase, {
-      dataUrls: formState.photos,
-      eventType: 'route',
-      eventId: routeEventId,
-      label,
-      uploadedBy: currentProfileId,
-      takenAt: now,
-    })
-    uploadedPhotos.forEach(addPhoto)
-    const photoIds = uploadedPhotos.map((p) => p.id)
-
-    // Persistir el cierre en Supabase + sincronizar envases sucios/limpios.
+    // 1. PRIMERO lo crítico: cerrar el recorrido + sincronizar envases (rápido).
     try {
       await q.updateRouteEvent(supabase, routeEventId, {
         status: 'completed',
@@ -201,7 +189,26 @@ export default function RegisterMorgueRoutePage() {
       await q.setRouteContainersClean(supabase, routeEventId, formState.cleanDeliveredIds)
     } catch (err) {
       console.error('[recorrido morgue] cerrar recorrido falló:', err)
+      alert('No se pudo finalizar el recorrido. Revisá tu conexión e intentá de nuevo.')
       return
+    }
+
+    // 2. DESPUÉS las fotos (lento). El recorrido ya quedó cerrado.
+    let photoIds: string[] = []
+    try {
+      const uploadedPhotos = await uploadEventPhotos(supabase, {
+        dataUrls: formState.photos,
+        eventType: 'route',
+        eventId: routeEventId,
+        label,
+        uploadedBy: currentProfileId,
+        takenAt: now,
+      })
+      uploadedPhotos.forEach(addPhoto)
+      photoIds = uploadedPhotos.map((p) => p.id)
+    } catch (err) {
+      console.error('[recorrido morgue] subir fotos falló (recorrido ya cerrado):', err)
+      alert('El recorrido se finalizó, pero algunas fotos no se subieron por la conexión.')
     }
 
     const patch: Partial<RouteEvent> = {
