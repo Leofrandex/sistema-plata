@@ -86,16 +86,19 @@ updated: 2026-05-21
 
 ## Notas del último procesamiento
 
-**2026-05-27** — Lote de ajustes post-piloto (4 de 5; reporte pendiente de imagen).
+**2026-05-27** — Lote de ajustes post-piloto (5 cambios, completos).
 (1) Pesaje: "vehículo Yaris" → "tacho Yaris" y se quita el ícono de carro.
 (2) Login: botón ojo para mostrar/ocultar contraseña.
 (3) Pesaje: foto de balanza arriba, foto del envase abajo (solo orden visual).
 (4) **Recorridos multi-andén por horario**: se replica el patrón de pesaje (sesión →
 varios andenes editables) sin tabla nueva — cada andén es un `route_event` agrupado por
 `(date, slot)`; migración `20260527010000` elimina el índice único parcial. Las fotos se
-suben al guardar cada andén (no al finalizar) para no perderlas al editar. Pendiente:
-tarea 5 (rediseño del reporte) + E2E manual.
-Spec/Plan: `docs/superpowers/{specs,plans}/2026-05-27-pesaje-login-recorridos-multianden*`.
+suben al guardar cada andén (no al finalizar) para no perderlas al editar.
+(5) **Reportes rediseñados**: orden estricto día→ruta→(recorrido+pesaje), layout 4 cuadros
+2×2 / 8 fotos por cuadro, salto de página por día, selector de rango de fechas (default
+semana). Pesajes huérfanos (histórico/Yaris) agrupados por fecha. Pendiente: E2E manual.
+Specs/Plans: `docs/superpowers/{specs,plans}/2026-05-27-pesaje-login-recorridos-multianden*`
+y `…/2026-05-27-reporte-fotografico-rediseno*`.
 Log: `logs/2026-05-27-pesaje-login-recorridos-multianden.md`.
 
 **2026-05-25** — Fotos migradas a Supabase Storage (última pieza de la integración).

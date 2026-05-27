@@ -62,9 +62,31 @@ horario se identifica por `(date, slot, kind='anden')`. Ver ADR implícito en el
 **Recorrido completo primero:** los envases se consolidan al finalizar el recorrido,
 no por andén individual.
 
+## 5. Reportes — rediseño
+
+**Por qué:** el reporte agrupaba por etapa global (todos los recorridos, luego todos los
+pesajes). Se necesita orden estricto **por día → por ruta → recorrido + pesaje de esos
+tachos**, replicando el formato impreso del ejemplo (4 cuadros 2×2, 8 fotos por cuadro).
+
+Spec: `docs/superpowers/specs/2026-05-27-reporte-fotografico-rediseno-design.md`
+Plan: `docs/superpowers/plans/2026-05-27-reporte-fotografico-rediseno.md`
+Imagen de referencia: `docs/superpowers/specs/2026-05-27-reporte-ejemplo.png`
+
+**Cambios clave:**
+- `reports.ts`: nueva estructura `days → groups` (cada grupo = Recorrido o Pesaje de una
+  ruta, con etiqueta). Orden: por día, por ruta (slot cronológico), grupo Recorrido y
+  luego grupo Pesaje (recepciones de los tachos sucios recogidos en esa ruta). Grupos
+  vacíos se omiten. `buildPhotographicReportData` ahora recibe `{ start, end }`.
+- **Pesajes huérfanos:** recepciones sin recorrido en el rango (data histórica, Yaris) se
+  agrupan por su fecha de pesaje en un grupo "Pesaje" — evita regresión con el histórico
+  de Airkem.
+- PDF (`photographic-report-document.tsx`): layout horizontal, barra de metadatos arriba
+  (Edificio/Ubicación/Empresa fijos + Fecha = el día de la página), **4 cuadros 2×2**,
+  cada cuadro con su etiqueta + grilla de 8 fotos (4×2) + "Comentario:". Cada grupo
+  arranca cuadro nuevo (overflow → "(cont.)"); **salto de página por día**.
+- `/reports`: selector de **rango de fechas** (Desde/Hasta) con default semana actual
+  (lunes→hoy) y validación de rango inválido.
+
 ## Pendiente
 
-- Tarea 5: rediseño del reporte (orden día→ruta→recorrido+pesaje, cuadros por tacho,
-  8 fotos/cuadro, 4 cuadros/página, salto de página por día, selector de rango de
-  fechas). Esperando la imagen de ejemplo para diseñar.
-- E2E manual del flujo multi-andén en dispositivo real.
+- E2E manual del flujo multi-andén y del reporte (PDF) en dispositivo real.
