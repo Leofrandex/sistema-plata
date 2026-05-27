@@ -13,6 +13,7 @@ import {
   type ActiveSession,
 } from '@/lib/active-session'
 import { RouteSlotCard, type RouteSlotStatus } from '@/components/register/route-slot-card'
+import { getSlotAndenEvents } from '@/lib/data/route-sessions'
 import type { RouteSlot } from '@/lib/types'
 
 interface SlotState {
@@ -51,14 +52,14 @@ export default function RegisterAndenRoutesPage() {
   function computeStatus(slot: RouteSlot): SlotState {
     const inProgressKey = routeAndenSessionKey(today, slot)
     const inProgressSession = activeSessions.find((s) => s.key === inProgressKey)
-    if (inProgressSession) {
-      return { status: 'in_progress', startedAt: inProgressSession.started_at }
+    const inProgress = getSlotAndenEvents(routeEvents, today, slot, 'in_progress')
+    if (inProgressSession || inProgress.length > 0) {
+      return { status: 'in_progress', startedAt: inProgressSession?.started_at ?? inProgress[0]?.started_at }
     }
-    const completed = routeEvents.find(
-      (r) => r.kind === 'anden' && r.slot === slot && r.date === today && r.status === 'completed',
-    )
-    if (completed) {
-      return { status: 'completed', completedAt: completed.ended_at }
+    const completed = getSlotAndenEvents(routeEvents, today, slot, 'completed')
+    if (completed.length > 0) {
+      const last = completed[completed.length - 1]
+      return { status: 'completed', completedAt: last.ended_at }
     }
     return { status: 'available' }
   }
