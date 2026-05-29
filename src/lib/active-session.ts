@@ -24,6 +24,7 @@ export type SessionType = 'route' | 'weighing'
 export interface RouteSessionContext {
   type: 'route'
   client_id: string
+  company_id?: string | null   // empresa (ION/Airkem) elegida para la sesión de recorrido
   kind: RouteKind
   slot: RouteSlot | null
   date: string

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft, Play, StopCircle, AlertCircle, X, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { RouteForm, type RouteFormState } from '@/components/register/route-form'
 import { RouteSessionDrawer } from '@/components/register/route-session-drawer'
 import { useStore } from '@/lib/store'
@@ -54,6 +55,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   } = useStore()
 
   const [today] = useState<string>(todayLocal)
+  const [companyId, setCompanyId] = useState('')
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null)
   const [formState, setFormState] = useState<RouteFormState>(EMPTY_FORM)
   // Andén actualmente en edición (null = creando uno nuevo).
@@ -65,6 +67,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   const [confirmingCancel, setConfirmingCancel] = useState(false)
 
   const client = clients[0]
+  const clientCompanies = companies.filter((c) => c.client_id === client?.id)
 
   // Andenes in_progress de este horario/día = la sesión abierta.
   const sessionAndenes = useMemo(
@@ -99,6 +102,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
           context: {
             type: 'route',
             client_id: orphans[0].client_id,
+            company_id: orphans[0].company_id ?? null,
             kind: 'anden',
             slot: slotId,
             date: today,
@@ -147,12 +151,14 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     if (!currentProfileId || !client) return
     const now = new Date().toISOString()
     const supabase = createClient()
+    const sessionCompanyId = activeSession?.context.type === 'route' ? (activeSession.context.company_id ?? companyId) : companyId
 
     // 1) Crear el route_event (in_progress) del andén
     let routeEventId: string
     try {
       const row = await q.createRouteEvent(supabase, {
         client_id: client.id,
+        company_id: sessionCompanyId || null,
         kind: 'anden',
         slot: slotId,
         date: today,
@@ -197,6 +203,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     addRouteEvent({
       id: routeEventId,
       client_id: client.id,
+      company_id: sessionCompanyId || null,
       kind: 'anden',
       slot: slotId,
       date: today,
@@ -299,6 +306,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       return
     }
     if (!client) return
+    if (!companyId) { alert('Seleccioná la empresa del recorrido antes de iniciar.'); return }
     const now = new Date().toISOString()
     const session: ActiveSession = {
       key: routeAndenSessionKey(today, slotId),
@@ -307,6 +315,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       context: {
         type: 'route',
         client_id: client.id,
+        company_id: companyId,
         kind: 'anden',
         slot: slotId,
         date: today,
@@ -423,14 +432,25 @@ export default function RegisterRouteSlotPage({ params }: Props) {
         </Card>
       ) : (
         <Card className="bg-card">
-          <CardContent className="pt-4 flex items-center justify-between gap-4">
-            <p className="text-sm text-muted-foreground">
-              El formulario está bloqueado. Inicia el recorrido para registrar los andenes.
-            </p>
-            <Button onClick={handleStart} className="gap-2 shrink-0">
-              <Play className="h-4 w-4" />
-              Iniciar recorrido
-            </Button>
+          <CardContent className="pt-4 space-y-3">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">Empresa del recorrido <span className="text-red-500">*</span></label>
+              <Select value={companyId} onValueChange={(v) => setCompanyId(v ?? '')}>
+                <SelectTrigger><SelectValue placeholder="Seleccionar empresa" /></SelectTrigger>
+                <SelectContent>
+                  {clientCompanies.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-sm text-muted-foreground">Iniciá el recorrido para registrar los andenes.</p>
+              <Button onClick={handleStart} disabled={!companyId} className="gap-2 shrink-0">
+                <Play className="h-4 w-4" />
+                Iniciar recorrido
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}

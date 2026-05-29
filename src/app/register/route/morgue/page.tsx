@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft, Play, StopCircle, AlertCircle, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { RouteForm, type RouteFormState } from '@/components/register/route-form'
 import { useStore } from '@/lib/store'
 import { createClient } from '@/lib/supabase/client'
@@ -31,6 +32,7 @@ export default function RegisterMorgueRoutePage() {
   } = useStore()
 
   const [today] = useState<string>(todayLocal)
+  const [companyId, setCompanyId] = useState('')
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null)
   const [formState, setFormState] = useState<RouteFormState>({
     dirtyReceivedIds: [],
@@ -44,6 +46,7 @@ export default function RegisterMorgueRoutePage() {
   const [confirmingCancel, setConfirmingCancel] = useState(false)
 
   const client = clients[0]
+  const clientCompanies = companies.filter((c) => c.client_id === client?.id)
 
   useEffect(() => {
     let cancelled = false
@@ -98,6 +101,7 @@ export default function RegisterMorgueRoutePage() {
       return
     }
     if (!client) return
+    if (!companyId) { alert('Seleccioná la empresa del recorrido antes de iniciar.'); return }
     const now = new Date().toISOString()
 
     // Crear el recorrido en Supabase y usar el id (uuid) que retorna.
@@ -106,6 +110,7 @@ export default function RegisterMorgueRoutePage() {
       const supabase = createClient()
       const row = await q.createRouteEvent(supabase, {
         client_id: client.id,
+        company_id: companyId || null,
         kind: 'morgue',
         slot: null,
         date: today,
@@ -122,6 +127,7 @@ export default function RegisterMorgueRoutePage() {
     addRouteEvent({
       id: routeEventId,
       client_id: client.id,
+      company_id: companyId || null,
       kind: 'morgue',
       slot: null,
       date: today,
@@ -143,6 +149,7 @@ export default function RegisterMorgueRoutePage() {
       context: {
         type: 'route',
         client_id: client.id,
+        company_id: companyId,
         kind: 'morgue',
         slot: null,
         date: today,
@@ -281,14 +288,25 @@ export default function RegisterMorgueRoutePage() {
         </Card>
       ) : (
         <Card className="bg-card">
-          <CardContent className="pt-4 flex items-center justify-between gap-4">
-            <p className="text-sm text-muted-foreground">
-              El formulario está bloqueado. Iniciá el recorrido de Morgue para empezar el cronómetro.
-            </p>
-            <Button onClick={handleStart} className="gap-2 shrink-0">
-              <Play className="h-4 w-4" />
-              Iniciar recorrido
-            </Button>
+          <CardContent className="pt-4 space-y-3">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">Empresa del recorrido <span className="text-red-500">*</span></label>
+              <Select value={companyId} onValueChange={(v) => setCompanyId(v ?? '')}>
+                <SelectTrigger><SelectValue placeholder="Seleccionar empresa" /></SelectTrigger>
+                <SelectContent>
+                  {clientCompanies.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-sm text-muted-foreground">Iniciá el recorrido de Morgue para empezar el cronómetro.</p>
+              <Button onClick={handleStart} disabled={!companyId} className="gap-2 shrink-0">
+                <Play className="h-4 w-4" />
+                Iniciar recorrido
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
