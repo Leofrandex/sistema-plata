@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest'
 import { formatTachoNumber } from '@/lib/data/containers'
 
 describe('formatTachoNumber', () => {
