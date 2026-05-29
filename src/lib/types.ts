@@ -89,7 +89,8 @@ export interface Photo {
 // Recorrido (antes ExchangeEvent). Para 'anden': un evento por (slot, día). Para 'morgue': ad-hoc, sin slot.
 export interface RouteEvent {
   id: string
-  client_id: string             // FK → Client (un recorrido es para un cliente)
+  client_id: string             // FK → Client (institución del recorrido)
+  company_id?: string | null    // FK → Company (empresa seleccionada: ION/Airkem). Ausente en histórico.
   kind: RouteKind               // 'anden' | 'morgue'
   slot: RouteSlot | null        // requerido para anden, null para morgue
   date: string                  // ISO date 'YYYY-MM-DD' — junto con slot identifica el recorrido del día (solo anden)
@@ -131,6 +132,15 @@ export interface ContainerReception {
   operator_id: string
   photo_ids: string[]
   observations: string                  // texto libre del operador (e.g. "Yaris/Picanto sin tara"). Default ''.
+  /** Empresa (ION/Airkem) a la que sirve este tacho en este ciclo. Snapshot
+   *  derivado del recorrido abierto al momento de pesar. Null/ausente para histórico. */
+  company_id?: string | null
+  /** Tipo de desecho ingresado por el operador en pesaje (dinámico, ya no es
+   *  propiedad permanente del tacho). Ausente en data histórica sin backfill. */
+  waste_type?: WasteType
+  /** Si true, al finalizar la sesión el tacho se trata de inmediato (salta
+   *  cámara fría) y queda disponible. Solo aplica a tipo infeccioso. */
+  treat_immediately?: boolean
 }
 
 export interface StorageEvent {

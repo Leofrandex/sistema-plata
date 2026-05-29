@@ -154,35 +154,51 @@ export type Database = {
       container_receptions: {
         Row: {
           arrived_at: string
+          company_id: string | null
           container_id: string
           created_at: string
           gross_weight_kg: number
           id: string
           observations: string
           operator_id: string
+          treat_immediately: boolean
+          waste_type: Database["public"]["Enums"]["waste_type"]
           weighing_session_id: string | null
         }
         Insert: {
           arrived_at?: string
+          company_id?: string | null
           container_id: string
           created_at?: string
           gross_weight_kg: number
           id?: string
           observations?: string
           operator_id: string
+          treat_immediately?: boolean
+          waste_type?: Database["public"]["Enums"]["waste_type"]
           weighing_session_id?: string | null
         }
         Update: {
           arrived_at?: string
+          company_id?: string | null
           container_id?: string
           created_at?: string
           gross_weight_kg?: number
           id?: string
           observations?: string
           operator_id?: string
+          treat_immediately?: boolean
+          waste_type?: Database["public"]["Enums"]["waste_type"]
           weighing_session_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "container_receptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "container_receptions_container_id_fkey"
             columns: ["container_id"]
@@ -418,6 +434,7 @@ export type Database = {
         Row: {
           area: string
           client_id: string
+          company_id: string | null
           created_at: string
           date: string
           dock: string
@@ -433,6 +450,7 @@ export type Database = {
         Insert: {
           area?: string
           client_id: string
+          company_id?: string | null
           created_at?: string
           date: string
           dock?: string
@@ -448,6 +466,7 @@ export type Database = {
         Update: {
           area?: string
           client_id?: string
+          company_id?: string | null
           created_at?: string
           date?: string
           dock?: string
@@ -461,6 +480,13 @@ export type Database = {
           status?: Database["public"]["Enums"]["route_event_status"]
         }
         Relationships: [
+          {
+            foreignKeyName: "route_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "route_events_client_id_fkey"
             columns: ["client_id"]

@@ -183,6 +183,9 @@ function rowToReception(r: q.ReceptionRow): ContainerReception {
     operator_id: r.operator_id,
     photo_ids: [], // el hydrator los rellena desde photoIdsByEvent
     observations: r.observations,
+    company_id: r.company_id ?? null,
+    waste_type: r.waste_type,
+    treat_immediately: r.treat_immediately,
   }
 }
 
@@ -201,6 +204,7 @@ export function mapRouteEvents(
   return events.map((e) => ({
     id: e.id,
     client_id: e.client_id,
+    company_id: e.company_id ?? null,
     kind: e.kind,
     slot: e.slot,
     date: e.date,
