@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Play, StopCircle, AlertCircle, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -21,7 +22,7 @@ import {
   todayLocal,
   type ActiveSession,
 } from '@/lib/active-session'
-import { getPendingWeighingContainerIds } from '@/lib/data/containers'
+import { getPendingWeighingContainerIds, getContainerCurrentCompanyId, formatTachoNumber } from '@/lib/data/containers'
 import { uploadEventPhotos } from '@/lib/data/photos'
 import { createClient } from '@/lib/supabase/client'
 import * as q from '@/lib/supabase/queries'
@@ -30,9 +31,10 @@ export default function WeighingPage() {
   const router = useRouter()
   const {
     clients, companies, containers, weighingSessions, receptions, routeEvents, photos,
+    treatmentRuns, externalTransfers,
     addWeighingSession, updateWeighingSession, deleteWeighingSession,
     addReception, updateReception,
-    addPhoto, addStorageEvent, addLocation,
+    addPhoto, addStorageEvent, addLocation, addTreatmentRun,
     currentProfileId,
   } = useStore()
 
@@ -88,6 +90,20 @@ export default function WeighingPage() {
     (c) => c.is_yaris_dedicated && c.status === 'active',
   )
 
+  const inheritedCompanyId = formState.container_id
+    ? getContainerCurrentCompanyId(formState.container_id, routeEvents, treatmentRuns, externalTransfers)
+    : null
+  const inheritedCompanyName = inheritedCompanyId
+    ? companies.find((c) => c.id === inheritedCompanyId)?.name ?? null
+    : null
+
+  const skipped = activeSession?.context.type === 'weighing' ? (activeSession.context.skipped ?? []) : []
+  const skippedIds = new Set(skipped.map((s) => s.container_id))
+  const pendingList = availableContainers
+    .map((c) => c.id)
+    .filter((id) => !sessionReceptions.some((r) => r.container_id === id))
+  const pendingNotSkipped = pendingList.filter((id) => !skippedIds.has(id))
+
   function updateForm(updates: Partial<WeighingFormState>) {
     setFormState((prev) => ({ ...prev, ...updates }))
   }
@@ -95,6 +111,23 @@ export default function WeighingPage() {
   function resetForm() {
     setFormState(EMPTY_WEIGHING_FORM)
     setEditingReceptionId(null)
+  }
+
+  async function markAbsent(containerId: string) {
+    if (!activeSession || activeSession.context.type !== 'weighing') return
+    const note = window.prompt('Nota (opcional) — por qué este tacho no se pesa:') ?? ''
+    const next: ActiveSession = {
+      ...activeSession,
+      context: {
+        ...activeSession.context,
+        skipped: [
+          ...(activeSession.context.skipped ?? []).filter((s) => s.container_id !== containerId),
+          { container_id: containerId, note },
+        ],
+      },
+    }
+    await startSession(next)
+    setActiveSession(next)
   }
 
   async function handleStart() {
@@ -202,6 +235,9 @@ export default function WeighingPage() {
         gross_weight_kg: gross,
         operator_id: currentProfileId,
         observations: formState.observations,
+        company_id: inheritedCompanyId,
+        waste_type: formState.waste_type,
+        treat_immediately: formState.treat_immediately,
       })
       receptionId = row.id
     } catch (err) {
@@ -225,6 +261,9 @@ export default function WeighingPage() {
       operator_id: currentProfileId,
       photo_ids: photoIds,
       observations: formState.observations,
+      company_id: inheritedCompanyId,
+      waste_type: formState.waste_type,
+      treat_immediately: formState.treat_immediately,
     })
     updateWeighingSession(currentSessionId, {
       reception_ids: [...session.reception_ids, receptionId],
@@ -246,6 +285,8 @@ export default function WeighingPage() {
         container_id: formState.container_id,
         gross_weight_kg: gross,
         observations: formState.observations,
+        waste_type: formState.waste_type,
+        treat_immediately: formState.treat_immediately,
       })
     } catch (err) {
       console.error('[pesaje] editar reception falló:', err)
@@ -262,6 +303,8 @@ export default function WeighingPage() {
       gross_weight_kg: gross,
       photo_ids: photoIds,
       observations: formState.observations,
+      waste_type: formState.waste_type,
+      treat_immediately: formState.treat_immediately,
     })
 
     resetForm()
@@ -283,6 +326,8 @@ export default function WeighingPage() {
       gross_weight: String(r.gross_weight_kg),
       observations: r.observations,
       is_yaris_weighing: container?.is_yaris_dedicated === true,
+      waste_type: r.waste_type ?? 'infectious',
+      treat_immediately: r.treat_immediately ?? false,
     })
     setEditingReceptionId(receptionId)
     setDrawerOpen(false)
@@ -347,27 +392,30 @@ export default function WeighingPage() {
     })
 
     // 2. Crear StorageEvent + ContainerLocation por cada reception
-    sessionReceptions.forEach((r, idx) => {
-      addStorageEvent({
-        id: `storage-${Date.now()}-${idx}`,
-        container_id: r.container_id,
-        entry_at: now,
-        exit_at: null,
-        operator_id: currentProfileId,
-        photo_ids: [],
-      })
-      addLocation({
-        id: `loc-${Date.now()}-${idx}`,
-        container_id: r.container_id,
-        reported_at: now,
-        operator_id: currentProfileId,
-        location_type: 'cold_storage',
-        client_id: null,
-        floor: null,
-        area: null,
-        notes: 'Cámara fría (auto tras pesaje)',
-      })
-    })
+    for (const [idx, r] of sessionReceptions.entries()) {
+      if (r.treat_immediately && r.waste_type === 'infectious') {
+        try {
+          const supabase = createClient()
+          const tr = await q.createTreatmentRun(supabase, {
+            container_id: r.container_id,
+            started_at: now,
+            completed_at: now,
+            operator_id: currentProfileId,
+          })
+          addTreatmentRun({ id: tr.id, container_id: r.container_id, started_at: now, completed_at: now, operator_id: currentProfileId })
+        } catch (err) {
+          console.error('[pesaje] tratamiento inmediato falló:', err)
+        }
+        addLocation({
+          id: `loc-${Date.now()}-${idx}`, container_id: r.container_id, reported_at: now,
+          operator_id: currentProfileId, location_type: 'treatment', client_id: null,
+          floor: null, area: null, notes: 'Tratado al finalizar pesaje',
+        })
+      } else {
+        addStorageEvent({ id: `storage-${Date.now()}-${idx}`, container_id: r.container_id, entry_at: now, exit_at: null, operator_id: currentProfileId, photo_ids: [] })
+        addLocation({ id: `loc-${Date.now()}-${idx}`, container_id: r.container_id, reported_at: now, operator_id: currentProfileId, location_type: 'cold_storage', client_id: null, floor: null, area: null, notes: 'Cámara fría (auto tras pesaje)' })
+      }
+    }
 
     // 3. Borrar la ActiveSession
     await endSession(activeSession.key)
@@ -403,6 +451,19 @@ export default function WeighingPage() {
               <p className="text-xs text-muted-foreground mt-1">
                 {sessionReceptions.length} envase{sessionReceptions.length !== 1 ? 's' : ''} registrado{sessionReceptions.length !== 1 ? 's' : ''}
               </p>
+              {pendingList.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Pendientes por pesar ({pendingNotSkipped.length}):{' '}
+                  {pendingList.map((id) => (
+                    <span key={id} className={cn('font-mono mr-1', skippedIds.has(id) && 'line-through opacity-60')}>
+                      {formatTachoNumber(id)}
+                      {!skippedIds.has(id) && (
+                        <button type="button" onClick={() => markAbsent(id)} className="ml-0.5 text-[10px] underline">ausente</button>
+                      )}
+                    </span>
+                  ))}
+                </p>
+              )}
             </div>
             <div className="flex gap-2 shrink-0 flex-wrap justify-end">
               <Button
@@ -415,7 +476,7 @@ export default function WeighingPage() {
               </Button>
               <Button
                 onClick={() => setConfirmingFinish(true)}
-                disabled={sessionReceptions.length === 0}
+                disabled={sessionReceptions.length === 0 || pendingNotSkipped.length > 0}
                 className="gap-2"
               >
                 <StopCircle className="h-4 w-4" />
@@ -453,7 +514,7 @@ export default function WeighingPage() {
         availableContainers={availableContainers}
         yarisContainers={yarisContainers}
         allContainers={containers}
-        companies={companies}
+        inheritedCompanyName={inheritedCompanyName}
         locked={!isRunning}
         mode={isEditing ? 'edit' : 'create'}
         onSubmit={handleSubmitForm}

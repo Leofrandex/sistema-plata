@@ -37,6 +37,9 @@ export interface WeighingSessionContext {
   date: string
   operator_id: string
   weighing_session_id: string
+  /** Tachos marcados ausentes en esta sesión (permiten finalizar; siguen en la
+   *  cola para la próxima). Transitorio, no se persiste en BD. */
+  skipped?: { container_id: string; note: string }[]
 }
 
 export type SessionContext = RouteSessionContext | WeighingSessionContext

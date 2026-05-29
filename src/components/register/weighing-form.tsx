@@ -6,9 +6,9 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PhotoCapture } from '@/components/register/photo-capture'
 import { cn } from '@/lib/utils'
-import { computeNetWeight } from '@/lib/data/containers'
+import { computeNetWeight, formatTachoNumber } from '@/lib/data/containers'
 import { CheckSquare, Square } from 'lucide-react'
-import type { Container, Company, WasteType } from '@/lib/types'
+import type { Container, WasteType } from '@/lib/types'
 
 const WASTE_LABELS: Record<WasteType, string> = {
   infectious: 'Peligroso infeccioso',
@@ -27,6 +27,8 @@ export interface WeighingFormState {
   /** Pesaje proveniente de carga Yaris/Picanto. Cuando true, el envase elegido
    *  debe ser uno marcado como `is_yaris_dedicated`. */
   is_yaris_weighing: boolean
+  waste_type: WasteType
+  treat_immediately: boolean
 }
 
 export const EMPTY_WEIGHING_FORM: WeighingFormState = {
@@ -36,6 +38,8 @@ export const EMPTY_WEIGHING_FORM: WeighingFormState = {
   gross_weight: '',
   observations: '',
   is_yaris_weighing: false,
+  waste_type: 'infectious',
+  treat_immediately: false,
 }
 
 interface Props {
@@ -47,7 +51,7 @@ interface Props {
   yarisContainers: Container[]
   /** Lista completa para resolver datos del envase si se está editando uno ya pesado. */
   allContainers: Container[]
-  companies: Company[]
+  inheritedCompanyName?: string | null
   locked: boolean
   mode: 'create' | 'edit'
   onSubmit: () => void
@@ -61,14 +65,13 @@ export function WeighingForm({
   availableContainers,
   yarisContainers,
   allContainers,
-  companies,
+  inheritedCompanyName,
   locked,
   mode,
   onSubmit,
   onCancelEdit,
   onDelete,
 }: Props) {
-  const companyMap = Object.fromEntries(companies.map((c) => [c.id, c.name]))
   const selectedContainer = allContainers.find((c) => c.id === state.container_id) ?? null
 
   const isYaris = state.is_yaris_weighing
@@ -144,7 +147,7 @@ export function WeighingForm({
             <SelectContent>
               {dropdownContainers.filter((c) => !c.is_yaris_dedicated).map((c) => (
                 <SelectItem key={c.id} value={c.id}>
-                  {c.id} — {companyMap[c.company_id] ?? '—'} · {c.size_liters} L
+                  {formatTachoNumber(c.id)} · {c.size_liters} L
                 </SelectItem>
               ))}
             </SelectContent>
@@ -172,7 +175,7 @@ export function WeighingForm({
             <SelectContent>
               {dropdownContainers.filter((c) => c.is_yaris_dedicated).map((c) => (
                 <SelectItem key={c.id} value={c.id}>
-                  {c.id} — {c.size_liters} L
+                  {formatTachoNumber(c.id)} — {c.size_liters} L
                 </SelectItem>
               ))}
             </SelectContent>
@@ -190,9 +193,6 @@ export function WeighingForm({
       {selectedContainer && (
         <div className="flex flex-wrap items-center gap-2 -mt-2">
           <Badge variant="outline" className="font-normal">
-            Tipo: <strong className="ml-1 font-semibold">{WASTE_LABELS[selectedContainer.waste_type]}</strong>
-          </Badge>
-          <Badge variant="outline" className="font-normal">
             Tara: <strong className="ml-1 font-semibold">{selectedContainer.tare_weight_kg} kg</strong>
           </Badge>
           <Badge variant="outline" className="font-normal">
@@ -205,6 +205,24 @@ export function WeighingForm({
           )}
         </div>
       )}
+
+      {/* Tipo de desecho — input del operador (ya no es propiedad del tacho) */}
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-foreground">
+          Tipo de desecho <span className="text-red-500">*</span>
+        </label>
+        <Select value={state.waste_type} onValueChange={(v) => onChange({ waste_type: (v ?? 'infectious') as WasteType })}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {(Object.keys(WASTE_LABELS) as WasteType[]).map((w) => (
+              <SelectItem key={w} value={w}>{WASTE_LABELS[w]}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {inheritedCompanyName && (
+          <p className="text-xs text-muted-foreground">Empresa del tacho: <strong>{inheritedCompanyName}</strong></p>
+        )}
+      </div>
 
       {/* Peso bruto + peso neto destacado */}
       <div className="space-y-1.5">
@@ -294,6 +312,24 @@ export function WeighingForm({
           className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
         />
       </div>
+
+      {state.waste_type === 'infectious' && (
+        <button
+          type="button"
+          onClick={() => onChange({ treat_immediately: !state.treat_immediately })}
+          aria-pressed={state.treat_immediately}
+          className={cn(
+            'w-full flex items-center gap-3 rounded-lg border p-3 text-left transition-colors',
+            state.treat_immediately ? 'border-accent/40 bg-accent/5' : 'border-border bg-card hover:bg-muted/40',
+          )}
+        >
+          {state.treat_immediately ? <CheckSquare className="h-5 w-5 shrink-0 text-accent" /> : <Square className="h-5 w-5 shrink-0 text-muted-foreground" />}
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-foreground">Tratar inmediatamente</p>
+            <p className="text-xs text-muted-foreground">Al finalizar el pesaje, este tacho salta cámara fría y queda disponible.</p>
+          </div>
+        </button>
+      )}
 
       {/* Fotos — balanza arriba, envase abajo (solo orden visual; el orden de
           subida photo_container/photo_scale no cambia para no romper el reporte) */}
