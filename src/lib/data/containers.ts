@@ -112,3 +112,11 @@ export function getPendingWeighingContainerIds(
     })
     .map((c) => c.id)
 }
+
+/**
+ * Display del número de tacho sin el prefijo de empresa (artefacto histórico de
+ * importación). 'A-001' → '001'. Ids sin prefijo se devuelven igual.
+ */
+export function formatTachoNumber(id: string): string {
+  return id.replace(/^[A-Za-z]+-/, '')
+}
