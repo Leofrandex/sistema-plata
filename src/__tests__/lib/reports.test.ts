@@ -110,4 +110,41 @@ describe('buildPhotographicReportData (por empresa)', () => {
     expect(data.meta.totalPhotos).toBe(0)
     expect(data.days).toEqual([])
   })
+
+  it('empresa registrada en reception sobreescribe empresa-dueña del tacho', () => {
+    // Container A-050 es de Airkem, pero la reception tiene company_id='company-ion'
+    // → el reporte de ION debe contar esa reception; el de Airkem NO.
+    const isoStore: ReportStoreSlice = {
+      clients: MOCK_CLIENTS,
+      companies: MOCK_COMPANIES,
+      containers: [
+        { id: 'A-050', company_id: 'company-airkem', size_liters: 240, tare_weight_kg: 14.0, waste_type: 'infectious', status: 'active', registered_at: '2026-01-01T00:00:00Z' },
+      ],
+      routeEvents: [],
+      weighingSessions: [],
+      receptions: [
+        {
+          id: 'reception-iso-1',
+          container_id: 'A-050',
+          weighing_session_id: null,
+          arrived_at: '2026-05-14T09:00:00-05:00',
+          gross_weight_kg: 30.0,
+          operator_id: 'user-1',
+          photo_ids: ['photo-iso-1'],
+          observations: '',
+          company_id: 'company-ion', // snapshot registrado: pertenece a ION
+        },
+      ],
+      photos: [
+        { id: 'photo-iso-1', url: 'https://placehold.co/400x300?text=iso', event_type: 'weighing', event_id: 'reception-iso-1', taken_at: '2026-05-14T09:00:00-05:00', label: 'Test iso' },
+      ],
+    }
+    const isoRange = { start: new Date(2026, 4, 11, 0, 0), end: new Date(2026, 4, 17, 23, 59) }
+
+    const ionReport = buildPhotographicReportData('company-ion', isoStore, isoRange)!
+    expect(ionReport.meta.weighingReceptionCount).toBe(1)
+
+    const airkemReport = buildPhotographicReportData('company-airkem', isoStore, isoRange)!
+    expect(airkemReport.meta.weighingReceptionCount).toBe(0)
+  })
 })

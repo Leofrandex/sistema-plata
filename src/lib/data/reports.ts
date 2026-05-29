@@ -117,25 +117,37 @@ export function buildPhotographicReportData(
   const end = range?.end ?? new Date()
   const start = range?.start ?? getMondayOfWeek(end)
 
-  const containers = store.containers.filter((c) => c.company_id === companyId)
-  const containerIds = new Set(containers.map((c) => c.id))
-  const containerMap = new Map(containers.map((c) => [c.id, c]))
   const photoMap = new Map(store.photos.map((p) => [p.id, p]))
 
-  // route_events de andén en el rango que tocan a la empresa
-  const routeEvents = store.routeEvents.filter((r) => {
-    if (r.kind !== 'anden') return false
-    if (!withinRange(r.started_at, start, end)) return false
-    return (
-      r.containers_dirty_received.some((cid) => containerIds.has(cid)) ||
-      r.containers_clean_delivered.some((cid) => containerIds.has(cid))
-    )
-  })
+  // ¿Esta reception pertenece a la empresa del reporte? Empresa registrada
+  // (snapshot en pesaje) o, para histórico sin snapshot, empresa-dueña del tacho.
+  const recBelongs = (r: ContainerReception): boolean => {
+    if (r.company_id) return r.company_id === companyId
+    const c = store.containers.find((x) => x.id === r.container_id)
+    return c?.company_id === companyId
+  }
+  // Idem para recorridos: empresa registrada o, en histórico, por los tachos que toca.
+  const routeBelongs = (e: RouteEvent): boolean => {
+    if (e.company_id) return e.company_id === companyId
+    const ids = [...e.containers_dirty_received, ...e.containers_clean_delivered]
+    return ids.some((cid) => store.containers.find((x) => x.id === cid)?.company_id === companyId)
+  }
 
-  // receptions de la empresa en el rango
-  const receptions = store.receptions.filter(
-    (r) => containerIds.has(r.container_id) && withinRange(r.arrived_at, start, end),
+  const routeEvents = store.routeEvents.filter(
+    (r) => r.kind === 'anden' && withinRange(r.started_at, start, end) && routeBelongs(r),
   )
+  const receptions = store.receptions.filter(
+    (r) => withinRange(r.arrived_at, start, end) && recBelongs(r),
+  )
+
+  // Universo de tachos relevantes (para mapear fotos de ruta y datos del tacho)
+  const relevantContainerIds = new Set<string>([
+    ...receptions.map((r) => r.container_id),
+    ...routeEvents.flatMap((e) => [...e.containers_dirty_received, ...e.containers_clean_delivered]),
+  ])
+  const containers = store.containers.filter((c) => relevantContainerIds.has(c.id))
+  const containerIds = relevantContainerIds
+  const containerMap = new Map(containers.map((c) => [c.id, c]))
 
   // Índice: container_id → primera ruta (date, slot) donde fue recogido
   const rutaOfContainer = new Map<string, { date: string; slot: RouteSlot }>()
