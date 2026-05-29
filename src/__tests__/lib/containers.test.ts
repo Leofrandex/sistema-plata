@@ -3,6 +3,7 @@ import {
   computeNetWeight,
   getContainerCurrentLocation,
   getRouteEventIdsForContainer,
+  getContainerCurrentCompanyId,
 } from '@/lib/data/containers'
 import type {
   Container,
@@ -11,6 +12,7 @@ import type {
   TreatmentRun,
   ContainerLocation,
   RouteEvent,
+  ExternalTransfer,
 } from '@/lib/types'
 
 const baseContainer: Container = {
@@ -133,6 +135,63 @@ describe('getRouteEventIdsForContainer', () => {
 
   it('returns empty array when no route includes the container', () => {
     expect(getRouteEventIdsForContainer([], 'I-001')).toEqual([])
+  })
+})
+
+describe('getContainerCurrentCompanyId', () => {
+  function mkRoute(partial: Partial<RouteEvent>): RouteEvent {
+    return {
+      id: 'r', client_id: 'cl', company_id: null, kind: 'anden', slot: '06:30',
+      date: '2026-05-29', started_at: '2026-05-29T06:30:00Z', ended_at: null,
+      operator_id: 'op', status: 'completed',
+      containers_dirty_received: [], containers_clean_delivered: [],
+      floor: '', area: '', dock: '', photo_ids: [],
+      ...partial,
+    }
+  }
+
+  it('devuelve la empresa del recorrido abierto que recogió el tacho', () => {
+    const routes = [mkRoute({ id: 'r1', company_id: 'ion', started_at: '2026-05-29T06:00:00Z', containers_dirty_received: ['A-007'] })]
+    expect(getContainerCurrentCompanyId('A-007', routes, [], [])).toBe('ion')
+  })
+
+  it('null si no hay recorrido que lo haya recogido', () => {
+    expect(getContainerCurrentCompanyId('A-007', [], [], [])).toBeNull()
+  })
+
+  it('null tras tratamiento completado (ciclo cerrado)', () => {
+    const routes = [mkRoute({ id: 'r1', company_id: 'ion', started_at: '2026-05-29T06:00:00Z', containers_dirty_received: ['A-007'] })]
+    const treatments: TreatmentRun[] = [
+      { id: 't1', container_id: 'A-007', started_at: '2026-05-29T10:00:00Z', completed_at: '2026-05-29T10:05:00Z', operator_id: 'op' },
+    ]
+    expect(getContainerCurrentCompanyId('A-007', routes, treatments, [])).toBeNull()
+  })
+
+  it('toma el recorrido más reciente posterior al último tratamiento (ION→Airkem)', () => {
+    const routes = [
+      mkRoute({ id: 'r1', company_id: 'ion', started_at: '2026-05-29T06:00:00Z', containers_dirty_received: ['A-007'] }),
+      mkRoute({ id: 'r2', company_id: 'airkem', started_at: '2026-05-30T06:00:00Z', containers_dirty_received: ['A-007'] }),
+    ]
+    const treatments: TreatmentRun[] = [
+      { id: 't1', container_id: 'A-007', started_at: '2026-05-29T10:00:00Z', completed_at: '2026-05-29T10:05:00Z', operator_id: 'op' },
+    ]
+    expect(getContainerCurrentCompanyId('A-007', routes, treatments, [])).toBe('airkem')
+  })
+})
+
+describe('computeContainerPhase — tratamiento inmediato', () => {
+  const reception: ContainerReception = {
+    id: 'rec', container_id: 'A-007', weighing_session_id: 's', arrived_at: '2026-05-29T09:00:00Z',
+    gross_weight_kg: 40, operator_id: 'op', photo_ids: [], observations: '',
+    company_id: 'ion', waste_type: 'infectious', treat_immediately: true,
+  }
+  it('tratamiento completado sin storage → clean', () => {
+    const treatment: TreatmentRun = { id: 't', container_id: 'A-007', started_at: '2026-05-29T09:01:00Z', completed_at: '2026-05-29T09:01:00Z', operator_id: 'op' }
+    expect(computeContainerPhase(['r1'], reception, null, treatment)).toBe('clean')
+  })
+  it('tratamiento en curso sin storage → treatment', () => {
+    const treatment: TreatmentRun = { id: 't', container_id: 'A-007', started_at: '2026-05-29T09:01:00Z', completed_at: null, operator_id: 'op' }
+    expect(computeContainerPhase(['r1'], reception, null, treatment)).toBe('treatment')
   })
 })
 

@@ -43,13 +43,19 @@ export function computeContainerPhase(
 ): ContainerPhase {
   if (!reception && routeEventIds.length === 0) return 'clean'
   if (!reception) return 'route'
-  if (!storage) return 'weighing'
-  if (!storage.exit_at) return 'cold_storage'
-  if (!treatmentOrTransfer) return 'cold_storage'
-  if ('completed_at' in treatmentOrTransfer) {
-    return treatmentOrTransfer.completed_at ? 'clean' : 'treatment'
+  // Un tratamiento/traslado (en curso o completado) cierra/avanza el ciclo aunque
+  // no haya pasado por cámara fría (caso "tratado inmediatamente"). Se evalúa antes
+  // que el storage.
+  if (treatmentOrTransfer) {
+    if ('completed_at' in treatmentOrTransfer) {
+      return treatmentOrTransfer.completed_at ? 'clean' : 'treatment'
+    }
+    return (treatmentOrTransfer as ExternalTransfer).transferred_at ? 'clean' : 'transfer'
   }
-  return (treatmentOrTransfer as ExternalTransfer).transferred_at ? 'clean' : 'transfer'
+  if (!storage) return 'weighing'
+  // Sin tratamiento/traslado activo (ya descartado arriba): en cámara fría,
+  // entrada con o sin salida sigue siendo cold_storage hasta que haya tratamiento.
+  return 'cold_storage'
 }
 
 export function buildContainerWithPhase(
@@ -119,4 +125,37 @@ export function getPendingWeighingContainerIds(
  */
 export function formatTachoNumber(id: string): string {
   return id.replace(/^[A-Za-z]+-/, '')
+}
+
+/**
+ * Empresa actual (dinámica) del tacho = company_id del recorrido más reciente
+ * que lo recogió sucio DENTRO del ciclo abierto (posterior al último
+ * tratamiento/traslado completado del tacho). Null si no hay recorrido abierto.
+ * Implementa la herencia de empresa en pesaje y el reset automático al tratar.
+ */
+export function getContainerCurrentCompanyId(
+  containerId: string,
+  routeEvents: RouteEvent[],
+  treatmentRuns: TreatmentRun[],
+  transfers: ExternalTransfer[],
+): string | null {
+  const completions: number[] = [
+    ...treatmentRuns
+      .filter((t) => t.container_id === containerId && t.completed_at)
+      .map((t) => new Date(t.completed_at as string).getTime()),
+    ...transfers
+      .filter((t) => t.container_id === containerId && t.transferred_at)
+      .map((t) => new Date(t.transferred_at as string).getTime()),
+  ]
+  const boundary = completions.length ? Math.max(...completions) : -Infinity
+
+  const open = routeEvents
+    .filter(
+      (r) =>
+        r.containers_dirty_received.includes(containerId) &&
+        new Date(r.started_at).getTime() > boundary,
+    )
+    .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())
+
+  return open[0]?.company_id ?? null
 }
