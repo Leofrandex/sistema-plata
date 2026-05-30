@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { Container, Company, WasteType } from '@/lib/types'
+import { formatTachoNumber } from '@/lib/data/containers'
 
 const WASTE_LABELS: Record<WasteType, string> = {
   infectious: 'Infeccioso',
@@ -212,7 +213,7 @@ export function ContainerPickerSheet({
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className={cn('font-mono font-semibold text-base', isSel && styles.activeText)}>
-                        {c.id}
+                        {formatTachoNumber(c.id)}
                       </p>
                       <p className="text-sm text-muted-foreground truncate">
                         {companyMap[c.company_id] ?? '—'} · {WASTE_LABELS[c.waste_type]} · {c.size_liters} L

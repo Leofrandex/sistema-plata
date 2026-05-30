@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import type { ContainerWithPhase, ContainerPhase } from '@/lib/types'
+import { formatTachoNumber } from '@/lib/data/containers'
 
 const PHASE_LABELS: Record<ContainerPhase, string> = {
   route: 'Recorrido',
@@ -71,7 +72,7 @@ export function ContainerTable({ containers, companies, clients }: Props) {
               <tr
                 key={c.id}
                 tabIndex={0}
-                aria-label={`Ver tacho ${c.id}`}
+                aria-label={`Ver tacho ${formatTachoNumber(c.id)}`}
                 onClick={() => {
                   if (typeof window !== 'undefined' && window.getSelection()?.toString()) return
                   router.push(href)
@@ -90,7 +91,7 @@ export function ContainerTable({ containers, companies, clients }: Props) {
                     onClick={(e) => e.stopPropagation()}
                     className="font-mono font-semibold text-accent hover:underline"
                   >
-                    {c.id}
+                    {formatTachoNumber(c.id)}
                   </Link>
                 </td>
                 <td className="px-4 py-3 text-foreground/80">{company?.name ?? '—'}</td>

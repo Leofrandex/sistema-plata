@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { useStore } from '@/lib/store'
 import type { Container } from '@/lib/types'
+import { formatTachoNumber } from '@/lib/data/containers'
 
 const STEPS = ['Seleccionar tachos', 'Destino']
 type Step = 1 | 2
@@ -78,7 +79,7 @@ export default function TransferPage() {
               <div className="flex flex-wrap gap-2">
                 {selectedContainers.map((c) => (
                   <Badge key={c.id} variant="secondary" className="gap-1">
-                    <span className="font-mono">{c.id}</span>
+                    <span className="font-mono">{formatTachoNumber(c.id)}</span>
                     <button onClick={() => removeContainer(c.id)}><X className="h-3 w-3" /></button>
                   </Badge>
                 ))}
@@ -99,7 +100,7 @@ export default function TransferPage() {
             </p>
             <div className="flex flex-wrap gap-1.5">
               {selectedContainers.map((c) => (
-                <Badge key={c.id} variant="outline" className="font-mono bg-white">{c.id}</Badge>
+                <Badge key={c.id} variant="outline" className="font-mono bg-white">{formatTachoNumber(c.id)}</Badge>
               ))}
             </div>
           </div>

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card'
 import { useStore } from '@/lib/store'
 import type { Container, LocationType } from '@/lib/types'
+import { formatTachoNumber } from '@/lib/data/containers'
 
 const STEPS = ['Seleccionar tacho', 'Registrar ubicación']
 
@@ -74,7 +75,7 @@ export default function LocationPage() {
         <div className="space-y-4">
           <Card className="bg-blue-50 border-blue-200">
             <CardContent className="pt-4">
-              <p className="font-mono font-semibold text-blue-800">{selected.id}</p>
+              <p className="font-mono font-semibold text-blue-800">{formatTachoNumber(selected.id)}</p>
             </CardContent>
           </Card>
           <div className="space-y-2">

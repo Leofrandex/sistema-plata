@@ -10,6 +10,7 @@ import { useStore } from '@/lib/store'
 import { createClient } from '@/lib/supabase/client'
 import * as q from '@/lib/supabase/queries'
 import type { Container } from '@/lib/types'
+import { formatTachoNumber } from '@/lib/data/containers'
 
 const WASTE_LABELS: Record<string, string> = {
   infectious: 'Infeccioso',
@@ -112,7 +113,7 @@ export default function AdminContainersPage() {
               const clientName = company ? clientMap[company.client_id] ?? '—' : '—'
               return (
                 <tr key={c.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 font-mono font-semibold">{c.id}</td>
+                  <td className="px-4 py-3 font-mono font-semibold">{formatTachoNumber(c.id)}</td>
                   <td className="px-4 py-3 text-slate-600">{company?.name ?? '—'}</td>
                   <td className="px-4 py-3 text-slate-600">{clientName}</td>
                   <td className="px-4 py-3 text-slate-600">{WASTE_LABELS[c.waste_type]}</td>

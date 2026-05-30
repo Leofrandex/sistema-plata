@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import type { Container, Company } from '@/lib/types'
+import { formatTachoNumber } from '@/lib/data/containers'
 
 export function filterContainers(containers: Container[], search: string): Container[] {
   const active = containers.filter((c) => c.status === 'active')
@@ -52,7 +53,7 @@ export function ContainerSelector({ containers, companies, onSelect }: Props) {
               onClick={() => onSelect(container)}
               className="w-full text-left p-4 rounded-lg border hover:border-blue-400 hover:bg-blue-50 transition-colors"
             >
-              <p className="font-mono font-semibold text-slate-800">{container.id}</p>
+              <p className="font-mono font-semibold text-slate-800">{formatTachoNumber(container.id)}</p>
               <p className="text-sm text-slate-500">
                 {companyMap[container.company_id] ?? '—'} · {WASTE_LABELS[container.waste_type]} · {container.size_liters}L
               </p>

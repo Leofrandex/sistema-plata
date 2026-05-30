@@ -11,7 +11,7 @@ import { PhaseMetrics } from '@/components/containers/phase-metrics'
 import { LocationHistory } from '@/components/containers/location-history'
 import { PhasePhotoGallery } from '@/components/containers/phase-photo-gallery'
 import { useStore } from '@/lib/store'
-import { buildContainerWithPhase, getRouteEventIdsForContainer } from '@/lib/data/containers'
+import { buildContainerWithPhase, getRouteEventIdsForContainer, formatTachoNumber } from '@/lib/data/containers'
 
 const WASTE_TYPE_LABELS: Record<string, string> = {
   infectious: 'Peligroso infeccioso',
@@ -93,7 +93,7 @@ export default function ContainerDetailPage({ params }: Props) {
           </Button>
         </Link>
         <div>
-          <h1 className="text-xl font-bold font-mono text-slate-800">{container.id}</h1>
+          <h1 className="text-xl font-bold font-mono text-slate-800">{formatTachoNumber(container.id)}</h1>
           <p className="text-sm text-slate-500">
             {company?.name ?? '—'} · {client?.name ?? '—'}
           </p>
@@ -108,7 +108,7 @@ export default function ContainerDetailPage({ params }: Props) {
           <dl className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
             <div>
               <dt className="text-slate-500">Número</dt>
-              <dd className="font-mono font-semibold">{container.id}</dd>
+              <dd className="font-mono font-semibold">{formatTachoNumber(container.id)}</dd>
             </div>
             <div>
               <dt className="text-slate-500">Empresa</dt>

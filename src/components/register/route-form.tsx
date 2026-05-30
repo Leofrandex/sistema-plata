@@ -9,6 +9,7 @@ import { ContainerPickerSheet } from '@/components/register/container-picker-she
 import { PhotoCaptureMulti } from '@/components/register/photo-capture-multi'
 import { cn } from '@/lib/utils'
 import type { Container, Company } from '@/lib/types'
+import { formatTachoNumber } from '@/lib/data/containers'
 
 export interface RouteFormState {
   /** Tachos sucios recogidos en este recorrido (van a pesaje). */
@@ -98,11 +99,11 @@ export function RouteForm({ state, onChange, containers, companies, locked }: Pr
                 variant="secondary"
                 className="gap-1.5 bg-red-100 text-red-900 hover:bg-red-200 border border-red-200 py-1.5 pl-2.5 pr-1.5 text-sm"
               >
-                <span className="font-mono font-semibold">{c.id}</span>
+                <span className="font-mono font-semibold">{formatTachoNumber(c.id)}</span>
                 <button
                   type="button"
                   onClick={() => removeDirty(c.id)}
-                  aria-label={`Quitar ${c.id}`}
+                  aria-label={`Quitar ${formatTachoNumber(c.id)}`}
                   className="ml-0.5 rounded-full p-0.5 hover:bg-red-300/60"
                 >
                   <X className="h-3.5 w-3.5" />
@@ -147,11 +148,11 @@ export function RouteForm({ state, onChange, containers, companies, locked }: Pr
                 variant="secondary"
                 className="gap-1.5 bg-emerald-100 text-emerald-900 hover:bg-emerald-200 border border-emerald-200 py-1.5 pl-2.5 pr-1.5 text-sm"
               >
-                <span className="font-mono font-semibold">{c.id}</span>
+                <span className="font-mono font-semibold">{formatTachoNumber(c.id)}</span>
                 <button
                   type="button"
                   onClick={() => removeClean(c.id)}
-                  aria-label={`Quitar ${c.id}`}
+                  aria-label={`Quitar ${formatTachoNumber(c.id)}`}
                   className="ml-0.5 rounded-full p-0.5 hover:bg-emerald-300/60"
                 >
                   <X className="h-3.5 w-3.5" />
