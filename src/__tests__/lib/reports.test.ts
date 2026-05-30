@@ -36,7 +36,8 @@ describe('chunk', () => {
 })
 
 describe('buildPhotographicReportData (por empresa)', () => {
-  const store: ReportStoreSlice = {
+  // Fixture Airkem — usa el pool histórico real para las pruebas de Airkem
+  const airkemStore: ReportStoreSlice = {
     clients: MOCK_CLIENTS,
     companies: MOCK_COMPANIES,
     containers: MOCK_CONTAINERS,
@@ -47,12 +48,92 @@ describe('buildPhotographicReportData (por empresa)', () => {
   }
   const range = { start: new Date(2026, 4, 11, 0, 0), end: new Date(2026, 4, 17, 23, 59) }
 
+  // Fixture ION auto-contenido: usa contenedores A- asignados a company-ion para
+  // poder testear la lógica de orden sin depender del pool real Airkem.
+  const ionContainers = [
+    { id: 'A-901', company_id: 'company-ion', size_liters: 240, tare_weight_kg: 14.2, status: 'active' as const, registered_at: '2026-01-15T08:00:00Z' },
+    { id: 'A-902', company_id: 'company-ion', size_liters: 240, tare_weight_kg: 14.5, status: 'active' as const, registered_at: '2026-01-15T08:00:00Z' },
+    { id: 'A-903', company_id: 'company-ion', size_liters: 240, tare_weight_kg: 14.1, status: 'active' as const, registered_at: '2026-01-15T08:00:00Z' },
+  ]
+  const ionStore: ReportStoreSlice = {
+    clients: MOCK_CLIENTS,
+    companies: MOCK_COMPANIES,
+    containers: ionContainers,
+    routeEvents: [
+      {
+        id: 'route-ion-1',
+        client_id: 'client-1',
+        kind: 'anden',
+        slot: '06:30',
+        date: '2026-05-17',
+        started_at: '2026-05-17T06:30:00-05:00',
+        ended_at: '2026-05-17T08:12:00-05:00',
+        operator_id: 'user-1',
+        status: 'completed',
+        containers_dirty_received: ['A-901', 'A-902'],
+        containers_clean_delivered: [],
+        floor: '1', area: 'Emergencias', dock: 'Andén Norte',
+        photo_ids: ['photo-ion-r1-1', 'photo-ion-r1-2', 'photo-ion-r1-3'],
+      },
+      {
+        id: 'route-ion-2',
+        client_id: 'client-1',
+        kind: 'anden',
+        slot: '10:30',
+        date: '2026-05-17',
+        started_at: '2026-05-17T10:30:00-05:00',
+        ended_at: '2026-05-17T11:45:00-05:00',
+        operator_id: 'user-2',
+        status: 'completed',
+        containers_dirty_received: ['A-903'],
+        containers_clean_delivered: [],
+        floor: '2', area: 'Pediatría', dock: 'Andén Sur',
+        photo_ids: ['photo-ion-r2-1', 'photo-ion-r2-2'],
+      },
+    ],
+    weighingSessions: [],
+    receptions: [
+      {
+        id: 'reception-ion-1',
+        container_id: 'A-901',
+        weighing_session_id: null,
+        arrived_at: '2026-05-17T09:15:00-05:00',
+        gross_weight_kg: 43.7,
+        operator_id: 'user-1',
+        photo_ids: ['photo-ion-w1-1', 'photo-ion-w1-2'],
+        observations: '',
+      },
+      {
+        id: 'reception-ion-2',
+        container_id: 'A-902',
+        weighing_session_id: null,
+        arrived_at: '2026-05-17T09:20:00-05:00',
+        gross_weight_kg: 38.2,
+        operator_id: 'user-1',
+        photo_ids: ['photo-ion-w2-1', 'photo-ion-w2-2'],
+        observations: '',
+      },
+      // A-903 recogida en route-ion-2 pero sin reception → Pesaje 2da se omite
+    ],
+    photos: [
+      { id: 'photo-ion-r1-1', url: 'https://placehold.co/400x300?text=R1', event_type: 'route', event_id: 'route-ion-1', taken_at: '2026-05-17T07:00:00-05:00', label: 'R1' },
+      { id: 'photo-ion-r1-2', url: 'https://placehold.co/400x300?text=R2', event_type: 'route', event_id: 'route-ion-1', taken_at: '2026-05-17T07:15:00-05:00', label: 'R2' },
+      { id: 'photo-ion-r1-3', url: 'https://placehold.co/400x300?text=R3', event_type: 'route', event_id: 'route-ion-1', taken_at: '2026-05-17T07:30:00-05:00', label: 'R3' },
+      { id: 'photo-ion-r2-1', url: 'https://placehold.co/400x300?text=R4', event_type: 'route', event_id: 'route-ion-2', taken_at: '2026-05-17T11:00:00-05:00', label: 'R4' },
+      { id: 'photo-ion-r2-2', url: 'https://placehold.co/400x300?text=R5', event_type: 'route', event_id: 'route-ion-2', taken_at: '2026-05-17T11:15:00-05:00', label: 'R5' },
+      { id: 'photo-ion-w1-1', url: 'https://placehold.co/400x300?text=W1', event_type: 'weighing', event_id: 'reception-ion-1', taken_at: '2026-05-17T09:15:00-05:00', label: 'W1' },
+      { id: 'photo-ion-w1-2', url: 'https://placehold.co/400x300?text=W2', event_type: 'weighing', event_id: 'reception-ion-1', taken_at: '2026-05-17T09:16:00-05:00', label: 'W2' },
+      { id: 'photo-ion-w2-1', url: 'https://placehold.co/400x300?text=W3', event_type: 'weighing', event_id: 'reception-ion-2', taken_at: '2026-05-17T09:20:00-05:00', label: 'W3' },
+      { id: 'photo-ion-w2-2', url: 'https://placehold.co/400x300?text=W4', event_type: 'weighing', event_id: 'reception-ion-2', taken_at: '2026-05-17T09:21:00-05:00', label: 'W4' },
+    ],
+  }
+
   it('returns null when company does not exist', () => {
-    expect(buildPhotographicReportData('nonexistent', store, range)).toBeNull()
+    expect(buildPhotographicReportData('nonexistent', airkemStore, range)).toBeNull()
   })
 
   it('arma el reporte de ION ordenado por ruta (recorrido luego pesaje)', () => {
-    const data = buildPhotographicReportData('company-ion', store, range)!
+    const data = buildPhotographicReportData('company-ion', ionStore, range)!
     expect(data.company.name).toBe('ION')
     expect(data.rangeStart).toBe('2026-05-11')
     expect(data.rangeEnd).toBe('2026-05-17')
@@ -63,7 +144,7 @@ describe('buildPhotographicReportData (por empresa)', () => {
     expect(day.date).toBe('2026-05-17')
 
     // Orden de grupos: Recorrido 1ra, Pesaje 1ra, Recorrido 2da
-    // (Pesaje 2da se omite: I-003 no tiene reception)
+    // (Pesaje 2da se omite: A-903 no tiene reception)
     const labels = day.groups.map((g) => g.label)
     expect(labels[0]).toContain('Recorrido')
     expect(labels[0]).toContain('1.ª')
@@ -74,14 +155,14 @@ describe('buildPhotographicReportData (por empresa)', () => {
 
     // Conteos de fotos
     expect(data.meta.routePhotoCount).toBe(5) // r1: 3, r2: 2
-    expect(data.meta.weighingPhotoCount).toBe(4) // reception-1 (2) + reception-2 (2)
+    expect(data.meta.weighingPhotoCount).toBe(4) // reception-ion-1 (2) + reception-ion-2 (2)
     expect(data.meta.totalPhotos).toBe(9)
     expect(data.meta.routeEventCount).toBe(2)
     expect(data.meta.weighingReceptionCount).toBe(2)
   })
 
   it('procesa pesajes históricos sin recorrido (Airkem) sin fallar', () => {
-    const airkem = buildPhotographicReportData('company-airkem', store, range)!
+    const airkem = buildPhotographicReportData('company-airkem', airkemStore, range)!
     // Airkem tiene receptions históricas (sin route_events que las recojan en rango)
     expect(airkem.meta.weighingReceptionCount).toBeGreaterThan(0)
     // Las recepciones históricas no tienen fotos → no generan cuadros (grupos
@@ -93,9 +174,9 @@ describe('buildPhotographicReportData (por empresa)', () => {
   })
 
   it('agrupa pesajes huérfanos con fotos por su fecha de pesaje', () => {
-    // I-001 recogido en route-1; si quitamos sus route_events, la reception-1
+    // A-901 recogido en route-ion-1; si quitamos route_events, la reception-ion-1
     // (con 2 fotos) queda huérfana y debe aparecer como grupo 'Pesaje'.
-    const noRoutes: ReportStoreSlice = { ...store, routeEvents: [] }
+    const noRoutes: ReportStoreSlice = { ...ionStore, routeEvents: [] }
     const data = buildPhotographicReportData('company-ion', noRoutes, range)!
     const weighingGroups = data.days.flatMap((d) => d.groups.filter((g) => g.stage === 'weighing'))
     expect(weighingGroups.length).toBeGreaterThan(0)
@@ -106,7 +187,7 @@ describe('buildPhotographicReportData (por empresa)', () => {
 
   it('devuelve vacío cuando el rango no tiene actividad', () => {
     const empty = { start: new Date(2027, 0, 1), end: new Date(2027, 0, 15, 23, 59) }
-    const data = buildPhotographicReportData('company-ion', store, empty)!
+    const data = buildPhotographicReportData('company-ion', ionStore, empty)!
     expect(data.meta.totalPhotos).toBe(0)
     expect(data.days).toEqual([])
   })

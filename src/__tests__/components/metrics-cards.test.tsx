@@ -14,8 +14,8 @@ describe('computeDashboardMetrics', () => {
       MOCK_RECEPTIONS,
       MOCK_TREATMENT_RUNS
     )
-    // 199 tachos activos: 10 ION (I-001..I-010) + 189 Airkem (A-001..A-189) del histórico
-    expect(metrics.containersInCirculation).toBe(199)
+    // 189 tachos activos: Airkem histórico (tachos ION de demo eliminados)
+    expect(metrics.containersInCirculation).toBe(189)
   })
 
   it('counts containers pending weighing (recogidos sucios sin reception)', () => {
