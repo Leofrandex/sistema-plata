@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { useStore } from '@/lib/store'
 import type { Container } from '@/lib/types'
 
-const STEPS = ['Seleccionar envases', 'Destino']
+const STEPS = ['Seleccionar tachos', 'Destino']
 type Step = 1 | 2
 
 export default function TransferPage() {
@@ -53,7 +53,7 @@ export default function TransferPage() {
       <div className="flex flex-col items-center justify-center py-16 space-y-4 text-center">
         <div className="text-5xl">✓</div>
         <h2 className="text-xl font-semibold">Traslado registrado</h2>
-        <p className="text-slate-500">{selectedIds.length} envase{selectedIds.length !== 1 ? 's' : ''} registrado{selectedIds.length !== 1 ? 's' : ''}.</p>
+        <p className="text-slate-500">{selectedIds.length} tacho{selectedIds.length !== 1 ? 's' : ''} registrado{selectedIds.length !== 1 ? 's' : ''}.</p>
         <Button onClick={reset}>Registrar otro traslado</Button>
       </div>
     )
@@ -74,7 +74,7 @@ export default function TransferPage() {
           <ContainerSelector containers={nonInfectiousContainers} companies={companies} onSelect={handleContainerSelect} />
           {selectedIds.length > 0 && (
             <div className="space-y-2">
-              <p className="text-sm font-medium text-slate-600">Envases seleccionados:</p>
+              <p className="text-sm font-medium text-slate-600">Tachos seleccionados:</p>
               <div className="flex flex-wrap gap-2">
                 {selectedContainers.map((c) => (
                   <Badge key={c.id} variant="secondary" className="gap-1">
@@ -84,7 +84,7 @@ export default function TransferPage() {
                 ))}
               </div>
               <Button onClick={() => setStep(2)} className="w-full mt-2">
-                Continuar con {selectedIds.length} envase{selectedIds.length !== 1 ? 's' : ''}
+                Continuar con {selectedIds.length} tacho{selectedIds.length !== 1 ? 's' : ''}
               </Button>
             </div>
           )}
@@ -95,7 +95,7 @@ export default function TransferPage() {
         <div className="space-y-6">
           <div className="rounded-lg border bg-blue-50 border-blue-200 p-4 space-y-2">
             <p className="text-sm font-medium text-blue-700">
-              {selectedIds.length} envase{selectedIds.length !== 1 ? 's' : ''} a trasladar
+              {selectedIds.length} tacho{selectedIds.length !== 1 ? 's' : ''} a trasladar
             </p>
             <div className="flex flex-wrap gap-1.5">
               {selectedContainers.map((c) => (

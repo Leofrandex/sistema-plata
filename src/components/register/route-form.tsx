@@ -11,9 +11,9 @@ import { cn } from '@/lib/utils'
 import type { Container, Company } from '@/lib/types'
 
 export interface RouteFormState {
-  /** Envases sucios recogidos en este recorrido (van a pesaje). */
+  /** Tachos sucios recogidos en este recorrido (van a pesaje). */
   dirtyReceivedIds: string[]
-  /** Envases limpios entregados al cliente durante el recorrido. */
+  /** Tachos limpios entregados al cliente durante el recorrido. */
   cleanDeliveredIds: string[]
   floor: string
   area: string
@@ -35,7 +35,7 @@ export function RouteForm({ state, onChange, containers, companies, locked }: Pr
   const dirtyContainers = containers.filter((c) => state.dirtyReceivedIds.includes(c.id))
   const cleanContainers = containers.filter((c) => state.cleanDeliveredIds.includes(c.id))
 
-  // Para evitar que el operador agregue el mismo envase a ambas listas, filtramos
+  // Para evitar que el operador agregue el mismo tacho a ambas listas, filtramos
   // el catálogo de cada selector excluyendo lo ya seleccionado en el otro.
   const dirtyCatalog = containers.filter((c) => !state.cleanDeliveredIds.includes(c.id))
   const cleanCatalog = containers.filter((c) => !state.dirtyReceivedIds.includes(c.id))
@@ -64,14 +64,14 @@ export function RouteForm({ state, onChange, containers, companies, locked }: Pr
       )}
       aria-disabled={locked}
     >
-      {/* Envases sucios recogidos */}
+      {/* Tachos sucios recogidos */}
       <section className="space-y-3">
         <header className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-red-100 text-red-700">
             <Trash2 className="h-3.5 w-3.5" />
           </div>
           <div className="flex-1">
-            <h2 className="text-sm font-semibold text-red-900">Envases sucios recogidos</h2>
+            <h2 className="text-sm font-semibold text-red-900">Tachos sucios recogidos</h2>
             <p className="text-xs text-muted-foreground">Pasarán a pesaje en planta.</p>
           </div>
         </header>
@@ -85,7 +85,7 @@ export function RouteForm({ state, onChange, containers, companies, locked }: Pr
           <Plus className="h-5 w-5" />
           <span className="font-medium">
             {dirtyContainers.length === 0
-              ? 'Agregar envases sucios'
+              ? 'Agregar tachos sucios'
               : `Agregar / editar (${dirtyContainers.length} seleccionado${dirtyContainers.length !== 1 ? 's' : ''})`}
           </span>
         </Button>
@@ -113,15 +113,15 @@ export function RouteForm({ state, onChange, containers, companies, locked }: Pr
         )}
       </section>
 
-      {/* Envases limpios entregados */}
+      {/* Tachos limpios entregados */}
       <section className="space-y-3">
         <header className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-100 text-emerald-700">
             <Sparkles className="h-3.5 w-3.5" />
           </div>
           <div className="flex-1">
-            <h2 className="text-sm font-semibold text-emerald-900">Envases limpios entregados</h2>
-            <p className="text-xs text-muted-foreground">Envases vacíos y lavados que se dejan al cliente.</p>
+            <h2 className="text-sm font-semibold text-emerald-900">Tachos limpios entregados</h2>
+            <p className="text-xs text-muted-foreground">Tachos vacíos y lavados que se dejan al cliente.</p>
           </div>
         </header>
 
@@ -134,7 +134,7 @@ export function RouteForm({ state, onChange, containers, companies, locked }: Pr
           <Plus className="h-5 w-5" />
           <span className="font-medium">
             {cleanContainers.length === 0
-              ? 'Agregar envases limpios'
+              ? 'Agregar tachos limpios'
               : `Agregar / editar (${cleanContainers.length} seleccionado${cleanContainers.length !== 1 ? 's' : ''})`}
           </span>
         </Button>
@@ -214,7 +214,7 @@ export function RouteForm({ state, onChange, containers, companies, locked }: Pr
             className="text-xs text-muted-foreground"
             onClick={() => onChange({ dirtyReceivedIds: [], cleanDeliveredIds: [] })}
           >
-            Limpiar selección de envases
+            Limpiar selección de tachos
           </Button>
         </div>
       )}

@@ -52,7 +52,7 @@ export default function AdminCompaniesPage() {
                 <p className="text-sm text-slate-500">
                   Cliente: {clientNameMap[company.client_id] ?? '—'}
                   {' · '}
-                  {containerCount} envase{containerCount !== 1 ? 's' : ''}
+                  {containerCount} tacho{containerCount !== 1 ? 's' : ''}
                 </p>
               </div>
             </div>

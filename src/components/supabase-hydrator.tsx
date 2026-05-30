@@ -191,7 +191,7 @@ function rowToReception(r: q.ReceptionRow): ContainerReception {
 
 /**
  * Combina las filas de `route_events` con sus join tables dirty/clean para
- * reconstruir los `RouteEvent` del store (que llevan los IDs de envases inline).
+ * reconstruir los `RouteEvent` del store (que llevan los IDs de tachos inline).
  * Pura y exportada para poder testearla sin Supabase.
  */
 export function mapRouteEvents(

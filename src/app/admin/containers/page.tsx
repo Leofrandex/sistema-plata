@@ -40,7 +40,7 @@ export default function AdminContainersPage() {
         is_yaris_dedicated: data.is_yaris_dedicated ?? false,
       })
     } catch (err) {
-      console.error('[admin/containers] crear envase falló:', err)
+      console.error('[admin/containers] crear tacho falló:', err)
       return
     }
     addContainer({ ...data, status: 'active', registered_at: now })
@@ -73,14 +73,14 @@ export default function AdminContainersPage() {
   return (
     <div className="space-y-6 max-w-4xl">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">Administrar Envases</h1>
+        <h1 className="text-2xl font-bold text-slate-800">Administrar Tachos</h1>
         <Button onClick={() => setShowForm(true)} className="gap-2">
-          <Plus className="h-4 w-4" />Nuevo envase
+          <Plus className="h-4 w-4" />Nuevo tacho
         </Button>
       </div>
       {showForm && (
         <Card>
-          <CardHeader><CardTitle className="text-base">Agregar nuevo envase</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Agregar nuevo tacho</CardTitle></CardHeader>
           <CardContent>
             <ContainerForm
               clients={clients}
@@ -95,7 +95,7 @@ export default function AdminContainersPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-slate-50 text-slate-500 text-left">
-              <th className="px-4 py-3 font-medium">Envase</th>
+              <th className="px-4 py-3 font-medium">Tacho</th>
               <th className="px-4 py-3 font-medium">Empresa</th>
               <th className="px-4 py-3 font-medium">Cliente</th>
               <th className="px-4 py-3 font-medium">Tipo</th>

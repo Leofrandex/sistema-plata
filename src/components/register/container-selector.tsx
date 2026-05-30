@@ -33,7 +33,7 @@ export function ContainerSelector({ containers, companies, onSelect }: Props) {
   return (
     <div className="space-y-3">
       <Input
-        placeholder="Número de envase (ej: I-001)"
+        placeholder="Número de tacho (ej: I-001)"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         autoFocus
@@ -43,7 +43,7 @@ export function ContainerSelector({ containers, companies, onSelect }: Props) {
         <div className="space-y-2">
           {results.length === 0 && (
             <p className="text-sm text-slate-400 text-center py-4">
-              No se encontró ningún envase activo con ese número.
+              No se encontró ningún tacho activo con ese número.
             </p>
           )}
           {results.map((container) => (

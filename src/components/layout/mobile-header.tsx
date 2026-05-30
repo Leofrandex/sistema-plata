@@ -5,7 +5,7 @@ import { APP_NAME } from '@/lib/constants'
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
-  '/containers': 'Envases',
+  '/containers': 'Tachos',
   '/reports': 'Reportes',
   '/register/route': 'Recorridos',
   '/register/route/anden': 'Recorridos de andén',
@@ -14,7 +14,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/register/treatment': 'Registrar Tratamiento',
   '/register/transfer': 'Registrar Traslado',
   '/register/location': 'Reportar Ubicación',
-  '/admin/containers': 'Administrar Envases',
+  '/admin/containers': 'Administrar Tachos',
   '/admin/clients': 'Administrar Clientes',
   '/admin/companies': 'Administrar Empresas',
 }

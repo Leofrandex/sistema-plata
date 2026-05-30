@@ -16,14 +16,14 @@ const REGISTER_LINKS = [
 ]
 
 const ADMIN_LINKS = [
-  { href: '/admin/containers', label: 'Envases' },
+  { href: '/admin/containers', label: 'Tachos' },
   { href: '/admin/clients', label: 'Clientes' },
   { href: '/admin/companies', label: 'Empresas' },
 ]
 
 const TOP_NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/containers', label: 'Envases', icon: Package },
+  { href: '/containers', label: 'Tachos', icon: Package },
   { href: '/reports', label: 'Reportes', icon: FileText },
 ]
 

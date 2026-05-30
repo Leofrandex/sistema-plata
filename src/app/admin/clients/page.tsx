@@ -49,7 +49,7 @@ export default function AdminClientsPage() {
                   <p className="text-sm text-slate-500">
                     {clientCompanies.length} empresa{clientCompanies.length !== 1 ? 's' : ''}
                     {' · '}
-                    {totalContainers} envase{totalContainers !== 1 ? 's' : ''} total
+                    {totalContainers} tacho{totalContainers !== 1 ? 's' : ''} total
                   </p>
                 </div>
               </div>
@@ -61,7 +61,7 @@ export default function AdminClientsPage() {
                       <Badge key={co.id} variant="outline" className="gap-1.5">
                         <span className="font-semibold">{co.name}</span>
                         <span className="font-mono text-xs text-slate-500">({co.code_letter})</span>
-                        <span className="text-xs text-slate-500">· {count} envases</span>
+                        <span className="text-xs text-slate-500">· {count} tachos</span>
                       </Badge>
                     )
                   })}

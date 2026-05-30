@@ -80,7 +80,7 @@ export default function WeighingPage() {
   const isEditing = editingReceptionId != null
   const elapsed = useElapsed(activeSession?.started_at ?? null)
 
-  // Envases disponibles para pesar = cola de trabajo del pesador (helper compartido con dashboard).
+  // Tachos disponibles para pesar = cola de trabajo del pesador (helper compartido con dashboard).
   // Excluimos los dedicados a Yaris: éstos viven en una lista aparte y solo se eligen cuando el operador activa el modo Yaris.
   const pendingIds = new Set(getPendingWeighingContainerIds(containers, routeEvents, receptions))
   const availableContainers = containers.filter(
@@ -432,7 +432,7 @@ export default function WeighingPage() {
       <header>
         <h1 className="text-2xl font-bold text-foreground">Pesaje</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Inicia la sesión de pesaje para registrar varios envases de forma continua.
+          Inicia la sesión de pesaje para registrar varios tachos de forma continua.
           Cada registro se puede editar desde la lista lateral hasta finalizar.
         </p>
       </header>
@@ -449,7 +449,7 @@ export default function WeighingPage() {
                 {formatElapsed(elapsed)}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                {sessionReceptions.length} envase{sessionReceptions.length !== 1 ? 's' : ''} registrado{sessionReceptions.length !== 1 ? 's' : ''}
+                {sessionReceptions.length} tacho{sessionReceptions.length !== 1 ? 's' : ''} registrado{sessionReceptions.length !== 1 ? 's' : ''}
               </p>
               {pendingList.length > 0 && (
                 <p className="text-xs text-muted-foreground mt-2">
@@ -489,7 +489,7 @@ export default function WeighingPage() {
         <Card>
           <CardContent className="pt-4 flex items-center justify-between gap-4">
             <p className="text-sm text-muted-foreground">
-              El formulario está bloqueado. Inicia el pesaje para empezar el cronómetro y registrar envases.
+              El formulario está bloqueado. Inicia el pesaje para empezar el cronómetro y registrar tachos.
             </p>
             <Button onClick={handleStart} className="gap-2 shrink-0">
               <Play className="h-4 w-4" />
@@ -502,7 +502,7 @@ export default function WeighingPage() {
       {/* Banner de modo edición */}
       {isEditing && (
         <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-2.5 text-sm text-amber-800">
-          Editando envase <strong className="font-mono">{formState.container_id}</strong>.
+          Editando tacho <strong className="font-mono">{formState.container_id}</strong>.
           Los cambios se guardan en la sesión actual.
         </div>
       )}
@@ -593,8 +593,8 @@ function ConfirmCancelDialog({ count, onCancel, onConfirm }: CancelDialogProps) 
             <h2 className="text-base font-semibold text-foreground">¿Cancelar la sesión de pesaje?</h2>
             <p className="text-sm text-muted-foreground">
               Esta acción <strong className="text-red-700">descarta</strong> la sesión y
-              los {count} envase{count !== 1 ? 's' : ''} ya registrado{count !== 1 ? 's' : ''},
-              incluyendo sus fotos. Los envases no pasarán a cámara fría.
+              los {count} tacho{count !== 1 ? 's' : ''} ya registrado{count !== 1 ? 's' : ''},
+              incluyendo sus fotos. Los tachos no pasarán a cámara fría.
             </p>
           </div>
         </div>
@@ -628,14 +628,14 @@ function ConfirmFinishDialog({ count, elapsed, onCancel, onConfirm }: DialogProp
           <div className="space-y-1">
             <h2 className="text-base font-semibold text-foreground">¿Finalizar la sesión de pesaje?</h2>
             <p className="text-sm text-muted-foreground">
-              Los {count} envase{count !== 1 ? 's' : ''} pasarán automáticamente a cámara fría.
+              Los {count} tacho{count !== 1 ? 's' : ''} pasarán automáticamente a cámara fría.
               Después no se podrán editar los registros.
             </p>
           </div>
         </div>
         <div className="rounded-lg bg-muted/30 p-3 text-sm space-y-1">
           <p>Duración: <strong className="font-mono">{formatElapsed(elapsed)}</strong></p>
-          <p>Envases pesados: <strong>{count}</strong></p>
+          <p>Tachos pesados: <strong>{count}</strong></p>
         </div>
         <div className="flex gap-3 justify-end">
           <Button variant="outline" onClick={onCancel}>Seguir pesando</Button>

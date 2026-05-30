@@ -46,7 +46,7 @@ export function ContainerFilters({ filters, companies, onChange }: Props) {
   return (
     <div className="grid grid-cols-1 gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]">
       <div className="flex flex-col gap-1.5">
-        <label htmlFor={searchId} className={labelClass}>Buscar envase</label>
+        <label htmlFor={searchId} className={labelClass}>Buscar tacho</label>
         <div className="relative">
           <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input

@@ -26,10 +26,10 @@ export function getContainerCurrentLocation(
   )[0]
 }
 
-// Determina la fase actual del envase en su ciclo de vida.
-// routeEventIds: IDs de RouteEvents donde el envase fue recogido sucio
+// Determina la fase actual del tacho en su ciclo de vida.
+// routeEventIds: IDs de RouteEvents donde el tacho fue recogido sucio
 // (containers_dirty_received). Solo los recogidos sucios disparan fase 'route';
-// los entregados limpios no afectan la fase del envase.
+// los entregados limpios no afectan la fase del tacho.
 // - Recogido sucio sin recepción → 'route'
 // - Recepción sin storage → 'weighing'
 // - Storage sin exit → 'cold_storage'
@@ -76,9 +76,9 @@ export function buildContainerWithPhase(
   }
 }
 
-// Ayudante: obtiene los IDs de RouteEvents donde el envase fue recogido sucio.
+// Ayudante: obtiene los IDs de RouteEvents donde el tacho fue recogido sucio.
 // Esto es lo que determina si está en fase 'route' (a la espera de pesaje).
-// Los envases entregados limpios NO disparan fase 'route' — siguen su fase actual.
+// Los tachos entregados limpios NO disparan fase 'route' — siguen su fase actual.
 export function getRouteEventIdsForContainer(
   routeEvents: RouteEvent[],
   containerId: string
@@ -102,7 +102,7 @@ export function getRouteEventIdsAnyDirection(
     .map((r) => r.id)
 }
 
-// Cola de trabajo del pesador: envases activos recogidos sucios en algún
+// Cola de trabajo del pesador: tachos activos recogidos sucios en algún
 // recorrido que aún no tienen reception registrada.
 export function getPendingWeighingContainerIds(
   containers: Container[],

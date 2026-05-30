@@ -60,7 +60,7 @@ export function CompanyForm({ clients, onSubmit, onCancel }: Props) {
           required
         />
         <p className="text-xs text-slate-500">
-          Un solo carácter. Los envases se identificarán como{' '}
+          Un solo carácter. Los tachos se identificarán como{' '}
           <span className="font-mono font-semibold">{codeLetter.toUpperCase() || 'X'}-001</span>, etc.
         </p>
       </div>

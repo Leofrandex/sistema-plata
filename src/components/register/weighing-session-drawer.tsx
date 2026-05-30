@@ -17,9 +17,9 @@ interface Props {
 }
 
 /**
- * Drawer lateral con el listado de envases pesados durante la sesión.
+ * Drawer lateral con el listado de tachos pesados durante la sesión.
  * - Tab flotante en el borde derecho (con contador) abre y cierra.
- * - Al click en un envase, lo selecciona para edición (la página padre carga
+ * - Al click en un tacho, lo selecciona para edición (la página padre carga
  *   ese reception al WeighingForm en modo 'edit').
  * - Mientras está cerrado, solo se ve el tab vertical con el contador.
  */
@@ -93,7 +93,7 @@ export function WeighingSessionDrawer({
               Registros de la sesión
             </h2>
             <p className="text-xs text-muted-foreground">
-              {receptions.length} envase{receptions.length !== 1 ? 's' : ''} pesado{receptions.length !== 1 ? 's' : ''}
+              {receptions.length} tacho{receptions.length !== 1 ? 's' : ''} pesado{receptions.length !== 1 ? 's' : ''}
             </p>
           </div>
           <Button variant="ghost" size="icon" aria-label="Cerrar" onClick={() => onOpenChange(false)}>
@@ -104,7 +104,7 @@ export function WeighingSessionDrawer({
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           {receptions.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">
-              Sin registros todavía. Pesá el primer envase para verlo aquí.
+              Sin registros todavía. Pesá el primer tacho para verlo aquí.
             </p>
           ) : (
             receptions.map((r) => {

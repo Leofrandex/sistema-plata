@@ -55,12 +55,12 @@ export interface Client {
   locations: ClientLocation[]
 }
 
-// Empresa operativa dentro de un Cliente. Los envases pertenecen a Empresa.
+// Empresa operativa dentro de un Cliente. Los tachos pertenecen a Empresa.
 export interface Company {
   id: string
   client_id: string        // FK → Client
   name: string             // 'ION', 'Airkem'
-  code_letter: string      // 'I', 'A' — prefijo de envases
+  code_letter: string      // 'I', 'A' — prefijo de tachos
 }
 
 export interface Container {
@@ -71,7 +71,7 @@ export interface Container {
   waste_type: WasteType
   status: ContainerStatus
   registered_at: string  // ISO 8601 datetime
-  /** true: envase reservado para pesaje de cargas Yaris/Picanto. Solo aparece
+  /** true: tacho reservado para pesaje de cargas Yaris/Picanto. Solo aparece
    *  como opción en /register/weighing cuando el operador activa el modo Yaris.
    *  Opcional para compat con data histórica/mocks; undefined === false. */
   is_yaris_dedicated?: boolean
@@ -98,9 +98,9 @@ export interface RouteEvent {
   ended_at: string | null       // null mientras está en curso
   operator_id: string
   status: RouteEventStatus
-  // Envases SUCIOS recogidos en el recorrido (van a pesaje en planta)
+  // Tachos SUCIOS recogidos en el recorrido (van a pesaje en planta)
   containers_dirty_received: string[]
-  // Envases LIMPIOS entregados al cliente durante el recorrido
+  // Tachos LIMPIOS entregados al cliente durante el recorrido
   containers_clean_delivered: string[]
   // Ubicación del recorrido
   floor: string

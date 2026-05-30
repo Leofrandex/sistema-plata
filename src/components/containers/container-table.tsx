@@ -36,7 +36,7 @@ export function ContainerTable({ containers, companies, clients }: Props) {
   if (containers.length === 0) {
     return (
       <div className="rounded-xl bg-card p-12 text-center text-muted-foreground ring-1 ring-foreground/10">
-        No se encontraron envases.
+        No se encontraron tachos.
       </div>
     )
   }
@@ -46,7 +46,7 @@ export function ContainerTable({ containers, companies, clients }: Props) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            <th className="px-4 py-3">Envase</th>
+            <th className="px-4 py-3">Tacho</th>
             <th className="px-4 py-3">Empresa</th>
             <th className="px-4 py-3">Cliente</th>
             <th className="px-4 py-3">Tipo</th>
@@ -71,7 +71,7 @@ export function ContainerTable({ containers, companies, clients }: Props) {
               <tr
                 key={c.id}
                 tabIndex={0}
-                aria-label={`Ver envase ${c.id}`}
+                aria-label={`Ver tacho ${c.id}`}
                 onClick={() => {
                   if (typeof window !== 'undefined' && window.getSelection()?.toString()) return
                   router.push(href)

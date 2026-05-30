@@ -67,7 +67,7 @@ interface HospiwasteStore {
   addCompany: (company: Company) => void
   updateCompany: (id: string, updates: Partial<Company>) => void
 
-  // Envases
+  // Tachos
   addContainer: (container: Container) => void
   updateContainer: (id: string, updates: Partial<Container>) => void
 

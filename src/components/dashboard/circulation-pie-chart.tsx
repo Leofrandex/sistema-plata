@@ -30,7 +30,7 @@ function CustomTooltip({ active, payload, total }: CustomTooltipProps) {
     <div className="rounded-md bg-foreground text-background px-3 py-2 text-xs shadow-lg ring-1 ring-foreground/20">
       <p className="font-semibold">{item.label}</p>
       <p className="tabular-nums opacity-90">
-        {item.count} envase{item.count !== 1 ? 's' : ''} · {pct}%
+        {item.count} tacho{item.count !== 1 ? 's' : ''} · {pct}%
       </p>
     </div>
   )
@@ -49,7 +49,7 @@ export function CirculationPieChart({ data }: Props) {
           </div>
           <div>
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Envases en circulación
+              Tachos en circulación
             </h2>
             <p className="text-xs text-muted-foreground/80">Distribución por ubicación actual</p>
           </div>
@@ -84,7 +84,7 @@ export function CirculationPieChart({ data }: Props) {
             </ResponsiveContainer>
           ) : (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-              Sin envases activos.
+              Sin tachos activos.
             </div>
           )}
 

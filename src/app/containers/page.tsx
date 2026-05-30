@@ -54,8 +54,8 @@ export default function ContainersPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">Inventario de Envases</h1>
-        <span className="text-sm text-slate-500">{filtered.length} envases</span>
+        <h1 className="text-2xl font-bold text-slate-800">Inventario de Tachos</h1>
+        <span className="text-sm text-slate-500">{filtered.length} tachos</span>
       </div>
       <ContainerFilters
         filters={filters}

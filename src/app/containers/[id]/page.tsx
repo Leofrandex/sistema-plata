@@ -102,7 +102,7 @@ export default function ContainerDetailPage({ params }: Props) {
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold text-slate-600">Información del envase</CardTitle>
+          <CardTitle className="text-sm font-semibold text-slate-600">Información del tacho</CardTitle>
         </CardHeader>
         <CardContent>
           <dl className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">

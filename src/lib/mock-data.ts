@@ -15,8 +15,8 @@ import type {
 import historical from './data/historical-data.json'
 
 // Data histórica de Airkem (2026-01-01 → 2026-05-11) extraída del Excel
-// `vault/inbox/2026-05-17-historico-envases.xlsx`. Generada por
-// `scripts/extract-historical-data.py`. Reemplaza los 10 envases Airkem
+// `vault/inbox/2026-05-17-historico-tachos.xlsx`. Generada por
+// `scripts/extract-historical-data.py`. Reemplaza los 10 tachos Airkem
 // hardcoded por los 189 reales y aporta ~14k recepciones para alimentar el
 // dashboard ejecutivo con kg reales. ION queda fuera del histórico (no
 // participaba en el periodo capturado).
@@ -53,8 +53,8 @@ export const MOCK_COMPANIES: Company[] = [
   { id: 'company-airkem', client_id: 'client-1', name: 'Airkem', code_letter: 'A' },
 ]
 
-// ION mantiene 10 envases hardcoded (no participó en el histórico capturado).
-// Airkem viene 100% del histórico: 189 envases reales del Excel, en lugar de
+// ION mantiene 10 tachos hardcoded (no participó en el histórico capturado).
+// Airkem viene 100% del histórico: 189 tachos reales del Excel, en lugar de
 // los 10 mock que existían antes.
 export const MOCK_CONTAINERS: Container[] = [
   // ION (I-001..I-010)
@@ -73,7 +73,7 @@ export const MOCK_CONTAINERS: Container[] = [
 ]
 
 // Hoy se completó la 1.ª y 2.ª ruta para Centro de la Salud.
-// En cada recorrido se ENTREGAN envases limpios y se RECOGEN sucios.
+// En cada recorrido se ENTREGAN tachos limpios y se RECOGEN sucios.
 export const MOCK_ROUTE_EVENTS: RouteEvent[] = [
   {
     id: 'route-1',
@@ -267,8 +267,8 @@ export const MOCK_PHOTOS: Photo[] = [
   { id: 'photo-r2-1', url: 'https://placehold.co/400x300?text=Recorrido+4', event_type: 'route', event_id: 'route-2', taken_at: '2026-05-17T11:00:00-05:00', label: 'PTDP Centro Salud 17/05/2026 11:00 AM' },
   { id: 'photo-r2-2', url: 'https://placehold.co/400x300?text=Recorrido+5', event_type: 'route', event_id: 'route-2', taken_at: '2026-05-17T11:15:00-05:00', label: 'PTDP Centro Salud 17/05/2026 11:15 AM' },
   // Pesajes
-  { id: 'photo-w1-1', url: 'https://placehold.co/400x300?text=Envase+I-001', event_type: 'weighing', event_id: 'reception-1', taken_at: '2026-05-17T09:15:00-05:00', label: 'PTDP Centro Salud 17/05/2026 09:15 AM' },
+  { id: 'photo-w1-1', url: 'https://placehold.co/400x300?text=Tacho+I-001', event_type: 'weighing', event_id: 'reception-1', taken_at: '2026-05-17T09:15:00-05:00', label: 'PTDP Centro Salud 17/05/2026 09:15 AM' },
   { id: 'photo-w1-2', url: 'https://placehold.co/400x300?text=Balanza+43.7kg', event_type: 'weighing', event_id: 'reception-1', taken_at: '2026-05-17T09:16:00-05:00', label: 'PTDP Centro Salud 17/05/2026 09:16 AM' },
-  { id: 'photo-w2-1', url: 'https://placehold.co/400x300?text=Envase+I-002', event_type: 'weighing', event_id: 'reception-2', taken_at: '2026-05-17T09:20:00-05:00', label: 'PTDP Centro Salud 17/05/2026 09:20 AM' },
+  { id: 'photo-w2-1', url: 'https://placehold.co/400x300?text=Tacho+I-002', event_type: 'weighing', event_id: 'reception-2', taken_at: '2026-05-17T09:20:00-05:00', label: 'PTDP Centro Salud 17/05/2026 09:20 AM' },
   { id: 'photo-w2-2', url: 'https://placehold.co/400x300?text=Balanza+38.2kg', event_type: 'weighing', event_id: 'reception-2', taken_at: '2026-05-17T09:21:00-05:00', label: 'PTDP Centro Salud 17/05/2026 09:21 AM' },
 ]

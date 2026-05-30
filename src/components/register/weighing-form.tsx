@@ -24,7 +24,7 @@ export interface WeighingFormState {
   photo_scale: string | null
   gross_weight: string
   observations: string
-  /** Pesaje proveniente de carga Yaris/Picanto. Cuando true, el envase elegido
+  /** Pesaje proveniente de carga Yaris/Picanto. Cuando true, el tacho elegido
    *  debe ser uno marcado como `is_yaris_dedicated`. */
   is_yaris_weighing: boolean
   waste_type: WasteType
@@ -45,11 +45,11 @@ export const EMPTY_WEIGHING_FORM: WeighingFormState = {
 interface Props {
   state: WeighingFormState
   onChange: (updates: Partial<WeighingFormState>) => void
-  /** Envases pendientes de pesar (no yaris). */
+  /** Tachos pendientes de pesar (no yaris). */
   availableContainers: Container[]
-  /** Envases dedicados a Yaris disponibles (siempre disponibles, no requieren recorrido previo). */
+  /** Tachos dedicados a Yaris disponibles (siempre disponibles, no requieren recorrido previo). */
   yarisContainers: Container[]
-  /** Lista completa para resolver datos del envase si se está editando uno ya pesado. */
+  /** Lista completa para resolver datos del tacho si se está editando uno ya pesado. */
   allContainers: Container[]
   inheritedCompanyName?: string | null
   locked: boolean
@@ -76,7 +76,7 @@ export function WeighingForm({
 
   const isYaris = state.is_yaris_weighing
 
-  // En modo edit, el envase actualmente cargado puede no estar en
+  // En modo edit, el tacho actualmente cargado puede no estar en
   // availableContainers (porque ya tiene reception). Lo agregamos al inicio
   // para que siga visible y editable.
   const normalCatalog = isYaris ? [] : availableContainers
@@ -108,8 +108,8 @@ export function WeighingForm({
     hasValidWeight
 
   function toggleYaris() {
-    // Al cambiar el modo Yaris, limpiamos la selección de envase (la lista
-    // disponible cambia) para evitar enviar un envase inconsistente.
+    // Al cambiar el modo Yaris, limpiamos la selección de tacho (la lista
+    // disponible cambia) para evitar enviar un tacho inconsistente.
     onChange({
       is_yaris_weighing: !isYaris,
       container_id: '',
@@ -124,11 +124,11 @@ export function WeighingForm({
       )}
       aria-disabled={locked}
     >
-      {/* Envase: número normal | envase Yaris */}
+      {/* Tacho: número normal | tacho Yaris */}
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr] gap-3">
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-foreground">
-            Número de envase <span className="text-red-500">*</span>
+            Número de tacho <span className="text-red-500">*</span>
           </label>
           <Select
             value={!isYaris ? state.container_id : ''}
@@ -140,8 +140,8 @@ export function WeighingForm({
                 isYaris
                   ? 'Modo Yaris activo'
                   : normalCatalog.length === 0
-                    ? 'No hay envases pendientes'
-                    : 'Seleccionar envase'
+                    ? 'No hay tachos pendientes'
+                    : 'Seleccionar tacho'
               } />
             </SelectTrigger>
             <SelectContent>
@@ -156,7 +156,7 @@ export function WeighingForm({
 
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-foreground">
-            Envase Yaris {isYaris && <span className="text-red-500">*</span>}
+            Tacho Yaris {isYaris && <span className="text-red-500">*</span>}
           </label>
           <Select
             value={isYaris ? state.container_id : ''}
@@ -168,8 +168,8 @@ export function WeighingForm({
                 !isYaris
                   ? 'Activá "Pesaje de Yaris" abajo'
                   : yarisCatalog.length === 0
-                    ? 'No hay envases Yaris configurados'
-                    : 'Seleccionar envase Yaris'
+                    ? 'No hay tachos Yaris configurados'
+                    : 'Seleccionar tacho Yaris'
               } />
             </SelectTrigger>
             <SelectContent>
@@ -186,8 +186,8 @@ export function WeighingForm({
       {dropdownContainers.length === 0 && mode === 'create' && (
         <p className="text-xs text-amber-700">
           {isYaris
-            ? 'No hay envases Yaris configurados. Marcá un envase como dedicado a Yaris desde Admin → Envases.'
-            : 'No hay envases sucios recogidos pendientes de pesar. Registrá un recorrido primero.'}
+            ? 'No hay tachos Yaris configurados. Marcá un tacho como dedicado a Yaris desde Admin → Tachos.'
+            : 'No hay tachos sucios recogidos pendientes de pesar. Registrá un recorrido primero.'}
         </p>
       )}
       {selectedContainer && (
@@ -292,7 +292,7 @@ export function WeighingForm({
           </p>
           <p className={cn('text-xs', isYaris ? 'text-amber-800/80' : 'text-muted-foreground')}>
             {isYaris
-              ? 'Activado. Seleccioná un envase dedicado a Yaris arriba.'
+              ? 'Activado. Seleccioná un tacho dedicado a Yaris arriba.'
               : 'Marcá esta opción si la carga viene de un tacho Yaris.'}
           </p>
         </div>
@@ -331,7 +331,7 @@ export function WeighingForm({
         </button>
       )}
 
-      {/* Fotos — balanza arriba, envase abajo (solo orden visual; el orden de
+      {/* Fotos — balanza arriba, tacho abajo (solo orden visual; el orden de
           subida photo_container/photo_scale no cambia para no romper el reporte) */}
       <div className="grid grid-cols-1 gap-4">
         <PhotoCapture
@@ -342,7 +342,7 @@ export function WeighingForm({
           onRemove={() => onChange({ photo_scale: null })}
         />
         <PhotoCapture
-          label="Foto del envase"
+          label="Foto del tacho"
           required
           preview={state.photo_container}
           onCapture={(url) => onChange({ photo_container: url })}

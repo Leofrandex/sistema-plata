@@ -187,7 +187,7 @@ export default function RegisterMorgueRoutePage() {
     const supabase = createClient()
     const label = `PTDP Morgue ${client?.name ?? ''} ${new Date().toLocaleDateString('es-PA')} ${new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })}`
 
-    // 1. PRIMERO lo crítico: cerrar el recorrido + sincronizar envases (rápido).
+    // 1. PRIMERO lo crítico: cerrar el recorrido + sincronizar tachos (rápido).
     try {
       await q.updateRouteEvent(supabase, routeEventId, {
         status: 'completed',
@@ -336,7 +336,7 @@ export default function RegisterMorgueRoutePage() {
       {confirmingCancel && (
         <ConfirmDialog
           title="¿Cancelar el recorrido?"
-          body="Esta acción descarta todos los datos ingresados (envases, ubicación, fotos)."
+          body="Esta acción descarta todos los datos ingresados (tachos, ubicación, fotos)."
           confirmLabel="Sí, cancelar"
           tone="red"
           onCancel={() => setConfirmingCancel(false)}

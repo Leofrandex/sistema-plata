@@ -173,12 +173,12 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       return
     }
 
-    // 2) Asociar envases
+    // 2) Asociar tachos
     try {
       await q.setRouteContainersDirty(supabase, routeEventId, formState.dirtyReceivedIds)
       await q.setRouteContainersClean(supabase, routeEventId, formState.cleanDeliveredIds)
     } catch (err) {
-      console.error('[recorrido andén] asociar envases falló:', err)
+      console.error('[recorrido andén] asociar tachos falló:', err)
     }
 
     // 3) Subir fotos AHORA (evita pérdida al editar luego)
@@ -243,7 +243,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     const now = new Date().toISOString()
     const supabase = createClient()
 
-    // 1) Actualizar ubicación + envases
+    // 1) Actualizar ubicación + tachos
     try {
       await q.updateRouteEvent(supabase, id, {
         floor: formState.floor,
@@ -575,7 +575,7 @@ function ConfirmCancelDialog({ andenCount, onCancel, onConfirm }: CancelDialogPr
           <div className="space-y-1">
             <h2 className="text-base font-semibold text-foreground">¿Cancelar el recorrido?</h2>
             <p className="text-sm text-muted-foreground">
-              Esta acción <strong className="text-red-700">descarta</strong> los {andenCount} andén{andenCount !== 1 ? 'es' : ''} registrado{andenCount !== 1 ? 's' : ''} (envases, ubicación y fotos). El horario vuelve a quedar disponible.
+              Esta acción <strong className="text-red-700">descarta</strong> los {andenCount} andén{andenCount !== 1 ? 'es' : ''} registrado{andenCount !== 1 ? 's' : ''} (tachos, ubicación y fotos). El horario vuelve a quedar disponible.
             </p>
           </div>
         </div>

@@ -20,7 +20,7 @@ export type PickerVariant = 'dirty' | 'clean'
 interface Props {
   open: boolean
   variant: PickerVariant
-  /** Catálogo ya filtrado (sin envases del otro lado). */
+  /** Catálogo ya filtrado (sin tachos del otro lado). */
   containers: Container[]
   companies: Company[]
   /** Ids actualmente seleccionados en el form padre (estado inicial del modal). */
@@ -41,8 +41,8 @@ const VARIANT_STYLES: Record<PickerVariant, {
   Icon: typeof Trash2
 }> = {
   dirty: {
-    title: 'Envases sucios recogidos',
-    hint: 'Tocá un envase para agregarlo. Pasarán a pesaje en planta.',
+    title: 'Tachos sucios recogidos',
+    hint: 'Tocá un tacho para agregarlo. Pasarán a pesaje en planta.',
     iconBg: 'bg-red-100',
     iconColor: 'text-red-700',
     activeBorder: 'border-red-400 ring-2 ring-red-300',
@@ -52,8 +52,8 @@ const VARIANT_STYLES: Record<PickerVariant, {
     Icon: Trash2,
   },
   clean: {
-    title: 'Envases limpios entregados',
-    hint: 'Tocá un envase para agregarlo. Son envases vacíos que se dejan al cliente.',
+    title: 'Tachos limpios entregados',
+    hint: 'Tocá un tacho para agregarlo. Son tachos vacíos que se dejan al cliente.',
     iconBg: 'bg-emerald-100',
     iconColor: 'text-emerald-700',
     activeBorder: 'border-emerald-400 ring-2 ring-emerald-300',
@@ -179,7 +179,7 @@ export function ContainerPickerSheet({
       <div className="flex-1 overflow-y-auto px-3 py-3 pb-28 sm:px-4">
         {sorted.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-12">
-            {q ? 'No se encontraron envases con ese número.' : 'No hay envases disponibles.'}
+            {q ? 'No se encontraron tachos con ese número.' : 'No hay tachos disponibles.'}
           </p>
         ) : (
           <ul className="space-y-2">

@@ -46,7 +46,7 @@ interface CardSpec {
 
 const CARDS: CardSpec[] = [
   { key: 'routesToday',                label: 'Recorridos hoy',         icon: Route,  iconBg: 'bg-accent/10',  iconText: 'text-accent',     decoration: 'from-accent/15    to-accent/0' },
-  { key: 'containersInCirculation',    label: 'Envases en circulación', icon: Boxes,  iconBg: 'bg-primary/10', iconText: 'text-primary',    decoration: 'from-primary/15   to-primary/0' },
+  { key: 'containersInCirculation',    label: 'Tachos en circulación', icon: Boxes,  iconBg: 'bg-primary/10', iconText: 'text-primary',    decoration: 'from-primary/15   to-primary/0' },
   { key: 'containersPendingWeighing',  label: 'Pendientes de pesar',    icon: Scale,  iconBg: 'bg-amber-100',  iconText: 'text-amber-700',  decoration: 'from-amber-200/40 to-amber-200/0' },
   { key: 'containersInTreatment',      label: 'En tratamiento',         icon: Flame,  iconBg: 'bg-violet-100', iconText: 'text-violet-700', decoration: 'from-violet-200/40 to-violet-200/0' },
 ]

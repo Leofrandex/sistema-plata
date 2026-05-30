@@ -40,11 +40,11 @@ interface MoreLink {
 }
 
 const MORE_LINKS: MoreLink[] = [
-  { href: '/containers',          label: 'Envases',          icon: Package },
+  { href: '/containers',          label: 'Tachos',          icon: Package },
   { href: '/register/treatment',  label: 'Tratamiento',      icon: Flame },
   { href: '/register/transfer',   label: 'Traslado externo', icon: Truck },
   { href: '/register/location',   label: 'Ubicación',        icon: MapPin },
-  { href: '/admin/containers',    label: 'Admin envases',    icon: Settings },
+  { href: '/admin/containers',    label: 'Admin tachos',    icon: Settings },
   { href: '/admin/clients',       label: 'Admin clientes',   icon: Settings },
   { href: '/admin/companies',     label: 'Admin empresas',   icon: Settings },
 ]

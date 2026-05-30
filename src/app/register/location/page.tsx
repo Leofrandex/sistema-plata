@@ -11,7 +11,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { useStore } from '@/lib/store'
 import type { Container, LocationType } from '@/lib/types'
 
-const STEPS = ['Seleccionar envase', 'Registrar ubicación']
+const STEPS = ['Seleccionar tacho', 'Registrar ubicación']
 
 const LOCATION_TYPE_OPTIONS: { value: LocationType; label: string }[] = [
   { value: 'client_site', label: 'Instalación del cliente' },
@@ -35,7 +35,7 @@ export default function LocationPage() {
 
   function handleSelect(container: Container) {
     setSelected(container)
-    // Default al cliente padre de la empresa del envase
+    // Default al cliente padre de la empresa del tacho
     const company = companies.find((c) => c.id === container.company_id)
     setClientId(company?.client_id ?? '')
     setStep(2)

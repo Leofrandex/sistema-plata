@@ -11,7 +11,7 @@ import type {
 } from '@/lib/types'
 import { computeContainerPhase, computeNetWeight, getRouteEventIdsForContainer } from './containers'
 
-// ─── Circulación de envases ────────────────────────────────────────────────
+// ─── Circulación de tachos ────────────────────────────────────────────────
 
 export type CirculationBucket =
   | 'en_planta'        // weighing, cold_storage, treatment, transfer

@@ -101,7 +101,7 @@ export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props)
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium">Número de envase</label>
+        <label className="text-sm font-medium">Número de tacho</label>
         <div className="flex gap-2 items-center">
           {selectedCompany && (
             <span className="font-mono font-semibold text-slate-600">{selectedCompany.code_letter}-</span>
@@ -115,7 +115,7 @@ export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props)
           />
         </div>
         {computedId && (
-          <p className="text-xs text-slate-500">ID del envase: <strong className="font-mono">{computedId}</strong></p>
+          <p className="text-xs text-slate-500">ID del tacho: <strong className="font-mono">{computedId}</strong></p>
         )}
       </div>
 
@@ -163,9 +163,9 @@ export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props)
           className="mt-0.5 h-4 w-4"
         />
         <div className="flex-1">
-          <p className="text-sm font-medium">Envase dedicado a Yaris</p>
+          <p className="text-sm font-medium">Tacho dedicado a Yaris</p>
           <p className="text-xs text-muted-foreground">
-            Marcalo si este envase se usa solo para pesaje de cargas Yaris/Picanto. Aparece en una lista aparte en el formulario de pesaje.
+            Marcalo si este tacho se usa solo para pesaje de cargas Yaris/Picanto. Aparece en una lista aparte en el formulario de pesaje.
           </p>
         </div>
       </label>
@@ -173,7 +173,7 @@ export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props)
       <div className="flex gap-3">
         <Button type="button" variant="outline" onClick={onCancel} className="flex-1">Cancelar</Button>
         <Button type="submit" className="flex-1" disabled={!canSubmit}>
-          Agregar envase
+          Agregar tacho
         </Button>
       </div>
     </form>

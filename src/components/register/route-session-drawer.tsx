@@ -115,7 +115,7 @@ export function RouteSessionDrawer({
                       <p className="font-semibold text-foreground">Andén {idx + 1}</p>
                       <p className="text-xs text-muted-foreground">{ubic}</p>
                       <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
-                        <span>{containerCount} envase{containerCount !== 1 ? 's' : ''}</span>
+                        <span>{containerCount} tacho{containerCount !== 1 ? 's' : ''}</span>
                         <span className="flex items-center gap-1">
                           <Camera className="h-3 w-3" /> {a.photo_ids.length}
                         </span>

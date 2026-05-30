@@ -14,7 +14,7 @@ describe('computeDashboardMetrics', () => {
       MOCK_RECEPTIONS,
       MOCK_TREATMENT_RUNS
     )
-    // 199 envases activos: 10 ION (I-001..I-010) + 189 Airkem (A-001..A-189) del histórico
+    // 199 tachos activos: 10 ION (I-001..I-010) + 189 Airkem (A-001..A-189) del histórico
     expect(metrics.containersInCirculation).toBe(199)
   })
 

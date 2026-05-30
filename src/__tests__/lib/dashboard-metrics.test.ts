@@ -35,7 +35,7 @@ describe('computeCirculationBreakdown', () => {
     expect(sum).toBe(result.total)
   })
 
-  it('classifies envases con storage abierto como en_planta', () => {
+  it('classifies tachos con storage abierto como en_planta', () => {
     const result = computeCirculationBreakdown({
       containers: MOCK_CONTAINERS,
       routeEvents: MOCK_ROUTE_EVENTS,

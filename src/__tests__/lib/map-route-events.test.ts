@@ -21,7 +21,7 @@ function makeRow(over: Partial<RouteEventRow> = {}): RouteEventRow {
 }
 
 describe('mapRouteEvents', () => {
-  it('asocia los envases sucios y limpios a su recorrido', () => {
+  it('asocia los tachos sucios y limpios a su recorrido', () => {
     const events = [makeRow({ id: 'evt-1' }), makeRow({ id: 'evt-2', slot: '10:30' })]
     const dirty: RouteContainerLink[] = [
       { route_event_id: 'evt-1', container_id: 'A-001' },
@@ -43,7 +43,7 @@ describe('mapRouteEvents', () => {
     expect(e2.containers_clean_delivered).toEqual([])
   })
 
-  it('devuelve arrays vacíos cuando un recorrido no tiene envases', () => {
+  it('devuelve arrays vacíos cuando un recorrido no tiene tachos', () => {
     const result = mapRouteEvents([makeRow({ id: 'evt-x' })], [], [])
     expect(result[0].containers_dirty_received).toEqual([])
     expect(result[0].containers_clean_delivered).toEqual([])
