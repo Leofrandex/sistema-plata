@@ -231,7 +231,6 @@ export type Database = {
           size_liters: Database["public"]["Enums"]["container_size"]
           status: Database["public"]["Enums"]["container_status"]
           tare_weight_kg: number
-          waste_type: Database["public"]["Enums"]["waste_type"]
         }
         Insert: {
           company_id?: string | null
@@ -241,7 +240,6 @@ export type Database = {
           size_liters: Database["public"]["Enums"]["container_size"]
           status?: Database["public"]["Enums"]["container_status"]
           tare_weight_kg: number
-          waste_type: Database["public"]["Enums"]["waste_type"]
         }
         Update: {
           company_id?: string | null
@@ -251,7 +249,6 @@ export type Database = {
           size_liters?: Database["public"]["Enums"]["container_size"]
           status?: Database["public"]["Enums"]["container_status"]
           tare_weight_kg?: number
-          waste_type?: Database["public"]["Enums"]["waste_type"]
         }
         Relationships: [
           {

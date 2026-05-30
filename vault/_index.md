@@ -19,11 +19,10 @@ updated: 2026-05-21
 
 ## Estado actual del proyecto
 
-**Fase:** Preparación lanzamiento PTDP — implementando ajustes post Demo 2; piloto 2026-05-21, lanzamiento oficial 2026-06-01
+**Fase:** Preparación lanzamiento PTDP — ajustes post-piloto; lanzamiento oficial 2026-06-01
 **Última reunión:** 2026-05-18 (Francesca + Karolyne + Marely + Sebastián) — ver `logs/2026-05-18-reunion-ptdp-demo-piloto.md`
-**Próxima reunión:** 2026-05-25 lunes 2:00 PM Panamá (seguimiento general); 2026-05-19 martes 9:30 AM Colombia (1-a-1 con Karolyne)
-**Hito crítico:** 2026-05-21 jueves 10:00 AM Panamá — prueba piloto con operador real
-**Última actualización del vault:** 2026-05-21
+**Hito crítico:** lanzamiento oficial lunes 2026-06-01
+**Última actualización del vault:** 2026-05-30
 
 | Área | Estado | Archivo |
 |------|--------|---------|
@@ -40,6 +39,8 @@ updated: 2026-05-21
 | Integración Supabase (schema + auth + storage) | 🟢 Provisionado | `decisions/2026-05-21-supabase-integracion.md` · `logs/2026-05-21-supabase-bootstrap.md` |
 | Recorridos → Supabase (write-through + hidratación) | 🟢 Completado | `logs/2026-05-25-recorridos-supabase-writethrough.md` |
 | Fotos → Supabase Storage (upload + URLs firmadas) | 🟢 Completado | `logs/2026-05-25-fotos-supabase-storage.md` |
+| Empresa y tipo de desecho **dinámicos** del tacho | 🟢 Completado | `decisions/2026-05-30-empresa-tipo-dinamicos-tacho.md` |
+| Pesaje (pendientes+bloqueo, tipo input, tratar inmediato) + Tratamiento activo + rename "tacho" | 🟢 Completado | `logs/2026-05-30-pesaje-tratamiento-rename-tacho.md` |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completo · ⚠️ Tiene incoherencias
 
@@ -63,7 +64,8 @@ updated: 2026-05-21
 - `decisions/2026-05-03-border-radius-global.md`
 - `decisions/2026-05-17-cliente-empresa-recorrido.md`
 - `decisions/2026-05-21-supabase-integracion.md`
-- `decisions/2026-05-21-estado-envase-derivado.md` — estado derivado de eventos; revisar P1 antes de 2026-06-01
+- `decisions/2026-05-21-estado-envase-derivado.md` — estado derivado de eventos; P1 avanzado (tratamiento completado → clean)
+- `decisions/2026-05-30-empresa-tipo-dinamicos-tacho.md` — empresa y tipo de desecho dinámicos del tacho
 
 ### Logs de cambios
 - `logs/2026-05-03-branding-system.md`
@@ -77,6 +79,7 @@ updated: 2026-05-21
 - `logs/2026-05-25-pesaje-ux-yaris-recorridos-modal.md`
 - `logs/2026-05-25-fotos-supabase-storage.md`
 - `logs/2026-05-27-pesaje-login-recorridos-multianden.md`
+- `logs/2026-05-30-pesaje-tratamiento-rename-tacho.md`
 
 ---
 
@@ -85,6 +88,15 @@ updated: 2026-05-21
 *(Vacío)*
 
 ## Notas del último procesamiento
+
+**2026-05-30** — Lote grande: empresa y tipo de desecho pasan a ser **dinámicos** del tacho
+(empresa derivada del recorrido, reset al tratar; tipo = input en pesaje, `DROP` de
+`containers.waste_type`). Pesaje: pendientes por número + bloqueo con escape "ausente", check
+"tratar inmediatamente". Tratamiento activado en Supabase (multi-select). Empresa seleccionable
+en recorrido; reportes por empresa registrada (fallback histórico). Rename "envase → tacho" +
+display por número (`formatTachoNumber`). 3 migraciones aplicadas al piloto. `next build` OK,
+jest 61/61. Pendiente: E2E manual. Log: `logs/2026-05-30-pesaje-tratamiento-rename-tacho.md`;
+ADR: `decisions/2026-05-30-empresa-tipo-dinamicos-tacho.md`.
 
 **2026-05-27** — Lote de ajustes post-piloto (5 cambios, completos).
 (1) Pesaje: "vehículo Yaris" → "tacho Yaris" y se quita el ícono de carro.

@@ -7,9 +7,16 @@ tags:
 updated: 2026-05-17
 ---
 
-# Ciclo de Vida del Contenedor (Envase/Tacho)
+# Ciclo de Vida del Tacho
 
 Este es el proceso central del sistema. Aplica principalmente al desecho **peligroso infeccioso** (tipo 1). Para tipos 2–5 ver [[WasteTypes]].
+
+> [!important] Actualización 2026-05-30 — empresa y tipo de desecho son dinámicos
+> Lo que sigue describe el alta con empresa y tipo "fijos"; eso quedó **obsoleto**. Hoy el tacho
+> es del pool de Hospiwaste: la **empresa** se elige en el recorrido y se hereda al pesaje
+> (reset al tratar), y el **tipo de desecho** lo ingresa el operador en pesaje. Ver
+> `decisions/2026-05-30-empresa-tipo-dinamicos-tacho.md`. Además, el "tratar inmediatamente" en
+> pesaje permite saltar cámara fría (tipo 1).
 
 ## Registro inicial (alta del contenedor)
 
