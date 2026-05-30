@@ -8,7 +8,7 @@
 -- ============================================================================
 
 alter table public.container_receptions
-  add column company_id uuid null references public.companies(id);
+  add column company_id text null references public.companies(id);
 
 alter table public.container_receptions
   add column waste_type public.waste_type not null default 'infectious';
