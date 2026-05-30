@@ -5,16 +5,8 @@ import { Search, Check, X, Trash2, Sparkles } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import type { Container, Company, WasteType } from '@/lib/types'
+import type { Container, Company } from '@/lib/types'
 import { formatTachoNumber } from '@/lib/data/containers'
-
-const WASTE_LABELS: Record<WasteType, string> = {
-  infectious: 'Infeccioso',
-  anatomopathological: 'Anatomopatológico',
-  cytotoxic: 'Citotóxico',
-  liquid: 'Líquidos',
-  morgue: 'Morgue',
-}
 
 export type PickerVariant = 'dirty' | 'clean'
 
@@ -216,7 +208,7 @@ export function ContainerPickerSheet({
                         {formatTachoNumber(c.id)}
                       </p>
                       <p className="text-sm text-muted-foreground truncate">
-                        {companyMap[c.company_id] ?? '—'} · {WASTE_LABELS[c.waste_type]} · {c.size_liters} L
+                        {companyMap[c.company_id] ?? '—'} · {c.size_liters} L
                       </p>
                     </div>
                   </button>

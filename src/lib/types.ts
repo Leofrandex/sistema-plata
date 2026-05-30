@@ -68,7 +68,6 @@ export interface Container {
   company_id: string     // FK → Company
   size_liters: ContainerSize
   tare_weight_kg: number
-  waste_type: WasteType
   status: ContainerStatus
   registered_at: string  // ISO 8601 datetime
   /** true: tacho reservado para pesaje de cargas Yaris/Picanto. Solo aparece

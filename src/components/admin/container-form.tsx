@@ -4,15 +4,7 @@ import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import type { Client, Company, Container, WasteType, ContainerSize } from '@/lib/types'
-
-const WASTE_OPTIONS: { value: WasteType; label: string }[] = [
-  { value: 'infectious', label: 'Peligroso infeccioso' },
-  { value: 'anatomopathological', label: 'Anatomopatológico' },
-  { value: 'cytotoxic', label: 'Citotóxico' },
-  { value: 'liquid', label: 'Líquidos' },
-  { value: 'morgue', label: 'Morgue' },
-]
+import type { Client, Company, Container, ContainerSize } from '@/lib/types'
 
 const SIZE_OPTIONS: { value: ContainerSize; label: string }[] = [
   { value: 240, label: '240 L' },
@@ -32,7 +24,6 @@ export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props)
   const [companyId, setCompanyId] = useState('')
   const [containerNumber, setContainerNumber] = useState('')
   const [size, setSize] = useState<ContainerSize | ''>('')
-  const [wasteType, setWasteType] = useState<WasteType | ''>('')
   const [tare, setTare] = useState('')
   const [isYaris, setIsYaris] = useState(false)
 
@@ -53,18 +44,17 @@ export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props)
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!clientId || !companyId || !containerNumber || !size || !wasteType || !tare) return
+    if (!clientId || !companyId || !containerNumber || !size || !tare) return
     onSubmit({
       id: computedId,
       company_id: companyId,
       size_liters: size as ContainerSize,
-      waste_type: wasteType as WasteType,
       tare_weight_kg: parseFloat(tare),
       is_yaris_dedicated: isYaris,
     })
   }
 
-  const canSubmit = clientId && companyId && containerNumber && size && wasteType && tare
+  const canSubmit = clientId && companyId && containerNumber && size && tare
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -126,18 +116,6 @@ export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props)
           <SelectContent>
             {SIZE_OPTIONS.map((o) => (
               <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Tipo de desecho</label>
-        <Select value={wasteType} onValueChange={(v) => setWasteType((v ?? '') as WasteType)}>
-          <SelectTrigger><SelectValue placeholder="Seleccionar tipo" /></SelectTrigger>
-          <SelectContent>
-            {WASTE_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>

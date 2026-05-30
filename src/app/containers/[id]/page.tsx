@@ -120,7 +120,7 @@ export default function ContainerDetailPage({ params }: Props) {
             </div>
             <div>
               <dt className="text-slate-500">Tipo de desecho</dt>
-              <dd className="font-medium">{WASTE_TYPE_LABELS[container.waste_type]}</dd>
+              <dd className="font-medium">{reception?.waste_type ? WASTE_TYPE_LABELS[reception.waste_type] : '—'}</dd>
             </div>
             <div>
               <dt className="text-slate-500">Tamaño</dt>
@@ -147,7 +147,7 @@ export default function ContainerDetailPage({ params }: Props) {
         <CardContent>
           <ContainerLifeline
             currentPhase={containerWithPhase.current_phase}
-            wasteType={container.waste_type}
+            wasteType={reception?.waste_type ?? 'infectious'}
           />
         </CardContent>
       </Card>

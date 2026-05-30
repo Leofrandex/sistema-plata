@@ -11,7 +11,6 @@ import type { ContainerWithPhase } from '@/lib/types'
 const DEFAULT_FILTERS: Filters = {
   search: '',
   companyId: 'all',
-  wasteType: 'all',
   size: 'all',
 }
 
@@ -45,7 +44,6 @@ export default function ContainersPage() {
     return allContainersWithPhase.filter((c) => {
       if (filters.search && !c.id.toLowerCase().includes(filters.search.toLowerCase())) return false
       if (filters.companyId !== 'all' && c.company_id !== filters.companyId) return false
-      if (filters.wasteType !== 'all' && c.waste_type !== filters.wasteType) return false
       if (filters.size !== 'all' && c.size_liters !== filters.size) return false
       return true
     })

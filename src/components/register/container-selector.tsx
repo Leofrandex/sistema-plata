@@ -11,14 +11,6 @@ export function filterContainers(containers: Container[], search: string): Conta
   return active.filter((c) => c.id.toLowerCase().includes(search.toLowerCase()))
 }
 
-const WASTE_LABELS: Record<string, string> = {
-  infectious: 'Infeccioso',
-  anatomopathological: 'Anatomopatológico',
-  cytotoxic: 'Citotóxico',
-  liquid: 'Líquidos',
-  morgue: 'Morgue',
-}
-
 interface Props {
   containers: Container[]
   companies: Company[]
@@ -55,7 +47,7 @@ export function ContainerSelector({ containers, companies, onSelect }: Props) {
             >
               <p className="font-mono font-semibold text-slate-800">{formatTachoNumber(container.id)}</p>
               <p className="text-sm text-slate-500">
-                {companyMap[container.company_id] ?? '—'} · {WASTE_LABELS[container.waste_type]} · {container.size_liters}L
+                {companyMap[container.company_id] ?? '—'} · {container.size_liters}L
               </p>
             </button>
           ))}

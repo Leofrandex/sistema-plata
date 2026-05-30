@@ -4,16 +4,7 @@ import { useId } from 'react'
 import { Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import type { Company, WasteType, ContainerSize } from '@/lib/types'
-
-const WASTE_TYPE_OPTIONS: { value: WasteType | 'all'; label: string }[] = [
-  { value: 'all', label: 'Todos los tipos' },
-  { value: 'infectious', label: 'Infeccioso' },
-  { value: 'anatomopathological', label: 'Anatomopatológico' },
-  { value: 'cytotoxic', label: 'Citotóxico' },
-  { value: 'liquid', label: 'Líquidos' },
-  { value: 'morgue', label: 'Morgue' },
-]
+import type { Company, ContainerSize } from '@/lib/types'
 
 const SIZE_OPTIONS: { value: ContainerSize | 'all'; label: string }[] = [
   { value: 'all', label: 'Todos los tamaños' },
@@ -25,7 +16,6 @@ const SIZE_OPTIONS: { value: ContainerSize | 'all'; label: string }[] = [
 export interface ContainerFilters {
   search: string
   companyId: string
-  wasteType: WasteType | 'all'
   size: ContainerSize | 'all'
 }
 
@@ -40,11 +30,10 @@ const labelClass = 'text-xs font-semibold uppercase tracking-wide text-muted-for
 export function ContainerFilters({ filters, companies, onChange }: Props) {
   const searchId = useId()
   const companyLabelId = useId()
-  const wasteTypeLabelId = useId()
   const sizeLabelId = useId()
 
   return (
-    <div className="grid grid-cols-1 gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]">
+    <div className="grid grid-cols-1 gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_repeat(2,minmax(0,1fr))]">
       <div className="flex flex-col gap-1.5">
         <label htmlFor={searchId} className={labelClass}>Buscar tacho</label>
         <div className="relative">
@@ -72,23 +61,6 @@ export function ContainerFilters({ filters, companies, onChange }: Props) {
             <SelectItem value="all">Todas las empresas</SelectItem>
             {companies.map((c) => (
               <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <span id={wasteTypeLabelId} className={labelClass}>Tipo de desecho</span>
-        <Select
-          value={String(filters.wasteType)}
-          onValueChange={(v) => onChange({ ...filters, wasteType: (v ?? 'all') as WasteType | 'all' })}
-        >
-          <SelectTrigger aria-labelledby={wasteTypeLabelId} className="w-full">
-            <SelectValue placeholder="Tipo de desecho" />
-          </SelectTrigger>
-          <SelectContent>
-            {WASTE_TYPE_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>

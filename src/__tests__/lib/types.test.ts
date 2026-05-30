@@ -7,7 +7,6 @@ describe('types', () => {
       company_id: 'company-ion',
       size_liters: 240,
       tare_weight_kg: 15.5,
-      waste_type: 'infectious',
       status: 'active',
       registered_at: '2026-01-01T00:00:00Z',
     }

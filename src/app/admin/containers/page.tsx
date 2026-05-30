@@ -12,14 +12,6 @@ import * as q from '@/lib/supabase/queries'
 import type { Container } from '@/lib/types'
 import { formatTachoNumber } from '@/lib/data/containers'
 
-const WASTE_LABELS: Record<string, string> = {
-  infectious: 'Infeccioso',
-  anatomopathological: 'Anatomopat.',
-  cytotoxic: 'Citotóxico',
-  liquid: 'Líquidos',
-  morgue: 'Morgue',
-}
-
 export default function AdminContainersPage() {
   const { containers, clients, companies, addContainer, updateContainer } = useStore()
   const [showForm, setShowForm] = useState(false)
@@ -36,7 +28,6 @@ export default function AdminContainersPage() {
         company_id: data.company_id || null,
         size_liters: String(data.size_liters) as '240' | '750' | '1100',
         tare_weight_kg: data.tare_weight_kg,
-        waste_type: data.waste_type,
         status: 'active',
         is_yaris_dedicated: data.is_yaris_dedicated ?? false,
       })
@@ -99,7 +90,6 @@ export default function AdminContainersPage() {
               <th className="px-4 py-3 font-medium">Tacho</th>
               <th className="px-4 py-3 font-medium">Empresa</th>
               <th className="px-4 py-3 font-medium">Cliente</th>
-              <th className="px-4 py-3 font-medium">Tipo</th>
               <th className="px-4 py-3 font-medium">Tamaño</th>
               <th className="px-4 py-3 font-medium">Tara</th>
               <th className="px-4 py-3 font-medium">Estado</th>
@@ -116,7 +106,6 @@ export default function AdminContainersPage() {
                   <td className="px-4 py-3 font-mono font-semibold">{formatTachoNumber(c.id)}</td>
                   <td className="px-4 py-3 text-slate-600">{company?.name ?? '—'}</td>
                   <td className="px-4 py-3 text-slate-600">{clientName}</td>
-                  <td className="px-4 py-3 text-slate-600">{WASTE_LABELS[c.waste_type]}</td>
                   <td className="px-4 py-3 text-slate-600">{c.size_liters} L</td>
                   <td className="px-4 py-3 text-slate-600">{c.tare_weight_kg} kg</td>
                   <td className="px-4 py-3">

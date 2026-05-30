@@ -58,16 +58,16 @@ export const MOCK_COMPANIES: Company[] = [
 // los 10 mock que existían antes.
 export const MOCK_CONTAINERS: Container[] = [
   // ION (I-001..I-010)
-  { id: 'I-001', company_id: 'company-ion', size_liters: 240, tare_weight_kg: 14.2, waste_type: 'infectious', status: 'active', registered_at: '2026-01-15T08:00:00Z' },
-  { id: 'I-002', company_id: 'company-ion', size_liters: 240, tare_weight_kg: 14.5, waste_type: 'infectious', status: 'active', registered_at: '2026-01-15T08:00:00Z' },
-  { id: 'I-003', company_id: 'company-ion', size_liters: 240, tare_weight_kg: 14.1, waste_type: 'infectious', status: 'active', registered_at: '2026-01-15T08:00:00Z' },
-  { id: 'I-004', company_id: 'company-ion', size_liters: 750, tare_weight_kg: 38.1, waste_type: 'anatomopathological', status: 'active', registered_at: '2026-01-20T08:00:00Z' },
-  { id: 'I-005', company_id: 'company-ion', size_liters: 240, tare_weight_kg: 13.9, waste_type: 'cytotoxic', status: 'active', registered_at: '2026-01-20T08:00:00Z' },
-  { id: 'I-006', company_id: 'company-ion', size_liters: 1100, tare_weight_kg: 62.0, waste_type: 'infectious', status: 'active', registered_at: '2026-02-01T08:00:00Z' },
-  { id: 'I-007', company_id: 'company-ion', size_liters: 240, tare_weight_kg: 14.3, waste_type: 'infectious', status: 'active', registered_at: '2026-02-10T08:00:00Z' },
-  { id: 'I-008', company_id: 'company-ion', size_liters: 240, tare_weight_kg: 14.0, waste_type: 'liquid', status: 'active', registered_at: '2026-02-10T08:00:00Z' },
-  { id: 'I-009', company_id: 'company-ion', size_liters: 750, tare_weight_kg: 37.8, waste_type: 'infectious', status: 'active', registered_at: '2026-03-01T08:00:00Z' },
-  { id: 'I-010', company_id: 'company-ion', size_liters: 240, tare_weight_kg: 14.4, waste_type: 'morgue', status: 'active', registered_at: '2026-03-01T08:00:00Z' },
+  { id: 'I-001', company_id: 'company-ion', size_liters: 240, tare_weight_kg: 14.2, status: 'active', registered_at: '2026-01-15T08:00:00Z' },
+  { id: 'I-002', company_id: 'company-ion', size_liters: 240, tare_weight_kg: 14.5, status: 'active', registered_at: '2026-01-15T08:00:00Z' },
+  { id: 'I-003', company_id: 'company-ion', size_liters: 240, tare_weight_kg: 14.1, status: 'active', registered_at: '2026-01-15T08:00:00Z' },
+  { id: 'I-004', company_id: 'company-ion', size_liters: 750, tare_weight_kg: 38.1, status: 'active', registered_at: '2026-01-20T08:00:00Z' },
+  { id: 'I-005', company_id: 'company-ion', size_liters: 240, tare_weight_kg: 13.9, status: 'active', registered_at: '2026-01-20T08:00:00Z' },
+  { id: 'I-006', company_id: 'company-ion', size_liters: 1100, tare_weight_kg: 62.0, status: 'active', registered_at: '2026-02-01T08:00:00Z' },
+  { id: 'I-007', company_id: 'company-ion', size_liters: 240, tare_weight_kg: 14.3, status: 'active', registered_at: '2026-02-10T08:00:00Z' },
+  { id: 'I-008', company_id: 'company-ion', size_liters: 240, tare_weight_kg: 14.0, status: 'active', registered_at: '2026-02-10T08:00:00Z' },
+  { id: 'I-009', company_id: 'company-ion', size_liters: 750, tare_weight_kg: 37.8, status: 'active', registered_at: '2026-03-01T08:00:00Z' },
+  { id: 'I-010', company_id: 'company-ion', size_liters: 240, tare_weight_kg: 14.4, status: 'active', registered_at: '2026-03-01T08:00:00Z' },
   // Airkem (A-001..A-189) — provenientes del histórico
   ...HISTORICAL_CONTAINERS,
 ]

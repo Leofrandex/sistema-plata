@@ -166,7 +166,6 @@ function rowToContainer(r: q.ContainerRow): Container {
     company_id: r.company_id ?? '', // store espera string; pilot piloto permite ''
     size_liters: Number(r.size_liters) as 240 | 750 | 1100,
     tare_weight_kg: Number(r.tare_weight_kg),
-    waste_type: r.waste_type,
     status: r.status,
     registered_at: r.registered_at,
     is_yaris_dedicated: r.is_yaris_dedicated,

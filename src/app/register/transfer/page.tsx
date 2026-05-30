@@ -15,8 +15,15 @@ const STEPS = ['Seleccionar tachos', 'Destino']
 type Step = 1 | 2
 
 export default function TransferPage() {
-  const { containers, companies, addExternalTransfer } = useStore()
-  const nonInfectiousContainers = containers.filter((c) => c.waste_type !== 'infectious')
+  const { containers, companies, receptions, addExternalTransfer } = useStore()
+  const lastReceptionType = (cid: string): string | undefined =>
+    [...receptions]
+      .filter((r) => r.container_id === cid)
+      .sort((a, b) => new Date(b.arrived_at).getTime() - new Date(a.arrived_at).getTime())[0]?.waste_type
+  const nonInfectiousContainers = containers.filter((c) => {
+    const t = lastReceptionType(c.id)
+    return t != null && t !== 'infectious'
+  })
   const [step, setStep] = useState<Step>(1)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [destination, setDestination] = useState('')

@@ -15,14 +15,6 @@ const PHASE_LABELS: Record<ContainerPhase, string> = {
   clean: 'Limpio',
 }
 
-const WASTE_LABELS: Record<string, string> = {
-  infectious: 'Infeccioso',
-  anatomopathological: 'Anatomopatológico',
-  cytotoxic: 'Citotóxico',
-  liquid: 'Líquidos',
-  morgue: 'Morgue',
-}
-
 interface Props {
   containers: ContainerWithPhase[]
   companies: { id: string; name: string; client_id: string }[]
@@ -50,7 +42,6 @@ export function ContainerTable({ containers, companies, clients }: Props) {
             <th className="px-4 py-3">Tacho</th>
             <th className="px-4 py-3">Empresa</th>
             <th className="px-4 py-3">Cliente</th>
-            <th className="px-4 py-3">Tipo</th>
             <th className="px-4 py-3">Tamaño</th>
             <th className="px-4 py-3">Fase actual</th>
             <th className="px-4 py-3">Ubicación actual</th>
@@ -96,7 +87,6 @@ export function ContainerTable({ containers, companies, clients }: Props) {
                 </td>
                 <td className="px-4 py-3 text-foreground/80">{company?.name ?? '—'}</td>
                 <td className="px-4 py-3 text-foreground/80">{clientName}</td>
-                <td className="px-4 py-3 text-foreground/80">{WASTE_LABELS[c.waste_type]}</td>
                 <td className="px-4 py-3 text-foreground/80">{c.size_liters} L</td>
                 <td className="px-4 py-3">
                   <Badge variant="outline">{PHASE_LABELS[c.current_phase]}</Badge>

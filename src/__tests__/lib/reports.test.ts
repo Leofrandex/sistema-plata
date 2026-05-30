@@ -118,7 +118,7 @@ describe('buildPhotographicReportData (por empresa)', () => {
       clients: MOCK_CLIENTS,
       companies: MOCK_COMPANIES,
       containers: [
-        { id: 'A-050', company_id: 'company-airkem', size_liters: 240, tare_weight_kg: 14.0, waste_type: 'infectious', status: 'active', registered_at: '2026-01-01T00:00:00Z' },
+        { id: 'A-050', company_id: 'company-airkem', size_liters: 240, tare_weight_kg: 14.0, status: 'active', registered_at: '2026-01-01T00:00:00Z' },
       ],
       routeEvents: [],
       weighingSessions: [],
