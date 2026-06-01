@@ -26,8 +26,8 @@ describe('computeCirculationBreakdown', () => {
       externalTransfers: MOCK_EXTERNAL_TRANSFERS,
       locations: MOCK_LOCATIONS,
     })
-    // 189 Airkem del histórico Excel (tachos ION eliminados)
-    expect(result.total).toBe(189)
+    // 189 Airkem del histórico Excel (tachos ION eliminados) + 15 tachos metálicos M1-M15
+    expect(result.total).toBe(204)
     expect(result.buckets.map((b) => b.key)).toEqual([
       'en_planta', 'en_cliente', 'en_transito', 'sin_registro',
     ])
