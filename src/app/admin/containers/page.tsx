@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Car } from 'lucide-react'
+import { Plus, Car, Wrench } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -26,10 +26,11 @@ export default function AdminContainersPage() {
       await q.createContainer(supabase, {
         id: data.id,
         company_id: data.company_id || null,
-        size_liters: String(data.size_liters) as '240' | '750' | '1100',
+        size_liters: String(data.size_liters) as '120' | '240' | '750' | '1100',
         tare_weight_kg: data.tare_weight_kg,
         status: 'active',
         is_yaris_dedicated: data.is_yaris_dedicated ?? false,
+        is_metallic_dedicated: data.is_metallic_dedicated ?? false,
       })
     } catch (err) {
       console.error('[admin/containers] crear tacho falló:', err)
@@ -60,6 +61,18 @@ export default function AdminContainersPage() {
       return
     }
     updateContainer(c.id, { is_yaris_dedicated: next })
+  }
+
+  async function toggleMetallic(c: Container) {
+    const next = !c.is_metallic_dedicated
+    try {
+      const supabase = createClient()
+      await q.updateContainer(supabase, c.id, { is_metallic_dedicated: next })
+    } catch (err) {
+      console.error('[admin/containers] toggle Metálico falló:', err)
+      return
+    }
+    updateContainer(c.id, { is_metallic_dedicated: next })
   }
 
   return (
@@ -94,6 +107,7 @@ export default function AdminContainersPage() {
               <th className="px-4 py-3 font-medium">Tara</th>
               <th className="px-4 py-3 font-medium">Estado</th>
               <th className="px-4 py-3 font-medium">Yaris</th>
+              <th className="px-4 py-3 font-medium">Metálico</th>
               <th className="px-4 py-3 font-medium"></th>
             </tr>
           </thead>
@@ -125,6 +139,20 @@ export default function AdminContainersPage() {
                     >
                       <Car className="h-3.5 w-3.5" />
                       {c.is_yaris_dedicated ? 'Sí' : 'No'}
+                    </Button>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleMetallic(c)}
+                      disabled={c.status !== 'active'}
+                      className={c.is_metallic_dedicated
+                        ? 'gap-1 bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        : 'gap-1 text-muted-foreground hover:text-foreground'}
+                    >
+                      <Wrench className="h-3.5 w-3.5" />
+                      {c.is_metallic_dedicated ? 'Sí' : 'No'}
                     </Button>
                   </td>
                   <td className="px-4 py-3">

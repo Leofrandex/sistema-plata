@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { Client, Company, Container, ContainerSize } from '@/lib/types'
 
 const SIZE_OPTIONS: { value: ContainerSize; label: string }[] = [
+  { value: 120, label: '120 L' },
   { value: 240, label: '240 L' },
   { value: 750, label: '750 L' },
   { value: 1100, label: '1100 L' },
@@ -26,6 +27,7 @@ export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props)
   const [size, setSize] = useState<ContainerSize | ''>('')
   const [tare, setTare] = useState('')
   const [isYaris, setIsYaris] = useState(false)
+  const [isMetallic, setIsMetallic] = useState(false)
 
   const companiesOfClient = useMemo(
     () => companies.filter((c) => c.client_id === clientId),
@@ -33,9 +35,12 @@ export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props)
   )
 
   const selectedCompany = companies.find((c) => c.id === companyId)
-  const computedId = selectedCompany && containerNumber
-    ? `${selectedCompany.code_letter}-${containerNumber.padStart(3, '0')}`
-    : ''
+  // Metálico: id libre (M1…) sin empresa. Normal: {letra}-NNN.
+  const computedId = isMetallic
+    ? containerNumber.trim()
+    : selectedCompany && containerNumber
+      ? `${selectedCompany.code_letter}-${containerNumber.padStart(3, '0')}`
+      : ''
 
   function handleClientChange(newClientId: string) {
     setClientId(newClientId)
@@ -44,17 +49,19 @@ export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props)
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!clientId || !companyId || !containerNumber || !size || !tare) return
+    if (!computedId || !size || !tare) return
+    if (!isMetallic && (!clientId || !companyId)) return
     onSubmit({
       id: computedId,
-      company_id: companyId,
+      company_id: isMetallic ? '' : companyId,
       size_liters: size as ContainerSize,
       tare_weight_kg: parseFloat(tare),
       is_yaris_dedicated: isYaris,
+      is_metallic_dedicated: isMetallic,
     })
   }
 
-  const canSubmit = clientId && companyId && containerNumber && size && tare
+  const canSubmit = computedId && size && tare && (isMetallic || (clientId && companyId))
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -97,8 +104,8 @@ export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props)
             <span className="font-mono font-semibold text-slate-600">{selectedCompany.code_letter}-</span>
           )}
           <Input
-            type="number"
-            placeholder="001"
+            type={isMetallic ? 'text' : 'number'}
+            placeholder={isMetallic ? 'M1' : '001'}
             value={containerNumber}
             onChange={(e) => setContainerNumber(e.target.value)}
             className="flex-1"
@@ -137,13 +144,28 @@ export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props)
         <input
           type="checkbox"
           checked={isYaris}
-          onChange={(e) => setIsYaris(e.target.checked)}
+          onChange={(e) => { setIsYaris(e.target.checked); if (e.target.checked) setIsMetallic(false) }}
           className="mt-0.5 h-4 w-4"
         />
         <div className="flex-1">
           <p className="text-sm font-medium">Tacho dedicado a Yaris</p>
           <p className="text-xs text-muted-foreground">
             Marcalo si este tacho se usa solo para pesaje de cargas Yaris/Picanto. Aparece en una lista aparte en el formulario de pesaje.
+          </p>
+        </div>
+      </label>
+
+      <label className="flex items-start gap-3 rounded-lg border border-border bg-card p-3 cursor-pointer hover:bg-muted/30">
+        <input
+          type="checkbox"
+          checked={isMetallic}
+          onChange={(e) => { setIsMetallic(e.target.checked); if (e.target.checked) setIsYaris(false) }}
+          className="mt-0.5 h-4 w-4"
+        />
+        <div className="flex-1">
+          <p className="text-sm font-medium">Tacho dedicado a metálico</p>
+          <p className="text-xs text-muted-foreground">
+            Marcalo si este tacho se usa solo para "Metálicos No reutilizables". Se crea sin empresa y aparece solo al pesar ese tipo.
           </p>
         </div>
       </label>
