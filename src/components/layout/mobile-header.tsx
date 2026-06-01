@@ -13,7 +13,6 @@ const PAGE_TITLES: Record<string, string> = {
   '/register/weighing': 'Pesaje',
   '/register/treatment': 'Registrar Tratamiento',
   '/register/transfer': 'Registrar Traslado',
-  '/register/location': 'Reportar Ubicación',
   '/admin/containers': 'Administrar Tachos',
   '/admin/clients': 'Administrar Clientes',
   '/admin/companies': 'Administrar Empresas',

@@ -51,3 +51,8 @@ next-env.d.ts
 /public/sw.js.map
 /public/workbox-*.js
 /public/workbox-*.js.map
+
+# demo report artifacts (contienen fotos reales del piloto) + fuentes sueltas de logos
+/demo-report-page*.png
+/logo-black.png
+/BrW1JbIM.jpg

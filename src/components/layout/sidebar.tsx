@@ -12,7 +12,6 @@ const REGISTER_LINKS = [
   { href: '/register/weighing', label: 'Pesaje' },
   { href: '/register/treatment', label: 'Tratamiento' },
   { href: '/register/transfer', label: 'Traslado externo' },
-  { href: '/register/location', label: 'Ubicación' },
 ]
 
 const ADMIN_LINKS = [

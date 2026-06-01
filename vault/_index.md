@@ -80,6 +80,8 @@ updated: 2026-05-21
 - `logs/2026-05-25-fotos-supabase-storage.md`
 - `logs/2026-05-27-pesaje-login-recorridos-multianden.md`
 - `logs/2026-05-30-pesaje-tratamiento-rename-tacho.md`
+- `logs/2026-06-01-reporte-logos-riga-cpch.md`
+- `logs/2026-06-01-quitar-ubicacion-traslado-en-construccion.md`
 
 ---
 
