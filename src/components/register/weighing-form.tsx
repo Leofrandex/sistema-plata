@@ -16,6 +16,7 @@ const WASTE_LABELS: Record<WasteType, string> = {
   cytotoxic: 'Citotóxico',
   liquid: 'Líquidos',
   morgue: 'Morgue',
+  metallic: 'Metálicos No reutilizables',
 }
 
 export interface WeighingFormState {

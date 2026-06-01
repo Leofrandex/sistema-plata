@@ -226,6 +226,7 @@ export type Database = {
         Row: {
           company_id: string | null
           id: string
+          is_metallic_dedicated: boolean
           is_yaris_dedicated: boolean
           registered_at: string
           size_liters: Database["public"]["Enums"]["container_size"]
@@ -235,6 +236,7 @@ export type Database = {
         Insert: {
           company_id?: string | null
           id: string
+          is_metallic_dedicated?: boolean
           is_yaris_dedicated?: boolean
           registered_at?: string
           size_liters: Database["public"]["Enums"]["container_size"]
@@ -244,6 +246,7 @@ export type Database = {
         Update: {
           company_id?: string | null
           id?: string
+          is_metallic_dedicated?: boolean
           is_yaris_dedicated?: boolean
           registered_at?: string
           size_liters?: Database["public"]["Enums"]["container_size"]
@@ -681,7 +684,7 @@ export type Database = {
         | "treatment"
         | "transfer"
         | "clean"
-      container_size: "240" | "750" | "1100"
+      container_size: "120" | "240" | "750" | "1100"
       container_status: "active" | "decommissioned"
       location_type:
         | "client_site"
@@ -698,6 +701,7 @@ export type Database = {
         | "cytotoxic"
         | "liquid"
         | "morgue"
+        | "metallic"
       weighing_session_status: "in_progress" | "completed"
     }
     CompositeTypes: {
@@ -834,7 +838,7 @@ export const Constants = {
         "transfer",
         "clean",
       ],
-      container_size: ["240", "750", "1100"],
+      container_size: ["120", "240", "750", "1100"],
       container_status: ["active", "decommissioned"],
       location_type: [
         "client_site",
@@ -852,6 +856,7 @@ export const Constants = {
         "cytotoxic",
         "liquid",
         "morgue",
+        "metallic",
       ],
       weighing_session_status: ["in_progress", "completed"],
     },

@@ -6,8 +6,9 @@ export type WasteType =
   | 'cytotoxic'           // 3 — Citotóxico (external transfer)
   | 'liquid'              // 4 — Líquidos (external transfer)
   | 'morgue'              // 5 — Morgue (external transfer)
+  | 'metallic'            // 6 — Metálicos No reutilizables (tachos M dedicados)
 
-export type ContainerSize = 240 | 750 | 1100
+export type ContainerSize = 120 | 240 | 750 | 1100
 
 export type ContainerStatus = 'active' | 'decommissioned'
 
@@ -74,6 +75,9 @@ export interface Container {
    *  como opción en /register/weighing cuando el operador activa el modo Yaris.
    *  Opcional para compat con data histórica/mocks; undefined === false. */
   is_yaris_dedicated?: boolean
+  /** true: tacho dedicado a "Metálicos No reutilizables". Siempre disponible en
+   *  pesaje (sin recorrido) y solo visible cuando el tipo elegido es 'metallic'. */
+  is_metallic_dedicated?: boolean
 }
 
 export interface Photo {
