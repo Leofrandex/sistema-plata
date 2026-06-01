@@ -32,7 +32,7 @@ El informe incluye también los datos del envase: número, cliente, fecha, hora,
 ## Formato del informe
 
 Layout replicado de los reportes históricos del cliente:
-- **Header** por página: logo de la Empresa (ION / Airkem) a la izquierda, título "REGISTRO FOTOGRÁFICO" centrado, tabla con `Edificio`, `Ubicación`, `Fecha` a la derecha.
+- **Header** por página (banda fija): logo de **Constructora RIGA** (contratista, `public/logo-riga.png`) a la izquierda, título "REGISTRO FOTOGRÁFICO" centrado, logo de **CPCH / Ciudad de la Salud** (consorcio cliente, `public/logo-cpch.jpg`) a la derecha. Debajo, la barra de metadatos con `Edificio`, `Ubicación`, `Empresa`, `Fecha`.
 - **Body**: grid de 2 columnas × N filas de fotos. Cada foto con caja "Comentario:" debajo (número de envase, hora, y texto libre opcional).
 - **Orden**: por etapa (recorrido → pesaje) y dentro de cada etapa, por empresa (ION → Airkem). Cada cambio de etapa o empresa empieza página nueva.
 - **Rango**: lunes 00:00 → hoy 23:59 (el viernes cubre la semana completa).

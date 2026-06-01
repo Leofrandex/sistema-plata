@@ -17,13 +17,36 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica',
     color: '#1e293b',
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  headerSide: {
+    width: 110,
+    justifyContent: 'center',
+  },
+  logoRiga: {
+    width: 92,
+    height: 33, // 1200×430 → ratio 2.79
+    objectFit: 'contain',
+  },
+  logoCpch: {
+    width: 38,
+    height: 38,
+    objectFit: 'contain',
+    alignSelf: 'flex-end',
+  },
+  titleWrap: {
+    flexGrow: 1,
+    alignItems: 'center',
+  },
   title: {
     textAlign: 'center',
     fontSize: 13,
     fontFamily: 'Helvetica-Bold',
     color: '#0f172a',
     letterSpacing: 1.2,
-    marginBottom: 6,
   },
   metaBar: {
     flexDirection: 'row',
@@ -140,6 +163,25 @@ function buildCuadros(day: ReportDay): Cuadro[] {
   return cuadros
 }
 
+/** Banda superior: logo RIGA (contratista) · título · logo CPCH (Ciudad de la Salud). */
+function PageHeader() {
+  return (
+    <View style={styles.header} fixed>
+      <View style={styles.headerSide}>
+        {/* eslint-disable-next-line jsx-a11y/alt-text */}
+        <Image src="/logo-riga.png" style={styles.logoRiga} />
+      </View>
+      <View style={styles.titleWrap}>
+        <Text style={styles.title}>REGISTRO FOTOGRÁFICO</Text>
+      </View>
+      <View style={styles.headerSide}>
+        {/* eslint-disable-next-line jsx-a11y/alt-text */}
+        <Image src="/logo-cpch.jpg" style={styles.logoCpch} />
+      </View>
+    </View>
+  )
+}
+
 function MetaBar({ companyName, fecha }: { companyName: string; fecha: string }) {
   return (
     <View style={styles.metaBar} fixed>
@@ -192,7 +234,7 @@ function DayPages({ day, companyName }: { day: ReportDay; companyName: string })
     <>
       {pages.map((pageCuadros, idx) => (
         <Page key={`${day.date}-${idx}`} size="A4" orientation="landscape" style={styles.page}>
-          <Text style={styles.title} fixed>REGISTRO FOTOGRÁFICO</Text>
+          <PageHeader />
           <MetaBar companyName={companyName} fecha={day.date} />
           <View style={styles.cuadrosWrap}>
             {pageCuadros.map((c, i) => (
@@ -223,7 +265,7 @@ export function PhotographicReportDocument({ data }: Props) {
       ))}
       {meta.totalPhotos === 0 && (
         <Page size="A4" orientation="landscape" style={styles.page}>
-          <Text style={styles.title}>REGISTRO FOTOGRÁFICO</Text>
+          <PageHeader />
           <View style={styles.empty}>
             <Text style={styles.emptyText}>
               No hay registros fotográficos para {company.name} en el rango {data.rangeStart} a {data.rangeEnd}.
