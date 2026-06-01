@@ -22,7 +22,7 @@ updated: 2026-05-21
 **Fase:** Preparación lanzamiento PTDP — ajustes post-piloto; lanzamiento oficial 2026-06-01
 **Última reunión:** 2026-05-18 (Francesca + Karolyne + Marely + Sebastián) — ver `logs/2026-05-18-reunion-ptdp-demo-piloto.md`
 **Hito crítico:** lanzamiento oficial lunes 2026-06-01
-**Última actualización del vault:** 2026-05-30
+**Última actualización del vault:** 2026-06-01
 
 | Área | Estado | Archivo |
 |------|--------|---------|
@@ -41,6 +41,7 @@ updated: 2026-05-21
 | Fotos → Supabase Storage (upload + URLs firmadas) | 🟢 Completado | `logs/2026-05-25-fotos-supabase-storage.md` |
 | Empresa y tipo de desecho **dinámicos** del tacho | 🟢 Completado | `decisions/2026-05-30-empresa-tipo-dinamicos-tacho.md` |
 | Pesaje (pendientes+bloqueo, tipo input, tratar inmediato) + Tratamiento activo + rename "tacho" | 🟢 Completado | `logs/2026-05-30-pesaje-tratamiento-rename-tacho.md` |
+| Tachos metálicos M1-M15 + tipo "Metálicos No reutilizables" | 🟢 Completado | `logs/2026-06-01-tachos-metalicos.md` |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completo · ⚠️ Tiene incoherencias
 
@@ -82,6 +83,7 @@ updated: 2026-05-21
 - `logs/2026-05-30-pesaje-tratamiento-rename-tacho.md`
 - `logs/2026-06-01-reporte-logos-riga-cpch.md`
 - `logs/2026-06-01-quitar-ubicacion-traslado-en-construccion.md`
+- `logs/2026-06-01-tachos-metalicos.md`
 
 ---
 
