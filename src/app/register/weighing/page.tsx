@@ -22,7 +22,7 @@ import {
   todayLocal,
   type ActiveSession,
 } from '@/lib/active-session'
-import { getPendingWeighingContainerIds, getContainerCurrentCompanyId, formatTachoNumber } from '@/lib/data/containers'
+import { getPendingWeighingContainerIds, getContainerCurrentCompanyId, formatTachoNumber, getMetallicContainers } from '@/lib/data/containers'
 import { uploadEventPhotos } from '@/lib/data/photos'
 import { createClient } from '@/lib/supabase/client'
 import * as q from '@/lib/supabase/queries'
@@ -84,11 +84,12 @@ export default function WeighingPage() {
   // Excluimos los dedicados a Yaris: éstos viven en una lista aparte y solo se eligen cuando el operador activa el modo Yaris.
   const pendingIds = new Set(getPendingWeighingContainerIds(containers, routeEvents, receptions))
   const availableContainers = containers.filter(
-    (c) => pendingIds.has(c.id) && !c.is_yaris_dedicated,
+    (c) => pendingIds.has(c.id) && !c.is_yaris_dedicated && !c.is_metallic_dedicated,
   )
   const yarisContainers = containers.filter(
     (c) => c.is_yaris_dedicated && c.status === 'active',
   )
+  const metallicContainers = getMetallicContainers(containers)
 
   const inheritedCompanyId = formState.container_id
     ? getContainerCurrentCompanyId(formState.container_id, routeEvents, treatmentRuns, externalTransfers)
@@ -513,6 +514,7 @@ export default function WeighingPage() {
         onChange={updateForm}
         availableContainers={availableContainers}
         yarisContainers={yarisContainers}
+        metallicContainers={metallicContainers}
         allContainers={containers}
         inheritedCompanyName={inheritedCompanyName}
         locked={!isRunning}

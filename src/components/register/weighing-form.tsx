@@ -50,6 +50,8 @@ interface Props {
   availableContainers: Container[]
   /** Tachos dedicados a Yaris disponibles (siempre disponibles, no requieren recorrido previo). */
   yarisContainers: Container[]
+  /** Tachos dedicados a metálico (siempre disponibles; solo se ofrecen con tipo 'metallic'). */
+  metallicContainers: Container[]
   /** Lista completa para resolver datos del tacho si se está editando uno ya pesado. */
   allContainers: Container[]
   inheritedCompanyName?: string | null
@@ -65,6 +67,7 @@ export function WeighingForm({
   onChange,
   availableContainers,
   yarisContainers,
+  metallicContainers,
   allContainers,
   inheritedCompanyName,
   locked,
@@ -76,11 +79,12 @@ export function WeighingForm({
   const selectedContainer = allContainers.find((c) => c.id === state.container_id) ?? null
 
   const isYaris = state.is_yaris_weighing
+  const isMetallic = state.waste_type === 'metallic'
 
   // En modo edit, el tacho actualmente cargado puede no estar en
   // availableContainers (porque ya tiene reception). Lo agregamos al inicio
   // para que siga visible y editable.
-  const normalCatalog = isYaris ? [] : availableContainers
+  const normalCatalog = isYaris ? [] : isMetallic ? metallicContainers : availableContainers
   const yarisCatalog = isYaris ? yarisContainers : []
 
   const dropdownContainers = (() => {
@@ -108,12 +112,24 @@ export function WeighingForm({
     !!state.photo_scale &&
     hasValidWeight
 
-  function toggleYaris() {
-    // Al cambiar el modo Yaris, limpiamos la selección de tacho (la lista
-    // disponible cambia) para evitar enviar un tacho inconsistente.
+  function changeWasteType(v: string | null) {
+    const next = (v ?? 'infectious') as WasteType
+    const crossingMetallic = (state.waste_type === 'metallic') !== (next === 'metallic')
     onChange({
-      is_yaris_weighing: !isYaris,
+      waste_type: next,
+      ...(crossingMetallic ? { container_id: '' } : {}),
+      ...(next === 'metallic' ? { is_yaris_weighing: false } : {}),
+    })
+  }
+
+  function toggleYaris() {
+    const turningOn = !isYaris
+    onChange({
+      is_yaris_weighing: turningOn,
       container_id: '',
+      ...(turningOn && state.waste_type === 'metallic'
+        ? { waste_type: 'infectious' as WasteType }
+        : {}),
     })
   }
 
@@ -129,7 +145,7 @@ export function WeighingForm({
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr] gap-3">
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-foreground">
-            Número de tacho <span className="text-red-500">*</span>
+            {isMetallic ? 'Tacho metálico' : 'Número de tacho'} <span className="text-red-500">*</span>
           </label>
           <Select
             value={!isYaris ? state.container_id : ''}
@@ -140,9 +156,11 @@ export function WeighingForm({
               <SelectValue placeholder={
                 isYaris
                   ? 'Modo Yaris activo'
-                  : normalCatalog.length === 0
-                    ? 'No hay tachos pendientes'
-                    : 'Seleccionar tacho'
+                  : isMetallic
+                    ? (metallicContainers.length === 0 ? 'No hay tachos metálicos' : 'Seleccionar tacho metálico')
+                    : normalCatalog.length === 0
+                      ? 'No hay tachos pendientes'
+                      : 'Seleccionar tacho'
               } />
             </SelectTrigger>
             <SelectContent>
@@ -188,7 +206,9 @@ export function WeighingForm({
         <p className="text-xs text-amber-700">
           {isYaris
             ? 'No hay tachos Yaris configurados. Marcá un tacho como dedicado a Yaris desde Admin → Tachos.'
-            : 'No hay tachos sucios recogidos pendientes de pesar. Registrá un recorrido primero.'}
+            : isMetallic
+              ? 'No hay tachos metálicos configurados. Marcá un tacho como dedicado a metálico desde Admin → Tachos.'
+              : 'No hay tachos sucios recogidos pendientes de pesar. Registrá un recorrido primero.'}
         </p>
       )}
       {selectedContainer && (
@@ -204,6 +224,11 @@ export function WeighingForm({
               Dedicado a Yaris
             </Badge>
           )}
+          {selectedContainer.is_metallic_dedicated && (
+            <Badge variant="outline" className="font-normal bg-slate-100 border-slate-300 text-slate-700">
+              Tacho metálico
+            </Badge>
+          )}
         </div>
       )}
 
@@ -212,7 +237,7 @@ export function WeighingForm({
         <label className="text-sm font-medium text-foreground">
           Tipo de desecho <span className="text-red-500">*</span>
         </label>
-        <Select value={state.waste_type} onValueChange={(v) => onChange({ waste_type: (v ?? 'infectious') as WasteType })}>
+        <Select value={state.waste_type} onValueChange={changeWasteType}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             {(Object.keys(WASTE_LABELS) as WasteType[]).map((w) => (
@@ -271,33 +296,35 @@ export function WeighingForm({
       </div>
 
       {/* Toggle "Pesaje de Yaris" estilo checklist */}
-      <button
-        type="button"
-        onClick={toggleYaris}
-        aria-pressed={isYaris}
-        className={cn(
-          'w-full flex items-center gap-3 rounded-lg border p-3 text-left transition-colors',
-          isYaris
-            ? 'border-amber-300 bg-amber-50 hover:bg-amber-100'
-            : 'border-border bg-card hover:bg-muted/40',
-        )}
-      >
-        {isYaris ? (
-          <CheckSquare className="h-5 w-5 shrink-0 text-amber-700" />
-        ) : (
-          <Square className="h-5 w-5 shrink-0 text-muted-foreground" />
-        )}
-        <div className="flex-1">
-          <p className={cn('text-sm font-semibold', isYaris ? 'text-amber-900' : 'text-foreground')}>
-            ¿Es un pesaje de Yaris?
-          </p>
-          <p className={cn('text-xs', isYaris ? 'text-amber-800/80' : 'text-muted-foreground')}>
-            {isYaris
-              ? 'Activado. Seleccioná un tacho dedicado a Yaris arriba.'
-              : 'Marcá esta opción si la carga viene de un tacho Yaris.'}
-          </p>
-        </div>
-      </button>
+      {!isMetallic && (
+        <button
+          type="button"
+          onClick={toggleYaris}
+          aria-pressed={isYaris}
+          className={cn(
+            'w-full flex items-center gap-3 rounded-lg border p-3 text-left transition-colors',
+            isYaris
+              ? 'border-amber-300 bg-amber-50 hover:bg-amber-100'
+              : 'border-border bg-card hover:bg-muted/40',
+          )}
+        >
+          {isYaris ? (
+            <CheckSquare className="h-5 w-5 shrink-0 text-amber-700" />
+          ) : (
+            <Square className="h-5 w-5 shrink-0 text-muted-foreground" />
+          )}
+          <div className="flex-1">
+            <p className={cn('text-sm font-semibold', isYaris ? 'text-amber-900' : 'text-foreground')}>
+              ¿Es un pesaje de Yaris?
+            </p>
+            <p className={cn('text-xs', isYaris ? 'text-amber-800/80' : 'text-muted-foreground')}>
+              {isYaris
+                ? 'Activado. Seleccioná un tacho dedicado a Yaris arriba.'
+                : 'Marcá esta opción si la carga viene de un tacho Yaris.'}
+            </p>
+          </div>
+        </button>
+      )}
 
       {/* Observaciones */}
       <div className="space-y-1.5">
