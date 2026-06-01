@@ -4,6 +4,7 @@ import {
   getContainerCurrentLocation,
   getRouteEventIdsForContainer,
   getContainerCurrentCompanyId,
+  getMetallicContainers,
 } from '@/lib/data/containers'
 import type {
   Container,
@@ -191,6 +192,32 @@ describe('computeContainerPhase — tratamiento inmediato', () => {
   it('tratamiento en curso sin storage → treatment', () => {
     const treatment: TreatmentRun = { id: 't', container_id: 'A-007', started_at: '2026-05-29T09:01:00Z', completed_at: null, operator_id: 'op' }
     expect(computeContainerPhase(['r1'], reception, null, treatment)).toBe('treatment')
+  })
+})
+
+describe('getMetallicContainers', () => {
+  const mk = (id: string, over: Partial<Container> = {}): Container => ({
+    id,
+    company_id: '',
+    size_liters: 120,
+    tare_weight_kg: 8.7,
+    status: 'active',
+    registered_at: '2026-06-01T00:00:00Z',
+    ...over,
+  })
+
+  it('devuelve solo los dedicados a metálico y activos', () => {
+    const list = [
+      mk('M1', { is_metallic_dedicated: true }),
+      mk('M2', { is_metallic_dedicated: true, status: 'decommissioned' }),
+      mk('A-020', { size_liters: 240, is_yaris_dedicated: true }),
+      mk('A-001', { size_liters: 240 }),
+    ]
+    expect(getMetallicContainers(list).map((c) => c.id)).toEqual(['M1'])
+  })
+
+  it('lista vacía → []', () => {
+    expect(getMetallicContainers([])).toEqual([])
   })
 })
 

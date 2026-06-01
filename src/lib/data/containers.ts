@@ -120,6 +120,15 @@ export function getPendingWeighingContainerIds(
 }
 
 /**
+ * Tachos dedicados a "Metálicos No reutilizables" disponibles para pesar.
+ * Siempre disponibles (no requieren recorrido), igual que los Yaris. Solo se
+ * ofrecen en el formulario cuando el tipo de desecho elegido es 'metallic'.
+ */
+export function getMetallicContainers(containers: Container[]): Container[] {
+  return containers.filter((c) => c.is_metallic_dedicated && c.status === 'active')
+}
+
+/**
  * Display del número de tacho sin el prefijo de empresa (artefacto histórico de
  * importación). 'A-001' → '001'. Ids sin prefijo se devuelven igual.
  */
