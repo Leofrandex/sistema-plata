@@ -1,4 +1,4 @@
-# Diseño — Tachos metálicos M1-M15 + tipo de desecho "Piezas metálicas"
+# Diseño — Tachos metálicos M1-M15 + tipo de desecho "Metálicos No reutilizables"
 
 **Fecha:** 2026-06-01
 **Estado:** Aprobado (pendiente revisión del spec escrito)
@@ -13,8 +13,9 @@ están **siempre disponibles** para pesar (no requieren un recorrido previo) y s
 como opción cuando corresponde.
 
 La diferencia clave con Yaris: el disparador de los tachos metálicos **no es un toggle manual**,
-sino la **selección del tipo de desecho**. "Piezas metálicas" no existe hoy como tipo de desecho
-(el enum tiene 5: infeccioso, anatomopatológico, citotóxico, líquidos, morgue) y se agrega como 6º.
+sino la **selección del tipo de desecho**. El tipo **"Metálicos No reutilizables"** no existe hoy
+(el enum tiene 5: infeccioso, anatomopatológico, citotóxico, líquidos, morgue) y se agrega como 6º
+(valor de enum `'metallic'`, label visible "Metálicos No reutilizables").
 
 Coherente con el ADR `2026-05-30-empresa-tipo-dinamicos-tacho.md`: el tipo de desecho va
 **desvinculado del tacho** (es input del operador en el pesaje) y la empresa del tacho es
@@ -23,8 +24,8 @@ dinámica. Los tachos metálicos, al no pasar por recorrido, **no pertenecen a n
 
 ## Decisiones tomadas (brainstorming)
 
-1. **Yaris y Piezas metálicas son conceptos distintos.** Yaris conserva su toggle manual;
-   metálico es un nuevo tipo de desecho que dispara su propia lista de tachos.
+1. **Yaris y "Metálicos No reutilizables" son conceptos distintos.** Yaris conserva su toggle
+   manual; metálico es un nuevo tipo de desecho que dispara su propia lista de tachos.
 2. **M1-M15 siempre disponibles** (como Yaris), sin recorrido previo.
 3. **Post-pesaje = cámara fría** (rama no-infecciosa), igual que anatomopatológico/citotóxico/etc.
 4. **Los 17 tachos Yaris se configuran en esta entrega** (seed por migración).
@@ -37,7 +38,7 @@ dinámica. Los tachos metálicos, al no pasar por recorrido, **no pertenecen a n
 - Postgres: `ALTER TYPE waste_type ADD VALUE 'metallic'`.
 - `src/lib/types.ts`: agregar `'metallic'` a `WasteType`.
 - `src/lib/supabase/database.types.ts`: agregar `'metallic'` al enum `waste_type`.
-- `src/components/register/weighing-form.tsx`: `WASTE_LABELS.metallic = 'Piezas metálicas'`.
+- `src/components/register/weighing-form.tsx`: `WASTE_LABELS.metallic = 'Metálicos No reutilizables'`.
 
 ### 2. Flag `is_metallic_dedicated` (espejo de `is_yaris_dedicated`)
 - Migración: `ALTER TABLE public.containers ADD COLUMN is_metallic_dedicated boolean not null default false` + comment.
