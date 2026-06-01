@@ -53,12 +53,35 @@ export const MOCK_COMPANIES: Company[] = [
   { id: 'company-airkem', client_id: 'client-1', name: 'Airkem', code_letter: 'A' },
 ]
 
-// Pool real: 189 tachos Airkem del histórico Excel (2026-01-01 → 2026-05-11).
-// Los 10 tachos ION de demo fueron eliminados; ION sigue siendo una empresa
-// válida en MOCK_COMPANIES pero sin tachos hardcoded aquí.
+// IDs Airkem dedicados a Yaris (provistos por operaciones).
+const YARIS_IDS = new Set([
+  'A-020', 'A-042', 'A-044', 'A-046', 'A-048', 'A-051', 'A-064', 'A-065',
+  'A-068', 'A-069', 'A-072', 'A-076', 'A-078', 'A-105', 'A-154', 'A-175', 'A-187',
+])
+
+// Tachos metálicos M1..M15 (120 L, sin empresa, taras reales).
+const METALLIC_TARES: Record<string, number> = {
+  M1: 8.7, M2: 8.7, M3: 8.9, M4: 8.9, M5: 9.1, M6: 9.0, M7: 9.0, M8: 8.8,
+  M9: 9.2, M10: 9.2, M11: 9.1, M12: 8.7, M13: 8.9, M14: 8.7, M15: 9.1,
+}
+
+const METALLIC_CONTAINERS: Container[] = Object.entries(METALLIC_TARES).map(([id, tare]) => ({
+  id,
+  company_id: '',
+  size_liters: 120,
+  tare_weight_kg: tare,
+  status: 'active',
+  registered_at: '2026-06-01T00:00:00Z',
+  is_metallic_dedicated: true,
+}))
+
+// Pool real: 189 tachos Airkem del histórico Excel (2026-01-01 → 2026-05-11),
+// con los 17 Yaris marcados, + 15 metálicos M1..M15.
 export const MOCK_CONTAINERS: Container[] = [
-  // Airkem (A-001..A-189) — provenientes del histórico
-  ...HISTORICAL_CONTAINERS,
+  ...HISTORICAL_CONTAINERS.map((c) =>
+    YARIS_IDS.has(c.id) ? { ...c, is_yaris_dedicated: true } : c,
+  ),
+  ...METALLIC_CONTAINERS,
 ]
 
 // Hoy se completó la 1.ª y 2.ª ruta para Centro de la Salud.
