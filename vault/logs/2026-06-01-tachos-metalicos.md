@@ -16,8 +16,11 @@ dedicados `M1`…`M15` (120 L), análogos a los Yaris pero disparados por el tip
 ## Cambios
 - Enum `waste_type` += `metallic`; `container_size` += `120`; columna
   `containers.is_metallic_dedicated` (espejo de `is_yaris_dedicated`).
-- Seed: 17 tachos Airkem marcados Yaris (`A-020…A-187`) + 15 metálicos `M1…M15`
+- Seed: 17 tachos Airkem marcados Yaris (IDs `020, 042, 044, 046, 048, 051, 064,
+  065, 068, 069, 072, 076, 078, 105, 154, 175, 187`) + 15 metálicos `M1…M15`
   (`company_id = null`, taras reales 8.7–9.2 kg).
+  ⚠️ Los IDs en Supabase son **numéricos zero-padded sin prefijo** (`020`), NO `A-020`.
+  Ver [[2026-06-01-ids-tachos-supabase-vs-mock]].
 - Pesaje: al elegir "Metálicos No reutilizables", el selector de tacho muestra solo los M
   (siempre disponibles, sin recorrido). Metálico y Yaris mutuamente excluyentes.
 - Admin: alta + toggle de tacho metálico, tamaño 120 L, empresa opcional.
