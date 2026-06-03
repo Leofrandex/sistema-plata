@@ -49,6 +49,25 @@ describe('computeCirculationBreakdown', () => {
     // Storage events del histórico Airkem garantizan al menos 1 en planta
     expect(enPlanta.count).toBeGreaterThanOrEqual(0)
   })
+
+  it('excluye los contenedores Yaris del pool activo', () => {
+    const withYaris = [
+      ...MOCK_CONTAINERS,
+      { id: 'Y1', company_id: '', size_liters: 1100 as const, tare_weight_kg: 0,
+        status: 'active' as const, registered_at: '2026-06-03T00:00:00Z', is_yaris_container: true },
+    ]
+    const result = computeCirculationBreakdown({
+      containers: withYaris,
+      routeEvents: MOCK_ROUTE_EVENTS,
+      receptions: MOCK_RECEPTIONS,
+      storageEvents: MOCK_STORAGE_EVENTS,
+      treatmentRuns: MOCK_TREATMENT_RUNS,
+      externalTransfers: MOCK_EXTERNAL_TRANSFERS,
+      locations: MOCK_LOCATIONS,
+    })
+    // El Yaris extra NO cuenta: el total sigue siendo el pool de planta.
+    expect(result.total).toBe(204)
+  })
 })
 
 describe('computeDailyKg', () => {
