@@ -75,6 +75,18 @@ const METALLIC_CONTAINERS: Container[] = Object.entries(METALLIC_TARES).map(([id
   is_metallic_dedicated: true,
 }))
 
+// Flota Yaris Y1..Y26 (1100 L, sin empresa, sin tara: se pesan con los tachos
+// alternativos is_yaris_dedicated). Siempre disponibles en recorrido.
+const YARIS_ROUTE_CONTAINERS: Container[] = Array.from({ length: 26 }, (_, i) => ({
+  id: `Y${i + 1}`,
+  company_id: '',
+  size_liters: 1100,
+  tare_weight_kg: 0,
+  status: 'active',
+  registered_at: '2026-06-03T00:00:00Z',
+  is_yaris_container: true,
+}))
+
 // Pool real: 189 tachos Airkem del histórico Excel (2026-01-01 → 2026-05-11),
 // con los 17 Yaris marcados, + 15 metálicos M1..M15.
 export const MOCK_CONTAINERS: Container[] = [
@@ -82,6 +94,7 @@ export const MOCK_CONTAINERS: Container[] = [
     YARIS_IDS.has(c.id) ? { ...c, is_yaris_dedicated: true } : c,
   ),
   ...METALLIC_CONTAINERS,
+  ...YARIS_ROUTE_CONTAINERS,
 ]
 
 // Hoy se completó la 1.ª y 2.ª ruta para Centro de la Salud.
