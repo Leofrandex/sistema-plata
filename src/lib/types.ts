@@ -43,6 +43,10 @@ export type RouteKind = 'anden' | 'morgue'
 export type RouteEventStatus = 'in_progress' | 'completed'
 export type WeighingSessionStatus = 'in_progress' | 'completed'
 
+/** Rol de acceso del usuario. Coordinador: acceso total. Operador: solo
+ *  Dashboard, Recorrido, Pesaje y Tratamiento. */
+export type UserRole = 'coordinator' | 'operator'
+
 // ─── Entities ─────────────────────────────────────────────────────────────────
 
 export interface ClientLocation {

@@ -42,6 +42,7 @@ updated: 2026-05-21
 | Empresa y tipo de desecho **dinámicos** del tacho | 🟢 Completado | `decisions/2026-05-30-empresa-tipo-dinamicos-tacho.md` |
 | Pesaje (pendientes+bloqueo, tipo input, tratar inmediato) + Tratamiento activo + rename "tacho" | 🟢 Completado | `logs/2026-05-30-pesaje-tratamiento-rename-tacho.md` |
 | Tachos metálicos M1-M15 + tipo "Metálicos No reutilizables" | 🟢 Completado | `logs/2026-06-01-tachos-metalicos.md` |
+| Roles coordinador/operador (UI + middleware + RLS) + cuentas reales | 🟢 Completado | `logs/2026-06-01-roles-coordinador-operador.md` · `decisions/2026-06-01-roles-acceso.md` |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completo · ⚠️ Tiene incoherencias
 
@@ -67,6 +68,7 @@ updated: 2026-05-21
 - `decisions/2026-05-21-supabase-integracion.md`
 - `decisions/2026-05-21-estado-envase-derivado.md` — estado derivado de eventos; P1 avanzado (tratamiento completado → clean)
 - `decisions/2026-05-30-empresa-tipo-dinamicos-tacho.md` — empresa y tipo de desecho dinámicos del tacho
+- `decisions/2026-06-01-roles-acceso.md` — roles coordinador/operador; control en UI + middleware + RLS
 
 ### Logs de cambios
 - `logs/2026-05-03-branding-system.md`
@@ -84,6 +86,7 @@ updated: 2026-05-21
 - `logs/2026-06-01-reporte-logos-riga-cpch.md`
 - `logs/2026-06-01-quitar-ubicacion-traslado-en-construccion.md`
 - `logs/2026-06-01-tachos-metalicos.md`
+- `logs/2026-06-01-roles-coordinador-operador.md`
 
 ---
 

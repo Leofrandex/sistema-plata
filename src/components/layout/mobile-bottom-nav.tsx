@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useStore } from '@/lib/store'
 
 interface TabDef {
   href: string
@@ -25,11 +26,20 @@ interface TabDef {
   matchPrefix: string
 }
 
-const PRIMARY_TABS: TabDef[] = [
+// Coordinador: barra clásica (Inicio, Recorrido, Pesaje, Reportes) + botón "Más".
+const COORDINATOR_TABS: TabDef[] = [
   { href: '/dashboard',         label: 'Inicio',    icon: LayoutDashboard, matchPrefix: '/dashboard' },
   { href: '/register/route',    label: 'Recorrido', icon: RouteIcon,       matchPrefix: '/register/route' },
   { href: '/register/weighing', label: 'Pesaje',    icon: Scale,           matchPrefix: '/register/weighing' },
   { href: '/reports',           label: 'Reportes',  icon: FileText,        matchPrefix: '/reports' },
+]
+
+// Operador: exactamente sus 4 funciones, sin botón "Más".
+const OPERATOR_TABS: TabDef[] = [
+  { href: '/dashboard',          label: 'Inicio',      icon: LayoutDashboard, matchPrefix: '/dashboard' },
+  { href: '/register/route',     label: 'Recorrido',   icon: RouteIcon,       matchPrefix: '/register/route' },
+  { href: '/register/weighing',  label: 'Pesaje',      icon: Scale,           matchPrefix: '/register/weighing' },
+  { href: '/register/treatment', label: 'Tratamiento', icon: Flame,           matchPrefix: '/register/treatment' },
 ]
 
 interface MoreLink {
@@ -50,10 +60,15 @@ const MORE_LINKS: MoreLink[] = [
 export function MobileBottomNav() {
   const pathname = usePathname()
   const [moreOpen, setMoreOpen] = useState(false)
+  const role = useStore((s) => s.currentRole)
 
   if (pathname === '/login' || pathname.startsWith('/auth/')) return null
 
-  const isMoreActive = MORE_LINKS.some((l) => pathname.startsWith(l.href))
+  // Coordinador ve la barra completa + "Más"; cualquier otro caso (operador o
+  // rol aún sin cargar) ve solo las 4 funciones de operador, sin "Más".
+  const isCoordinator = role === 'coordinator'
+  const primaryTabs = isCoordinator ? COORDINATOR_TABS : OPERATOR_TABS
+  const isMoreActive = isCoordinator && MORE_LINKS.some((l) => pathname.startsWith(l.href))
 
   return (
     <>
@@ -61,8 +76,8 @@ export function MobileBottomNav() {
         aria-label="Navegación principal"
         className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-sidebar border-t border-sidebar-border pb-[env(safe-area-inset-bottom)]"
       >
-        <ul className="grid grid-cols-5">
-          {PRIMARY_TABS.map(({ href, label, icon: Icon, matchPrefix }) => {
+        <ul className={cn('grid', isCoordinator ? 'grid-cols-5' : 'grid-cols-4')}>
+          {primaryTabs.map(({ href, label, icon: Icon, matchPrefix }) => {
             const active = pathname === matchPrefix || pathname.startsWith(matchPrefix + '/')
             return (
               <li key={href}>
@@ -81,25 +96,27 @@ export function MobileBottomNav() {
               </li>
             )
           })}
-          <li>
-            <button
-              type="button"
-              onClick={() => setMoreOpen(true)}
-              aria-haspopup="dialog"
-              aria-expanded={moreOpen}
-              className={cn(
-                'w-full flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium transition-colors',
-                isMoreActive ? 'text-white' : 'text-white/60 hover:text-white',
-              )}
-            >
-              <MoreHorizontal className="h-5 w-5" />
-              <span>Más</span>
-            </button>
-          </li>
+          {isCoordinator && (
+            <li>
+              <button
+                type="button"
+                onClick={() => setMoreOpen(true)}
+                aria-haspopup="dialog"
+                aria-expanded={moreOpen}
+                className={cn(
+                  'w-full flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium transition-colors',
+                  isMoreActive ? 'text-white' : 'text-white/60 hover:text-white',
+                )}
+              >
+                <MoreHorizontal className="h-5 w-5" />
+                <span>Más</span>
+              </button>
+            </li>
+          )}
         </ul>
       </nav>
 
-      {moreOpen && (
+      {moreOpen && isCoordinator && (
         <div
           role="dialog"
           aria-modal="true"

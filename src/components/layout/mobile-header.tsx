@@ -1,6 +1,7 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
+import { LogOut } from 'lucide-react'
 import { APP_NAME } from '@/lib/constants'
 
 const PAGE_TITLES: Record<string, string> = {
@@ -30,8 +31,17 @@ export function MobileHeader() {
     APP_NAME
 
   return (
-    <header className="md:hidden flex items-center h-14 border-b bg-sidebar border-sidebar-border px-4 sticky top-0 z-10">
+    <header className="md:hidden flex items-center justify-between h-14 border-b bg-sidebar border-sidebar-border px-4 sticky top-0 z-10">
       <span className="font-semibold text-sidebar-foreground">{title}</span>
+      <form action="/auth/signout" method="post">
+        <button
+          type="submit"
+          aria-label="Cerrar sesión"
+          className="flex items-center justify-center p-2 -mr-2 rounded-md text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-white/10 transition-colors"
+        >
+          <LogOut className="h-5 w-5" />
+        </button>
+      </form>
     </header>
   )
 }

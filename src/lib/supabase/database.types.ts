@@ -357,16 +357,19 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          role: Database["public"]["Enums"]["user_role"]
         }
         Insert: {
           created_at?: string
           id: string
           name: string
+          role?: Database["public"]["Enums"]["user_role"]
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          role?: Database["public"]["Enums"]["user_role"]
         }
         Relationships: []
       }
@@ -702,6 +705,7 @@ export type Database = {
         | "liquid"
         | "morgue"
         | "metallic"
+      user_role: "coordinator" | "operator"
       weighing_session_status: "in_progress" | "completed"
     }
     CompositeTypes: {
@@ -858,6 +862,7 @@ export const Constants = {
         "morgue",
         "metallic",
       ],
+      user_role: ["coordinator", "operator"],
       weighing_session_status: ["in_progress", "completed"],
     },
   },

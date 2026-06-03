@@ -12,6 +12,7 @@ import type {
   ContainerLocation,
   User,
   Photo,
+  UserRole,
 } from './types'
 import {
   MOCK_CLIENTS,
@@ -46,6 +47,10 @@ interface HospiwasteStore {
   currentProfileId: string | null
   setCurrentProfileId: (id: string | null) => void
 
+  /** Rol del usuario autenticado. Null antes de hidratar. */
+  currentRole: UserRole | null
+  setCurrentRole: (role: UserRole | null) => void
+
   /**
    * Estado de la conexión con Supabase para la hidratación de datos.
    * - 'connecting': intento en curso (aún no hubo éxito).
@@ -59,7 +64,7 @@ interface HospiwasteStore {
    * Reemplaza N campos del store de una vez (post-hidratación desde Supabase).
    * Las claves no pasadas no se modifican.
    */
-  hydrate: (patch: Partial<Omit<HospiwasteStore, 'hydrate' | 'setCurrentProfileId'>>) => void
+  hydrate: (patch: Partial<Omit<HospiwasteStore, 'hydrate' | 'setCurrentProfileId' | 'setCurrentRole'>>) => void
 
   // Clientes / empresas
   addClient: (client: Client) => void
@@ -108,6 +113,9 @@ export const useStore = create<HospiwasteStore>((set) => ({
 
   currentProfileId: null,
   setCurrentProfileId: (id) => set({ currentProfileId: id }),
+
+  currentRole: null,
+  setCurrentRole: (role) => set({ currentRole: role }),
 
   connectionStatus: 'connecting',
   setConnectionStatus: (status) => set({ connectionStatus: status }),

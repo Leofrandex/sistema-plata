@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { LayoutDashboard, Package, Settings, ChevronDown, ClipboardList, FileText, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_NAME } from '@/lib/constants'
+import { useStore } from '@/lib/store'
 import { useState } from 'react'
 
 const REGISTER_LINKS = [
@@ -28,11 +29,20 @@ const TOP_NAV = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const role = useStore((s) => s.currentRole)
   const [registerOpen, setRegisterOpen] = useState(pathname.startsWith('/register'))
   const [adminOpen, setAdminOpen] = useState(pathname.startsWith('/admin'))
 
   // No mostrar shell en rutas de auth
   if (pathname === '/login' || pathname.startsWith('/auth/')) return null
+
+  // Solo el coordinador ve todo. Operador (o rol aún sin cargar) ve únicamente
+  // Inicio, Recorrido, Pesaje y Tratamiento.
+  const isCoordinator = role === 'coordinator'
+  const topNav = isCoordinator ? TOP_NAV : TOP_NAV.filter((n) => n.href === '/dashboard')
+  const registerLinks = isCoordinator
+    ? REGISTER_LINKS
+    : REGISTER_LINKS.filter((l) => l.href !== '/register/transfer')
 
   return (
     <aside className="hidden md:flex w-56 flex-col border-r border-sidebar-border bg-sidebar h-screen sticky top-0">
@@ -40,7 +50,7 @@ export function Sidebar() {
         <span className="font-bold text-lg text-sidebar-foreground">{APP_NAME}</span>
       </div>
       <nav className="flex-1 p-3 space-y-1 flex flex-col">
-        {TOP_NAV.map(({ href, label, icon: Icon }) => (
+        {topNav.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}
@@ -72,7 +82,7 @@ export function Sidebar() {
           </button>
           {registerOpen && (
             <div className="ml-7 mt-1 space-y-0.5">
-              {REGISTER_LINKS.map(({ href, label }) => (
+              {registerLinks.map(({ href, label }) => (
                 <Link
                   key={href}
                   href={href}
@@ -90,6 +100,7 @@ export function Sidebar() {
           )}
         </div>
 
+        {isCoordinator && (
         <div>
           <button
             onClick={() => setAdminOpen((o) => !o)}
@@ -123,6 +134,7 @@ export function Sidebar() {
             </div>
           )}
         </div>
+        )}
 
         <div className="mt-auto pt-4 border-t border-white/10">
           <form action="/auth/signout" method="post">

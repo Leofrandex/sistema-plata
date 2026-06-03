@@ -39,6 +39,7 @@ export function SupabaseHydrator() {
         const profile = await q.getCurrentProfile(supabase)
         if (cancelled) return
         useStore.getState().setCurrentProfileId(profile?.id ?? null)
+        useStore.getState().setCurrentRole(profile?.role ?? null)
 
         // Sin sesión → no traer datos (el middleware redirige a /login)
         if (!profile) return
