@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Car, Wrench } from 'lucide-react'
+import { Plus, Car, Wrench, Truck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -121,7 +121,7 @@ export default function AdminContainersPage() {
               <th className="px-4 py-3 font-medium">Estado</th>
               <th className="px-4 py-3 font-medium">Yaris</th>
               <th className="px-4 py-3 font-medium">Metálico</th>
-              <th className="px-4 py-3 font-medium">Yaris flota</th>
+              <th className="px-4 py-3 font-medium">Contenedor Yaris</th>
               <th className="px-4 py-3 font-medium"></th>
             </tr>
           </thead>
@@ -179,7 +179,7 @@ export default function AdminContainersPage() {
                         ? 'gap-1 bg-indigo-50 text-indigo-900 hover:bg-indigo-100'
                         : 'gap-1 text-muted-foreground hover:text-foreground'}
                     >
-                      <Car className="h-3.5 w-3.5" />
+                      <Truck className="h-3.5 w-3.5" />
                       {c.is_yaris_container ? 'Sí' : 'No'}
                     </Button>
                   </td>

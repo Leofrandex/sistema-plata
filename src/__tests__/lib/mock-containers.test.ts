@@ -20,7 +20,8 @@ describe('MOCK_CONTAINERS — Yaris y metálicos', () => {
     expect(yaris.every((c) => c.size_liters === 1100)).toBe(true)
     expect(yaris.every((c) => !c.company_id)).toBe(true)
     expect(yaris.every((c) => c.tare_weight_kg === 0)).toBe(true)
-    expect(yaris.map((c) => c.id)).toContain('Y1')
-    expect(yaris.map((c) => c.id)).toContain('Y26')
+    // Verifica el set exacto Y1..Y26 (no solo los extremos).
+    const ids = new Set(yaris.map((c) => c.id))
+    for (let i = 1; i <= 26; i++) expect(ids.has(`Y${i}`)).toBe(true)
   })
 })
