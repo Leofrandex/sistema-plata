@@ -1,8 +1,10 @@
 -- Marca los 17 tachos Airkem dedicados a Yaris (provistos por operaciones).
+-- IDs sin prefijo: la DB de Supabase usa códigos numéricos zero-padded ('020'),
+-- a diferencia del mock offline que usa 'A-020'.
 update public.containers set is_yaris_dedicated = true
 where id in (
-  'A-020','A-042','A-044','A-046','A-048','A-051','A-064','A-065',
-  'A-068','A-069','A-072','A-076','A-078','A-105','A-154','A-175','A-187'
+  '020','042','044','046','048','051','064','065',
+  '068','069','072','076','078','105','154','175','187'
 );
 
 -- Inserta los 15 tachos metálicos M1..M15 (120 L, sin empresa, taras reales).
