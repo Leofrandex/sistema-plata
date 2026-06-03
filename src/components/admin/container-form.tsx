@@ -28,6 +28,7 @@ export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props)
   const [tare, setTare] = useState('')
   const [isYaris, setIsYaris] = useState(false)
   const [isMetallic, setIsMetallic] = useState(false)
+  const [isYarisContainer, setIsYarisContainer] = useState(false)
 
   const companiesOfClient = useMemo(
     () => companies.filter((c) => c.client_id === clientId),
@@ -35,8 +36,9 @@ export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props)
   )
 
   const selectedCompany = companies.find((c) => c.id === companyId)
-  // Metálico: id libre (M1…) sin empresa. Normal: {letra}-NNN.
-  const computedId = isMetallic
+  // Metálico o Yaris recorrido: id libre (M1… / Y1…) sin empresa. Normal: {letra}-NNN.
+  const freeId = isMetallic || isYarisContainer
+  const computedId = freeId
     ? containerNumber.trim()
     : selectedCompany && containerNumber
       ? `${selectedCompany.code_letter}-${containerNumber.padStart(3, '0')}`
@@ -50,18 +52,19 @@ export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props)
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!computedId || !size || !tare) return
-    if (!isMetallic && (!clientId || !companyId)) return
+    if (!freeId && (!clientId || !companyId)) return
     onSubmit({
       id: computedId,
-      company_id: isMetallic ? '' : companyId,
+      company_id: freeId ? '' : companyId,
       size_liters: size as ContainerSize,
       tare_weight_kg: parseFloat(tare),
       is_yaris_dedicated: isYaris,
       is_metallic_dedicated: isMetallic,
+      is_yaris_container: isYarisContainer,
     })
   }
 
-  const canSubmit = computedId && size && tare && (isMetallic || (clientId && companyId))
+  const canSubmit = computedId && size && tare && (freeId || (clientId && companyId))
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -100,12 +103,12 @@ export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props)
       <div className="space-y-2">
         <label className="text-sm font-medium">Número de tacho</label>
         <div className="flex gap-2 items-center">
-          {selectedCompany && (
+          {selectedCompany && !freeId && (
             <span className="font-mono font-semibold text-slate-600">{selectedCompany.code_letter}-</span>
           )}
           <Input
-            type={isMetallic ? 'text' : 'number'}
-            placeholder={isMetallic ? 'M1' : '001'}
+            type={freeId ? 'text' : 'number'}
+            placeholder={freeId ? (isYarisContainer ? 'Y1' : 'M1') : '001'}
             value={containerNumber}
             onChange={(e) => setContainerNumber(e.target.value)}
             className="flex-1"
@@ -144,7 +147,7 @@ export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props)
         <input
           type="checkbox"
           checked={isYaris}
-          onChange={(e) => { setIsYaris(e.target.checked); if (e.target.checked) setIsMetallic(false) }}
+          onChange={(e) => { setIsYaris(e.target.checked); if (e.target.checked) { setIsMetallic(false); setIsYarisContainer(false) } }}
           className="mt-0.5 h-4 w-4"
         />
         <div className="flex-1">
@@ -159,13 +162,28 @@ export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props)
         <input
           type="checkbox"
           checked={isMetallic}
-          onChange={(e) => { setIsMetallic(e.target.checked); if (e.target.checked) setIsYaris(false) }}
+          onChange={(e) => { setIsMetallic(e.target.checked); if (e.target.checked) { setIsYaris(false); setIsYarisContainer(false) } }}
           className="mt-0.5 h-4 w-4"
         />
         <div className="flex-1">
           <p className="text-sm font-medium">Tacho dedicado a metálico</p>
           <p className="text-xs text-muted-foreground">
             Marcalo si este tacho se usa solo para "Metálicos No reutilizables". Se crea sin empresa y aparece solo al pesar ese tipo.
+          </p>
+        </div>
+      </label>
+
+      <label className="flex items-start gap-3 rounded-lg border border-border bg-card p-3 cursor-pointer hover:bg-muted/30">
+        <input
+          type="checkbox"
+          checked={isYarisContainer}
+          onChange={(e) => { setIsYarisContainer(e.target.checked); if (e.target.checked) { setIsYaris(false); setIsMetallic(false) } }}
+          className="mt-0.5 h-4 w-4"
+        />
+        <div className="flex-1">
+          <p className="text-sm font-medium">Contenedor de flota Yaris</p>
+          <p className="text-xs text-muted-foreground">
+            Marcalo si es un contenedor físico de la flota Yaris (Y1…). Se crea sin empresa y sin tara, siempre disponible en recorrido y fuera de la cola de pesaje.
           </p>
         </div>
       </label>
