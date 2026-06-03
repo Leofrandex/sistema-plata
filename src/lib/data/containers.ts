@@ -117,6 +117,7 @@ export function getPendingWeighingContainerIds(
     .filter((c) => {
       if (c.status !== 'active') return false
       if (pesadosIds.has(c.id)) return false
+      if (c.is_yaris_container) return false
       return getRouteEventIdsForContainer(routeEvents, c.id).length > 0
     })
     .map((c) => c.id)
