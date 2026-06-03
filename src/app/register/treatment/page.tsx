@@ -37,7 +37,7 @@ export default function TreatmentPage() {
       if (c.status !== 'active') return false
       const routeIds = getRouteEventIdsForContainer(routeEvents, c.id)
       const reception = [...receptions]
-        .filter((r) => r.container_id === c.id)
+        .filter((r) => r.container_id === c.id && !r.voided_at)
         .sort((a, b) => new Date(b.arrived_at).getTime() - new Date(a.arrived_at).getTime())[0] ?? null
       if (!reception || reception.waste_type !== 'infectious') return false
       const storage = [...storageEvents]

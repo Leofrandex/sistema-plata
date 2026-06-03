@@ -5,6 +5,7 @@ import {
   getRouteEventIdsForContainer,
   getContainerCurrentCompanyId,
   getMetallicContainers,
+  getPendingWeighingContainerIds,
 } from '@/lib/data/containers'
 import type {
   Container,
@@ -218,6 +219,43 @@ describe('getMetallicContainers', () => {
 
   it('lista vacía → []', () => {
     expect(getMetallicContainers([])).toEqual([])
+  })
+})
+
+describe('getPendingWeighingContainerIds', () => {
+  const c = (id: string, over: Partial<Container> = {}): Container => ({
+    id, company_id: 'ion', size_liters: 240, tare_weight_kg: 14,
+    status: 'active', registered_at: '2026-01-01T00:00:00Z', ...over,
+  })
+  const routeWith = (...ids: string[]): RouteEvent => ({
+    id: 're-1', client_id: 'cli', kind: 'anden', slot: '06:30', date: '2026-06-03',
+    started_at: '2026-06-03T06:30:00Z', ended_at: null, operator_id: 'op',
+    status: 'in_progress', floor: '', area: '', dock: '',
+    containers_dirty_received: ids, containers_clean_delivered: [],
+  } as unknown as RouteEvent)
+  const rec = (containerId: string, over: Partial<ContainerReception> = {}): ContainerReception => ({
+    id: `rec-${containerId}`, container_id: containerId, weighing_session_id: 's',
+    arrived_at: '2026-06-03T09:00:00Z', gross_weight_kg: 40, operator_id: 'op',
+    photo_ids: [], observations: '', ...over,
+  })
+
+  it('incluye tachos activos recogidos sucios sin recepción', () => {
+    const containers = [c('001'), c('002')]
+    const result = getPendingWeighingContainerIds(containers, [routeWith('001')], [])
+    expect(result).toEqual(['001'])
+  })
+
+  it('excluye un tacho ya pesado (con recepción vigente)', () => {
+    const containers = [c('001')]
+    const result = getPendingWeighingContainerIds(containers, [routeWith('001')], [rec('001')])
+    expect(result).toEqual([])
+  })
+
+  it('una recepción anulada (voided) devuelve el tacho a pendiente', () => {
+    const containers = [c('001')]
+    const voided = rec('001', { voided_at: '2026-06-03T10:00:00Z', voided_by: 'op', void_reason: 'peso mal tecleado' })
+    const result = getPendingWeighingContainerIds(containers, [routeWith('001')], [voided])
+    expect(result).toEqual(['001'])
   })
 })
 

@@ -27,7 +27,7 @@ export default function ContainersPage() {
       .map((container) => {
         const routeIds = getRouteEventIdsForContainer(routeEvents, container.id)
         const reception = [...receptions]
-          .filter((r) => r.container_id === container.id)
+          .filter((r) => r.container_id === container.id && !r.voided_at)
           .sort((a, b) => new Date(b.arrived_at).getTime() - new Date(a.arrived_at).getTime())[0] ?? null
         const storage = [...storageEvents]
           .filter((s) => s.container_id === container.id)

@@ -103,13 +103,16 @@ export function getRouteEventIdsAnyDirection(
 }
 
 // Cola de trabajo del pesador: tachos activos recogidos sucios en algún
-// recorrido que aún no tienen reception registrada.
+// recorrido que aún no tienen reception registrada. Las recepciones anuladas
+// (voided_at != null, "deshacer pesaje") no cuentan: el tacho vuelve a pendiente.
 export function getPendingWeighingContainerIds(
   containers: Container[],
   routeEvents: RouteEvent[],
   receptions: ContainerReception[]
 ): string[] {
-  const pesadosIds = new Set(receptions.map((r) => r.container_id))
+  const pesadosIds = new Set(
+    receptions.filter((r) => !r.voided_at).map((r) => r.container_id)
+  )
   return containers
     .filter((c) => {
       if (c.status !== 'active') return false

@@ -162,6 +162,9 @@ export type Database = {
           observations: string
           operator_id: string
           treat_immediately: boolean
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
           waste_type: Database["public"]["Enums"]["waste_type"]
           weighing_session_id: string | null
         }
@@ -175,6 +178,9 @@ export type Database = {
           observations?: string
           operator_id: string
           treat_immediately?: boolean
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
           waste_type?: Database["public"]["Enums"]["waste_type"]
           weighing_session_id?: string | null
         }
@@ -188,10 +194,20 @@ export type Database = {
           observations?: string
           operator_id?: string
           treat_immediately?: boolean
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
           waste_type?: Database["public"]["Enums"]["waste_type"]
           weighing_session_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "container_receptions_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "container_receptions_company_id_fkey"
             columns: ["company_id"]
@@ -649,6 +665,9 @@ export type Database = {
           id: string | null
           net_weight_kg: number | null
           operator_id: string | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
           weighing_session_id: string | null
         }
         Relationships: [
@@ -674,6 +693,19 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      v_containers_pending_weighing: {
+        Row: {
+          company_id: string | null
+          id: string | null
+          is_metallic_dedicated: boolean | null
+          is_yaris_dedicated: boolean | null
+          registered_at: string | null
+          size_liters: Database["public"]["Enums"]["container_size"] | null
+          status: Database["public"]["Enums"]["container_status"] | null
+          tare_weight_kg: number | null
+        }
+        Relationships: []
       }
     }
     Functions: {

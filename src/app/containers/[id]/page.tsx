@@ -42,7 +42,7 @@ export default function ContainerDetailPage({ params }: Props) {
 
   const reception = useMemo(() => {
     return [...receptions]
-      .filter((r) => r.container_id === container.id)
+      .filter((r) => r.container_id === container.id && !r.voided_at)
       .sort((a, b) => new Date(b.arrived_at).getTime() - new Date(a.arrived_at).getTime())[0] ?? null
   }, [receptions, container.id])
 

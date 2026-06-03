@@ -44,6 +44,7 @@ export default function WeighingPage() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [confirmingFinish, setConfirmingFinish] = useState(false)
   const [confirmingCancel, setConfirmingCancel] = useState(false)
+  const [confirmingVoid, setConfirmingVoid] = useState(false)
   const [formState, setFormState] = useState<WeighingFormState>(EMPTY_WEIGHING_FORM)
 
   const client = clients[0]
@@ -338,15 +339,24 @@ export default function WeighingPage() {
     resetForm()
   }
 
-  async function handleDeleteEditing() {
-    if (!editingReceptionId || !sessionId || !session) return
+  // Deshacer pesaje: anulación lógica (soft-delete) con motivo obligatorio.
+  // No se borra la recepción; se marca voided_* para conservar trazabilidad y el
+  // tacho vuelve a estar disponible para pesar.
+  async function handleVoidEditing(reason: string) {
+    if (!editingReceptionId || !sessionId || !session || !currentProfileId) return
+    const now = new Date().toISOString()
     try {
       const supabase = createClient()
-      await q.deleteReception(supabase, editingReceptionId)
+      await q.voidReception(supabase, editingReceptionId, currentProfileId, reason)
     } catch (err) {
-      console.error('[pesaje] borrar reception falló:', err)
+      console.error('[pesaje] deshacer pesaje falló:', err)
       return
     }
+    updateReception(editingReceptionId, {
+      voided_at: now,
+      voided_by: currentProfileId,
+      void_reason: reason,
+    })
     updateWeighingSession(sessionId, {
       reception_ids: session.reception_ids.filter((id) => id !== editingReceptionId),
     })
@@ -521,7 +531,7 @@ export default function WeighingPage() {
         mode={isEditing ? 'edit' : 'create'}
         onSubmit={handleSubmitForm}
         onCancelEdit={handleCancelEdit}
-        onDelete={handleDeleteEditing}
+        onDelete={() => setConfirmingVoid(true)}
       />
 
       {/* Drawer lateral */}
@@ -555,6 +565,18 @@ export default function WeighingPage() {
           onConfirm={async () => {
             setConfirmingCancel(false)
             await handleCancel()
+          }}
+        />
+      )}
+
+      {/* Dialog de "Deshacer pesaje" (anulación lógica con motivo obligatorio) */}
+      {confirmingVoid && (
+        <ConfirmVoidDialog
+          containerId={formState.container_id}
+          onCancel={() => setConfirmingVoid(false)}
+          onConfirm={async (reason) => {
+            setConfirmingVoid(false)
+            await handleVoidEditing(reason)
           }}
         />
       )}
@@ -642,6 +664,68 @@ function ConfirmFinishDialog({ count, elapsed, onCancel, onConfirm }: DialogProp
         <div className="flex gap-3 justify-end">
           <Button variant="outline" onClick={onCancel}>Seguir pesando</Button>
           <Button onClick={onConfirm}>Sí, finalizar</Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+interface VoidDialogProps {
+  containerId: string
+  onCancel: () => void
+  onConfirm: (reason: string) => void
+}
+
+function ConfirmVoidDialog({ containerId, onCancel, onConfirm }: VoidDialogProps) {
+  const [reason, setReason] = useState('')
+  const trimmed = reason.trim()
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4"
+      onClick={onCancel}
+    >
+      <div
+        className="bg-card rounded-xl ring-1 ring-red-200 p-6 max-w-sm w-full space-y-4 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-700">
+            <AlertCircle className="h-5 w-5" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-base font-semibold text-foreground">¿Deshacer el pesaje?</h2>
+            <p className="text-sm text-muted-foreground">
+              El tacho <strong className="font-mono">{containerId}</strong> volverá a quedar
+              disponible para pesar. El registro no se borra: queda anulado con motivo
+              para trazabilidad.
+            </p>
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <label htmlFor="void-reason" className="text-sm font-medium text-foreground">
+            Motivo <span className="text-red-600">*</span>
+          </label>
+          <textarea
+            id="void-reason"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            rows={3}
+            autoFocus
+            placeholder="Ej.: peso mal tecleado, tacho equivocado…"
+            className="w-full rounded-lg border border-foreground/15 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-400/40"
+          />
+        </div>
+        <div className="flex gap-3 justify-end">
+          <Button variant="outline" onClick={onCancel}>Cancelar</Button>
+          <Button
+            onClick={() => onConfirm(trimmed)}
+            disabled={trimmed.length === 0}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            Deshacer pesaje
+          </Button>
         </div>
       </div>
     </div>

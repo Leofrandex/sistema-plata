@@ -137,7 +137,7 @@ export function buildPhotographicReportData(
     (r) => r.kind === 'anden' && withinRange(r.started_at, start, end) && routeBelongs(r),
   )
   const receptions = store.receptions.filter(
-    (r) => withinRange(r.arrived_at, start, end) && recBelongs(r),
+    (r) => !r.voided_at && withinRange(r.arrived_at, start, end) && recBelongs(r),
   )
 
   // Universo de tachos relevantes (para mapear fotos de ruta y datos del tacho)

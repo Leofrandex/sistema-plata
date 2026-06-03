@@ -59,7 +59,7 @@ export function computeCirculationBreakdown(store: CirculationStoreSlice): Circu
   for (const container of activeContainers) {
     const routeIds = getRouteEventIdsForContainer(store.routeEvents, container.id)
     const reception = [...store.receptions]
-      .filter((r) => r.container_id === container.id)
+      .filter((r) => r.container_id === container.id && !r.voided_at)
       .sort((a, b) => new Date(b.arrived_at).getTime() - new Date(a.arrived_at).getTime())[0] ?? null
     const storage = [...store.storageEvents]
       .filter((s) => s.container_id === container.id)
@@ -126,6 +126,7 @@ export function computeDailyKg(store: DailyKgStoreSlice, today: string): DailyKg
 
   let receivedKg = 0
   for (const r of store.receptions) {
+    if (r.voided_at) continue
     if (isoDayOf(r.arrived_at) !== today) continue
     const c = containerMap.get(r.container_id)
     if (!c) continue
@@ -141,7 +142,7 @@ export function computeDailyKg(store: DailyKgStoreSlice, today: string): DailyKg
     // Usar la última recepción del container como referencia de peso neto
     // (asumimos un tratamiento por recepción/ciclo).
     const reception = [...store.receptions]
-      .filter((r) => r.container_id === c.id)
+      .filter((r) => r.container_id === c.id && !r.voided_at)
       .sort((a, b) => new Date(b.arrived_at).getTime() - new Date(a.arrived_at).getTime())[0]
     if (!reception) continue
     processedKg += computeNetWeight(reception.gross_weight_kg, c.tare_weight_kg)
@@ -191,6 +192,7 @@ export function computeMonthlyKgByCompany(
 
   // Recibidos: receptions del mes, agrupados por empresa del container
   for (const r of store.receptions) {
+    if (r.voided_at) continue
     const day = isoDayOf(r.arrived_at)
     if (!day.startsWith(month)) continue
     const container = containerMap.get(r.container_id)
@@ -210,7 +212,7 @@ export function computeMonthlyKgByCompany(
     const bucket = buckets.get(container.company_id)
     if (!bucket) continue
     const reception = [...store.receptions]
-      .filter((r) => r.container_id === t.container_id)
+      .filter((r) => r.container_id === t.container_id && !r.voided_at)
       .sort((a, b) => new Date(b.arrived_at).getTime() - new Date(a.arrived_at).getTime())[0]
     if (!reception) continue
     bucket.processedKg += computeNetWeight(reception.gross_weight_kg, container.tare_weight_kg)

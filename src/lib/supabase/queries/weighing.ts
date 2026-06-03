@@ -134,3 +134,27 @@ export async function deleteReception(db: DB, id: string): Promise<void> {
   const { error } = await db.from('container_receptions').delete().eq('id', id)
   if (error) throw new Error(error.message)
 }
+
+/**
+ * Anula lógicamente una recepción ("deshacer pesaje"): marca voided_at/by/reason
+ * en vez de borrarla, conservando la trazabilidad. El tacho vuelve a pendiente.
+ */
+export async function voidReception(
+  db: DB,
+  id: string,
+  voidedBy: string,
+  reason: string
+): Promise<ReceptionRow> {
+  return unwrap(
+    await db
+      .from('container_receptions')
+      .update({
+        voided_at: new Date().toISOString(),
+        voided_by: voidedBy,
+        void_reason: reason,
+      })
+      .eq('id', id)
+      .select()
+      .single()
+  )
+}

@@ -18,8 +18,8 @@ updated: 2026-05-21
 
 > [!important] Bloqueantes antes de 2026-06-01 (sostenibilidad)
 > Ver ADR `decisions/2026-05-21-estado-envase-derivado.md`.
-> - **[P1] "Deshacer pesaje" en la UI** con soft-delete en `container_receptions` (`voided_at`, `voided_by`, `void_reason`).
-> - **[P1] Vista de Postgres `v_containers_pending_weighing`** que reemplace `getPendingWeighingContainerIds` en cliente.
+> - **[P1] ✅ "Deshacer pesaje" en la UI** con soft-delete en `container_receptions` (`voided_at`, `voided_by`, `void_reason`). Resuelto 2026-06-03 — `logs/2026-06-03-deshacer-pesaje-vista-pendientes.md`.
+> - **[P1] ✅ Vista de Postgres `v_containers_pending_weighing`** creada. (Cableado del cliente a la vista diferido a post-piloto; el cálculo en cliente sigue activo.)
 > - **[P2 post-lanzamiento]** Columna `current_phase` en `containers` mantenida por triggers; vista materializada para dashboard cuando el volumen lo justifique.
 
 ## Módulos planificados

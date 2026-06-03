@@ -148,6 +148,12 @@ export interface ContainerReception {
   /** Si true, al finalizar la sesión el tacho se trata de inmediato (salta
    *  cámara fría) y queda disponible. Solo aplica a tipo infeccioso. */
   treat_immediately?: boolean
+  /** Anulación lógica ("deshacer pesaje"). Si no es null, la recepción se
+   *  considera revertida: el tacho vuelve a estar disponible para pesar y deja
+   *  de contar en pesos/métricas. Nunca se borra físicamente (trazabilidad). */
+  voided_at?: string | null
+  voided_by?: string | null
+  void_reason?: string | null
 }
 
 export interface StorageEvent {
