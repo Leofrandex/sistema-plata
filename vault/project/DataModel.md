@@ -31,6 +31,9 @@ Identificador físico real. Pertenece a una Empresa.
 | waste_type | enum | Ver [[WasteTypes]] |
 | status | enum | `active` / `decommissioned` |
 | registered_at | datetime | Fecha de alta en el sistema |
+| is_yaris_dedicated | boolean | Tacho con el que se **pesa** una carga Yaris/Picanto (aparece en Pesaje en modo Yaris) |
+| is_metallic_dedicated | boolean | Tacho dedicado a "Metálicos No reutilizables" |
+| is_yaris_container | boolean | **Contenedor físico** de la flota Yaris (`Y1`…`Y26`): sin empresa, sin tara, siempre disponible en recorrido, EXCLUIDO de la cola de pesaje y del dashboard. Distinto de `is_yaris_dedicated`. Ver `logs/2026-06-03-contenedores-yaris-recorrido.md` |
 
 ### Client (Cliente)
 Entidad legal a la que se le presta el servicio. Agrupa varias Empresas.

@@ -57,6 +57,15 @@ Mantener el modelo derivado **para el piloto**. La trazabilidad regulatoria exig
 ### Después del lanzamiento, cuando el volumen lo justifique
 
 - **[P2] Columna `current_phase container_phase` en `containers`** mantenida por triggers al insertar/anular eventos. Queda derivada pero **indexable y barata de leer**. Se valida contra los eventos en un job de auditoría nocturno.
+
+  > [!note] Reafirmado 2026-06-03
+  > Al agregar los contenedores Yaris se evaluó adelantar esta columna y se decidió
+  > **no acoplarla** a ese cambio. Sigue siendo el próximo proyecto, con la condición
+  > clave: la columna es **caché mantenida por triggers** (los eventos siguen siendo la
+  > fuente de verdad), nunca un campo que la app escriba a mano — eso reintroduciría el
+  > problema de doble fuente de verdad y rompería la trazabilidad. Acompañar con job de
+  > auditoría que valide la columna contra los eventos.
+  > Ver `logs/2026-06-03-contenedores-yaris-recorrido.md`.
 - **[P2] Vista materializada** (`mv_container_current_state`) refrescada por trigger o cron para dashboards de alto tráfico.
 - **[P3] Política de retención / particionado** de `container_receptions` y `route_events` por año cuando crucemos > 100k filas.
 
