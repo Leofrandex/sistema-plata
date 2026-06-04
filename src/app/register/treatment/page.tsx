@@ -28,7 +28,8 @@ export default function TreatmentPage() {
   } = useStore()
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [done, setDone] = useState(false)
+  const [step, setStep] = useState<'select' | 'confirm' | 'done'>('select')
+  const [submitting, setSubmitting] = useState(false)
   const [submittedCount, setSubmittedCount] = useState(0)
 
   // Memoized list of candidates: active containers in cold_storage with infectious waste_type
@@ -43,14 +44,30 @@ export default function TreatmentPage() {
       const storage = [...storageEvents]
         .filter((s) => s.container_id === c.id)
         .sort((a, b) => new Date(b.entry_at).getTime() - new Date(a.entry_at).getTime())[0] ?? null
+      // Un tratamiento/traslado posterior a la recepción actual cierra el ciclo,
+      // así que el tacho deja de ser candidato. Importante: se consideran también
+      // los tratamientos ya completados (el envío a tratamiento crea el run con
+      // started_at == completed_at). Antes el filtro `!t.completed_at` los ignoraba,
+      // por lo que un tacho recién tratado seguía apareciendo en la lista.
+      const receptionAt = new Date(reception.arrived_at).getTime()
       const treatment =
-        treatmentRuns.find((t) => t.container_id === c.id && !t.completed_at) ??
-        externalTransfers.find((t) => t.container_id === c.id && !t.transferred_at) ??
+        [...treatmentRuns]
+          .filter((t) => t.container_id === c.id && new Date(t.started_at).getTime() >= receptionAt)
+          .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())[0] ??
+        [...externalTransfers]
+          .filter((t) => t.container_id === c.id && new Date(t.storage_started_at).getTime() >= receptionAt)
+          .sort((a, b) => new Date(b.storage_started_at).getTime() - new Date(a.storage_started_at).getTime())[0] ??
         null
       const phase = computeContainerPhase(routeIds, reception, storage, treatment)
       return phase === 'cold_storage'
     })
   }, [containers, receptions, storageEvents, treatmentRuns, externalTransfers, routeEvents])
+
+  // Tachos seleccionados que siguen siendo candidatos (para la pantalla de confirmación).
+  const selectedContainers = useMemo(
+    () => candidates.filter((c) => selectedIds.has(c.id)),
+    [candidates, selectedIds],
+  )
 
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
@@ -65,7 +82,8 @@ export default function TreatmentPage() {
   }
 
   async function handleSubmit() {
-    if (!currentProfileId || selectedIds.size === 0) return
+    if (!currentProfileId || selectedIds.size === 0 || submitting) return
+    setSubmitting(true)
     const now = new Date().toISOString()
     const supabase = createClient()
     for (const id of selectedIds) {
@@ -99,16 +117,17 @@ export default function TreatmentPage() {
       }
     }
     setSubmittedCount(selectedIds.size)
-    setDone(true)
+    setSubmitting(false)
+    setStep('done')
   }
 
   function reset() {
     setSelectedIds(new Set())
-    setDone(false)
+    setStep('select')
     setSubmittedCount(0)
   }
 
-  if (done) {
+  if (step === 'done') {
     return (
       <div className="max-w-md mx-auto space-y-6">
         <Card className="border-green-200 bg-green-50">
@@ -122,6 +141,49 @@ export default function TreatmentPage() {
             <Button variant="outline" onClick={reset}>
               Volver
             </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (step === 'confirm') {
+    const numbers = selectedContainers.map((c) => formatTachoNumber(c.id))
+    return (
+      <div className="max-w-md mx-auto space-y-6">
+        <Card className="border-amber-200 bg-amber-50">
+          <CardHeader>
+            <CardTitle className="text-amber-900">Confirmar envío a tratamiento</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-amber-800">
+              ¿Seguro que quieres enviar a tratamiento {numbers.length} tacho
+              {numbers.length !== 1 ? 's' : ''}? Esta acción cierra su ciclo.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {numbers.map((n) => (
+                <Badge key={n} variant="secondary" className="font-mono">
+                  {n}
+                </Badge>
+              ))}
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setStep('select')}
+                disabled={submitting}
+              >
+                Cancelar
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleSubmit}
+                disabled={submitting || numbers.length === 0}
+              >
+                {submitting ? 'Enviando…' : 'Confirmar'}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -176,7 +238,7 @@ export default function TreatmentPage() {
       )}
 
       <Button
-        onClick={handleSubmit}
+        onClick={() => setStep('confirm')}
         disabled={selectedIds.size === 0 || !currentProfileId}
         className="w-full"
       >
