@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { X, Trash2, Sparkles, Plus } from 'lucide-react'
-import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ContainerPickerSheet } from '@/components/register/container-picker-sheet'
@@ -10,6 +10,9 @@ import { PhotoCaptureMulti } from '@/components/register/photo-capture-multi'
 import { cn } from '@/lib/utils'
 import type { Container, Company } from '@/lib/types'
 import { formatTachoNumber } from '@/lib/data/containers'
+
+/** Opciones fijas para la ubicación del recorrido. */
+const LOCATION_OPTIONS = ['Pediatría', 'Andén 3'] as const
 
 export interface RouteFormState {
   /** Tachos sucios recogidos en este recorrido (van a pesaje). */
@@ -166,31 +169,23 @@ export function RouteForm({ state, onChange, containers, companies, locked }: Pr
       {/* Ubicación */}
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-foreground">Ubicación del recorrido</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-600">Piso</label>
-            <Input
-              value={state.floor}
-              onChange={(e) => onChange({ floor: e.target.value })}
-              placeholder="Ej: 2"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-600">Área</label>
-            <Input
-              value={state.area}
-              onChange={(e) => onChange({ area: e.target.value })}
-              placeholder="Ej: Pediatría"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-600">Andén</label>
-            <Input
-              value={state.dock}
-              onChange={(e) => onChange({ dock: e.target.value })}
-              placeholder="Ej: Andén Norte"
-            />
-          </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-slate-600">Ubicación</label>
+          <Select
+            value={state.area || undefined}
+            onValueChange={(v) => onChange({ area: v ?? '' })}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Seleccionar ubicación" />
+            </SelectTrigger>
+            <SelectContent>
+              {LOCATION_OPTIONS.map((opt) => (
+                <SelectItem key={opt} value={opt}>
+                  {opt}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </section>
 
