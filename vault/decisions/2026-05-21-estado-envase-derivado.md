@@ -6,7 +6,7 @@ tags:
   - supabase
   - performance
   - traceability
-updated: 2026-05-21
+updated: 2026-06-04
 ---
 
 # ADR: Estado de envase derivado de eventos (piloto) — evolución pendiente antes de producción
@@ -26,6 +26,20 @@ En particular, "envase disponible para pesar" se calcula en el cliente con `getP
 3. **No** existe ninguna fila en `container_receptions` para ese envase
 
 Existe el enum `container_phase` (`route, weighing, cold_storage, treatment, transfer, clean`) declarado en el schema, pero **no se usa como columna**. Está reservado para una evolución futura.
+
+> [!note] Aclaración 2026-06-04 — `treatment` y `transfer` son fases latentes, no operativas
+> Aunque `computeContainerPhase` soporta tratamiento/traslado "en curso", **ningún flujo de
+> la UI los produce hoy**:
+> - El envío a tratamiento (`src/app/register/treatment/page.tsx`) crea el `treatment_run`
+>   con `started_at == completed_at` en el mismo instante → el tacho pasa **directo de
+>   `cold_storage` a `clean`**, sin estado intermedio `treatment` visible.
+> - `external_transfers` existe como tabla pero **ninguna pantalla inserta filas** → la fase
+>   `transfer` nunca ocurre en la práctica.
+>
+> La rama "en curso" del código queda como soporte futuro si el tratamiento se modela en dos
+> pasos (inicio/fin). Esto fue la causa raíz del bug 2026-06-03: un filtro buscaba
+> tratamientos con `!completed_at` (en curso), que con este flujo nunca matchea.
+> Ver `logs/2026-06-03-tratamiento-confirmacion-refresco.md`.
 
 ## Decisión
 
