@@ -88,6 +88,10 @@ updated: 2026-05-21
 - `logs/2026-06-01-quitar-ubicacion-traslado-en-construccion.md`
 - `logs/2026-06-01-tachos-metalicos.md`
 - `logs/2026-06-01-roles-coordinador-operador.md`
+- `logs/2026-06-03-deshacer-pesaje-vista-pendientes.md`
+- `logs/2026-06-03-tratamiento-confirmacion-refresco.md`
+- `logs/2026-06-03-fix-sesion-no-cargada-boton-iniciar.md`
+- `logs/2026-06-03-contenedores-yaris-recorrido.md`
 
 ---
 
