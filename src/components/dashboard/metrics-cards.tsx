@@ -23,7 +23,11 @@ export function computeDashboardMetrics(
   today: string = new Date().toISOString().slice(0, 10)
 ): DashboardMetrics {
   const routesToday = routeEvents.filter((r) => r.date === today).length
-  const containersInCirculation = containers.filter((c) => c.status === 'active').length
+  // Los contenedores Yaris de flota no atraviesan el ciclo de planta:
+  // fuera del pool en circulación (igual que computeCirculationBreakdown).
+  const containersInCirculation = containers.filter(
+    (c) => c.status === 'active' && !c.is_yaris_container,
+  ).length
   const containersPendingWeighing = getPendingWeighingContainerIds(containers, routeEvents, receptions).length
   const containersInTreatment = treatmentRuns.filter((t) => t.completed_at === null).length
 
