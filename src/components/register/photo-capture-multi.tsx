@@ -57,12 +57,12 @@ export function PhotoCaptureMulti({ label, required, disabled, photos, onAdd, on
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {photos.map((url, idx) => (
           <div key={idx} className="relative">
-            <div className="relative aspect-[4/3] rounded-lg overflow-hidden border bg-slate-100">
+            <div className="relative aspect-[4/3] rounded-lg overflow-hidden border bg-slate-900">
               <Image
                 src={url}
                 alt={`Foto ${idx + 1}`}
                 fill
-                className="object-cover"
+                className="object-contain"
                 sizes="(max-width: 640px) 50vw, 33vw"
               />
             </div>

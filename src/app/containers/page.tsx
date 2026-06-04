@@ -32,9 +32,19 @@ export default function ContainersPage() {
         const storage = [...storageEvents]
           .filter((s) => s.container_id === container.id)
           .sort((a, b) => new Date(b.entry_at).getTime() - new Date(a.entry_at).getTime())[0] ?? null
-        const treatment = treatmentRuns.find((t) => t.container_id === container.id && !t.completed_at)
-          ?? externalTransfers.find((t) => t.container_id === container.id && !t.transferred_at)
-          ?? null
+        // Tratamiento/traslado más reciente posterior a la recepción actual (incluye
+        // completados). Un tratamiento inmediato se crea con started_at == completed_at,
+        // así que filtrar por `!t.completed_at` lo ignoraba y el tacho seguía mostrándose
+        // como cold_storage en vez de clean. Ver decisions/2026-05-21-estado-envase-derivado.md.
+        const receptionAt = reception ? new Date(reception.arrived_at).getTime() : -Infinity
+        const treatment =
+          [...treatmentRuns]
+            .filter((t) => t.container_id === container.id && new Date(t.started_at).getTime() >= receptionAt)
+            .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())[0] ??
+          [...externalTransfers]
+            .filter((t) => t.container_id === container.id && new Date(t.storage_started_at).getTime() >= receptionAt)
+            .sort((a, b) => new Date(b.storage_started_at).getTime() - new Date(a.storage_started_at).getTime())[0] ??
+          null
         const containerLocations = locations.filter((l) => l.container_id === container.id)
         return buildContainerWithPhase(container, routeIds, reception, storage, treatment, containerLocations)
       })

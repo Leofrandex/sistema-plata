@@ -39,8 +39,8 @@ export function PhotoCapture({ label, required, onCapture, onRemove, preview }: 
       </label>
       {preview ? (
         <div className="relative">
-          <div className="relative aspect-[4/3] rounded-lg overflow-hidden border bg-slate-100">
-            <Image src={preview} alt="Foto capturada" fill className="object-cover" sizes="100vw" />
+          <div className="relative aspect-[4/3] rounded-lg overflow-hidden border bg-slate-900">
+            <Image src={preview} alt="Foto capturada" fill className="object-contain" sizes="100vw" />
           </div>
           <Button
             type="button"

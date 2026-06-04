@@ -12,6 +12,7 @@ import {
   type WeighingFormState,
 } from '@/components/register/weighing-form'
 import { WeighingSessionDrawer } from '@/components/register/weighing-session-drawer'
+import { StartSessionButton } from '@/components/register/start-session-button'
 import { useStore } from '@/lib/store'
 import { useElapsed, formatElapsed } from '@/hooks/use-elapsed'
 import {
@@ -133,11 +134,9 @@ export default function WeighingPage() {
   }
 
   async function handleStart() {
-    if (!currentProfileId) {
-      alert('Todavía no se cargó tu sesión (sin conexión con el servidor). Esperá a reconectar e intentá de nuevo.')
-      return
-    }
-    if (!client) return
+    // El botón ya está bloqueado hasta que currentProfileId esté hidratado
+    // (ver StartSessionButton); este guard es defensivo.
+    if (!currentProfileId || !client) return
     const now = new Date().toISOString()
     // Crear sesión en Supabase y usar el id que retorna
     let createdId: string
@@ -502,10 +501,13 @@ export default function WeighingPage() {
             <p className="text-sm text-muted-foreground">
               El formulario está bloqueado. Inicia el pesaje para empezar el cronómetro y registrar tachos.
             </p>
-            <Button onClick={handleStart} className="gap-2 shrink-0">
-              <Play className="h-4 w-4" />
+            <StartSessionButton
+              sessionReady={!!currentProfileId}
+              onStart={handleStart}
+              icon={<Play className="h-4 w-4" />}
+            >
               Iniciar pesaje
-            </Button>
+            </StartSessionButton>
           </CardContent>
         </Card>
       )}

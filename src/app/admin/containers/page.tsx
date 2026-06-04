@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Car, Wrench } from 'lucide-react'
+import { Plus, Car, Wrench, Truck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -31,6 +31,7 @@ export default function AdminContainersPage() {
         status: 'active',
         is_yaris_dedicated: data.is_yaris_dedicated ?? false,
         is_metallic_dedicated: data.is_metallic_dedicated ?? false,
+        is_yaris_container: data.is_yaris_container ?? false,
       })
     } catch (err) {
       console.error('[admin/containers] crear tacho falló:', err)
@@ -75,6 +76,18 @@ export default function AdminContainersPage() {
     updateContainer(c.id, { is_metallic_dedicated: next })
   }
 
+  async function toggleYarisContainer(c: Container) {
+    const next = !c.is_yaris_container
+    try {
+      const supabase = createClient()
+      await q.updateContainer(supabase, c.id, { is_yaris_container: next })
+    } catch (err) {
+      console.error('[admin/containers] toggle Yaris recorrido falló:', err)
+      return
+    }
+    updateContainer(c.id, { is_yaris_container: next })
+  }
+
   return (
     <div className="space-y-6 max-w-4xl">
       <div className="flex items-center justify-between">
@@ -108,6 +121,7 @@ export default function AdminContainersPage() {
               <th className="px-4 py-3 font-medium">Estado</th>
               <th className="px-4 py-3 font-medium">Yaris</th>
               <th className="px-4 py-3 font-medium">Metálico</th>
+              <th className="px-4 py-3 font-medium">Contenedor Yaris</th>
               <th className="px-4 py-3 font-medium"></th>
             </tr>
           </thead>
@@ -153,6 +167,20 @@ export default function AdminContainersPage() {
                     >
                       <Wrench className="h-3.5 w-3.5" />
                       {c.is_metallic_dedicated ? 'Sí' : 'No'}
+                    </Button>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleYarisContainer(c)}
+                      disabled={c.status !== 'active'}
+                      className={c.is_yaris_container
+                        ? 'gap-1 bg-indigo-50 text-indigo-900 hover:bg-indigo-100'
+                        : 'gap-1 text-muted-foreground hover:text-foreground'}
+                    >
+                      <Truck className="h-3.5 w-3.5" />
+                      {c.is_yaris_container ? 'Sí' : 'No'}
                     </Button>
                   </td>
                   <td className="px-4 py-3">

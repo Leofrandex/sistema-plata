@@ -6,7 +6,7 @@ tags:
   - supabase
   - performance
   - traceability
-updated: 2026-05-21
+updated: 2026-06-04
 ---
 
 # ADR: Estado de envase derivado de eventos (piloto) — evolución pendiente antes de producción
@@ -26,6 +26,20 @@ En particular, "envase disponible para pesar" se calcula en el cliente con `getP
 3. **No** existe ninguna fila en `container_receptions` para ese envase
 
 Existe el enum `container_phase` (`route, weighing, cold_storage, treatment, transfer, clean`) declarado en el schema, pero **no se usa como columna**. Está reservado para una evolución futura.
+
+> [!note] Aclaración 2026-06-04 — `treatment` y `transfer` son fases latentes, no operativas
+> Aunque `computeContainerPhase` soporta tratamiento/traslado "en curso", **ningún flujo de
+> la UI los produce hoy**:
+> - El envío a tratamiento (`src/app/register/treatment/page.tsx`) crea el `treatment_run`
+>   con `started_at == completed_at` en el mismo instante → el tacho pasa **directo de
+>   `cold_storage` a `clean`**, sin estado intermedio `treatment` visible.
+> - `external_transfers` existe como tabla pero **ninguna pantalla inserta filas** → la fase
+>   `transfer` nunca ocurre en la práctica.
+>
+> La rama "en curso" del código queda como soporte futuro si el tratamiento se modela en dos
+> pasos (inicio/fin). Esto fue la causa raíz del bug 2026-06-03: un filtro buscaba
+> tratamientos con `!completed_at` (en curso), que con este flujo nunca matchea.
+> Ver `logs/2026-06-03-tratamiento-confirmacion-refresco.md`.
 
 ## Decisión
 
@@ -57,6 +71,15 @@ Mantener el modelo derivado **para el piloto**. La trazabilidad regulatoria exig
 ### Después del lanzamiento, cuando el volumen lo justifique
 
 - **[P2] Columna `current_phase container_phase` en `containers`** mantenida por triggers al insertar/anular eventos. Queda derivada pero **indexable y barata de leer**. Se valida contra los eventos en un job de auditoría nocturno.
+
+  > [!note] Reafirmado 2026-06-03
+  > Al agregar los contenedores Yaris se evaluó adelantar esta columna y se decidió
+  > **no acoplarla** a ese cambio. Sigue siendo el próximo proyecto, con la condición
+  > clave: la columna es **caché mantenida por triggers** (los eventos siguen siendo la
+  > fuente de verdad), nunca un campo que la app escriba a mano — eso reintroduciría el
+  > problema de doble fuente de verdad y rompería la trazabilidad. Acompañar con job de
+  > auditoría que valide la columna contra los eventos.
+  > Ver `logs/2026-06-03-contenedores-yaris-recorrido.md`.
 - **[P2] Vista materializada** (`mv_container_current_state`) refrescada por trigger o cron para dashboards de alto tráfico.
 - **[P3] Política de retención / particionado** de `container_receptions` y `route_events` por año cuando crucemos > 100k filas.
 

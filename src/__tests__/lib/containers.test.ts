@@ -257,6 +257,12 @@ describe('getPendingWeighingContainerIds', () => {
     const result = getPendingWeighingContainerIds(containers, [routeWith('001')], [voided])
     expect(result).toEqual(['001'])
   })
+
+  it('excluye contenedores Yaris recogidos sucios (no se pesan directamente)', () => {
+    const containers = [c('001'), c('Y1', { is_yaris_container: true, tare_weight_kg: 0 })]
+    const result = getPendingWeighingContainerIds(containers, [routeWith('001', 'Y1')], [])
+    expect(result).toEqual(['001'])
+  })
 })
 
 // Keep baseContainer referenced so import isn't pruned

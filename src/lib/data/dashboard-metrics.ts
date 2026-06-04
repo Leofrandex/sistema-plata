@@ -54,7 +54,9 @@ export function computeCirculationBreakdown(store: CirculationStoreSlice): Circu
     sin_registro: 0,
   }
 
-  const activeContainers = store.containers.filter((c) => c.status === 'active')
+  const activeContainers = store.containers.filter(
+    (c) => c.status === 'active' && !c.is_yaris_container,
+  )
 
   for (const container of activeContainers) {
     const routeIds = getRouteEventIdsForContainer(store.routeEvents, container.id)

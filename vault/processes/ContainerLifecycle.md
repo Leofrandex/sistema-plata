@@ -4,7 +4,7 @@ tags:
   - processes
   - domain
   - containers
-updated: 2026-05-17
+updated: 2026-06-04
 ---
 
 # Ciclo de Vida del Tacho
@@ -56,6 +56,9 @@ El sistema registra cuánto tiempo permanece aquí
         ↓
 [Tratamiento] (solo tipo 1 - infeccioso)
 Esterilización + trituración
+En el sistema es un registro PUNTUAL: el envío crea el treatment_run ya
+completado (started_at == completed_at) y el tacho pasa directo a 'clean'.
+No existe fase 'treatment' en curso en la operación actual.
         ↓
 [Sale como desecho común]
         ↓

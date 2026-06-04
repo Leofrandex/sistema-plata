@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { RouteForm, type RouteFormState } from '@/components/register/route-form'
+import { StartSessionButton } from '@/components/register/start-session-button'
 import { useStore } from '@/lib/store'
 import { createClient } from '@/lib/supabase/client'
 import * as q from '@/lib/supabase/queries'
@@ -96,11 +97,9 @@ export default function RegisterMorgueRoutePage() {
   }
 
   async function handleStart() {
-    if (!currentProfileId) {
-      alert('Todavía no se cargó tu sesión (sin conexión con el servidor). Esperá a reconectar e intentá de nuevo.')
-      return
-    }
-    if (!client) return
+    // El botón ya está bloqueado hasta que currentProfileId esté hidratado
+    // (ver StartSessionButton); este guard es defensivo.
+    if (!currentProfileId || !client) return
     if (!companyId) { alert('Seleccioná la empresa del recorrido antes de iniciar.'); return }
     const now = new Date().toISOString()
 
@@ -302,10 +301,14 @@ export default function RegisterMorgueRoutePage() {
             </div>
             <div className="flex items-center justify-between gap-4">
               <p className="text-sm text-muted-foreground">Iniciá el recorrido de Morgue para empezar el cronómetro.</p>
-              <Button onClick={handleStart} disabled={!companyId} className="gap-2 shrink-0">
-                <Play className="h-4 w-4" />
+              <StartSessionButton
+                sessionReady={!!currentProfileId}
+                onStart={handleStart}
+                disabled={!companyId}
+                icon={<Play className="h-4 w-4" />}
+              >
                 Iniciar recorrido
-              </Button>
+              </StartSessionButton>
             </div>
           </CardContent>
         </Card>

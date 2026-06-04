@@ -82,6 +82,11 @@ export interface Container {
   /** true: tacho dedicado a "Metálicos No reutilizables". Siempre disponible en
    *  pesaje (sin recorrido) y solo visible cuando el tipo elegido es 'metallic'. */
   is_metallic_dedicated?: boolean
+  /** true: contenedor físico de la flota Yaris. Siempre disponible en recorrido,
+   *  sin tara (se pesa con los tachos alternativos is_yaris_dedicated). Excluido
+   *  de la cola de pesaje y del dashboard de circulación. Distinto de
+   *  is_yaris_dedicated. Opcional para compat con data histórica/mocks. */
+  is_yaris_container?: boolean
 }
 
 export interface Photo {

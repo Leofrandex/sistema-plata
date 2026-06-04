@@ -52,11 +52,21 @@ export default function ContainerDetailPage({ params }: Props) {
       .sort((a, b) => new Date(b.entry_at).getTime() - new Date(a.entry_at).getTime())[0] ?? null
   }, [storageEvents, container.id])
 
+  // Tratamiento/traslado más reciente posterior a la recepción actual (incluye
+  // completados). Filtrar por la recepción evita que un tratamiento de un ciclo
+  // anterior marque como 'clean' un tacho re-ingresado.
   const treatment = useMemo(() => {
-    return treatmentRuns.find((t) => t.container_id === container.id)
-      ?? externalTransfers.find((t) => t.container_id === container.id)
-      ?? null
-  }, [treatmentRuns, externalTransfers, container.id])
+    const receptionAt = reception ? new Date(reception.arrived_at).getTime() : -Infinity
+    return (
+      [...treatmentRuns]
+        .filter((t) => t.container_id === container.id && new Date(t.started_at).getTime() >= receptionAt)
+        .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())[0] ??
+      [...externalTransfers]
+        .filter((t) => t.container_id === container.id && new Date(t.storage_started_at).getTime() >= receptionAt)
+        .sort((a, b) => new Date(b.storage_started_at).getTime() - new Date(a.storage_started_at).getTime())[0] ??
+      null
+    )
+  }, [treatmentRuns, externalTransfers, container.id, reception])
 
   const containerLocations = useMemo(
     () => locations.filter((l) => l.container_id === container.id),

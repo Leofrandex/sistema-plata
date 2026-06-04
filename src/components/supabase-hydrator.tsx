@@ -171,6 +171,7 @@ function rowToContainer(r: q.ContainerRow): Container {
     registered_at: r.registered_at,
     is_yaris_dedicated: r.is_yaris_dedicated,
     is_metallic_dedicated: r.is_metallic_dedicated,
+    is_yaris_container: r.is_yaris_container,
   }
 }
 

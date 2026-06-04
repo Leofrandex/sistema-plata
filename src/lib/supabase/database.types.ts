@@ -243,6 +243,7 @@ export type Database = {
           company_id: string | null
           id: string
           is_metallic_dedicated: boolean
+          is_yaris_container: boolean
           is_yaris_dedicated: boolean
           registered_at: string
           size_liters: Database["public"]["Enums"]["container_size"]
@@ -253,6 +254,7 @@ export type Database = {
           company_id?: string | null
           id: string
           is_metallic_dedicated?: boolean
+          is_yaris_container?: boolean
           is_yaris_dedicated?: boolean
           registered_at?: string
           size_liters: Database["public"]["Enums"]["container_size"]
@@ -263,6 +265,7 @@ export type Database = {
           company_id?: string | null
           id?: string
           is_metallic_dedicated?: boolean
+          is_yaris_container?: boolean
           is_yaris_dedicated?: boolean
           registered_at?: string
           size_liters?: Database["public"]["Enums"]["container_size"]
@@ -699,6 +702,7 @@ export type Database = {
           company_id: string | null
           id: string | null
           is_metallic_dedicated: boolean | null
+          is_yaris_container: boolean | null
           is_yaris_dedicated: boolean | null
           registered_at: string | null
           size_liters: Database["public"]["Enums"]["container_size"] | null
