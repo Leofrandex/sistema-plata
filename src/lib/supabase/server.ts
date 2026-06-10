@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from './database.types'
+import { sessionCookieOptions } from './cookie-session'
 
 /**
  * Cliente Supabase para Server Components / Route Handlers / Server Actions.
@@ -20,7 +21,7 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
+              cookieStore.set(name, value, sessionCookieOptions(value, options))
             )
           } catch {
             // Llamado desde Server Component — el middleware refresca la sesión.
