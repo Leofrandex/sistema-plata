@@ -50,7 +50,7 @@ export function SupabaseHydrator() {
 
         const [
           containersRaw, sessionsRaw, routeEventsRaw, dirtyLinks, cleanLinks, photosRaw,
-          storageRaw, treatmentRaw, transfersRaw, locationsRaw,
+          storageRaw, treatmentRaw, transfersRaw, locationsRaw, profilesRaw,
         ] = await Promise.all([
             q.listContainers(supabase),
             q.listWeighingSessions(supabase),
@@ -62,6 +62,7 @@ export function SupabaseHydrator() {
             q.listTreatmentRuns(supabase),
             q.listExternalTransfers(supabase),
             q.listContainerLocations(supabase),
+            q.listProfiles(supabase),
           ])
         if (cancelled) return
 
@@ -127,6 +128,7 @@ export function SupabaseHydrator() {
         const treatmentRuns: TreatmentRun[] = treatmentRaw.map(rowToTreatmentRun)
         const externalTransfers: ExternalTransfer[] = transfersRaw.map(rowToExternalTransfer)
         const locations: ContainerLocation[] = locationsRaw.map(rowToLocation)
+        const users = profilesRaw.map((p) => ({ id: p.id, name: p.name }))
 
         useStore.getState().hydrate({
           containers,
@@ -138,6 +140,7 @@ export function SupabaseHydrator() {
           treatmentRuns,
           externalTransfers,
           locations,
+          users,
         })
         // Éxito: marcamos la conexión como online.
         useStore.getState().setConnectionStatus('online')
@@ -190,6 +193,7 @@ function rowToContainer(r: q.ContainerRow): Container {
     is_yaris_dedicated: r.is_yaris_dedicated,
     is_metallic_dedicated: r.is_metallic_dedicated,
     is_yaris_container: r.is_yaris_container,
+    created_by: r.created_by ?? null,
   }
 }
 

@@ -13,7 +13,7 @@ import type { Container } from '@/lib/types'
 import { formatTachoNumber } from '@/lib/data/containers'
 
 export default function AdminContainersPage() {
-  const { containers, addContainer, updateContainer } = useStore()
+  const { containers, addContainer, updateContainer, currentProfileId, users } = useStore()
   const [showForm, setShowForm] = useState(false)
 
   async function handleAdd(data: Omit<Container, 'registered_at' | 'status'>) {
@@ -28,12 +28,13 @@ export default function AdminContainersPage() {
         is_yaris_dedicated: data.is_yaris_dedicated ?? false,
         is_metallic_dedicated: data.is_metallic_dedicated ?? false,
         is_yaris_container: data.is_yaris_container ?? false,
+        created_by: currentProfileId,
       })
     } catch (err) {
       console.error('[admin/containers] crear tacho falló:', err)
       return
     }
-    addContainer({ ...data, status: 'active', registered_at: now })
+    addContainer({ ...data, status: 'active', registered_at: now, created_by: currentProfileId })
     setShowForm(false)
   }
 
@@ -114,6 +115,7 @@ export default function AdminContainersPage() {
               <th className="px-4 py-3 font-medium">Yaris</th>
               <th className="px-4 py-3 font-medium">Metálico</th>
               <th className="px-4 py-3 font-medium">Contenedor Yaris</th>
+              <th className="px-4 py-3 font-medium">Registrado por</th>
               <th className="px-4 py-3 font-medium"></th>
             </tr>
           </thead>
@@ -170,6 +172,9 @@ export default function AdminContainersPage() {
                       <Truck className="h-3.5 w-3.5" />
                       {c.is_yaris_container ? 'Sí' : 'No'}
                     </Button>
+                  </td>
+                  <td className="px-4 py-3 text-slate-600">
+                    {c.created_by ? (users.find((u) => u.id === c.created_by)?.name ?? '—') : '—'}
                   </td>
                   <td className="px-4 py-3">
                     {c.status === 'active' && (

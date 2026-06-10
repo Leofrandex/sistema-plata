@@ -86,6 +86,8 @@ export interface Container {
    *  de la cola de pesaje y del dashboard de circulación. Distinto de
    *  is_yaris_dedicated. Opcional para compat con data histórica/mocks. */
   is_yaris_container?: boolean
+  /** Perfil que registró el tacho. Null para históricos importados. */
+  created_by?: string | null
 }
 
 export interface Photo {
