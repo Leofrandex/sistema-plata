@@ -63,6 +63,7 @@ describe('buildPhotographicReportData (por empresa)', () => {
       {
         id: 'route-ion-1',
         client_id: 'client-1',
+        company_id: 'company-ion',
         kind: 'anden',
         slot: '06:30',
         date: '2026-05-17',
@@ -78,6 +79,7 @@ describe('buildPhotographicReportData (por empresa)', () => {
       {
         id: 'route-ion-2',
         client_id: 'client-1',
+        company_id: 'company-ion',
         kind: 'anden',
         slot: '10:30',
         date: '2026-05-17',
@@ -102,6 +104,7 @@ describe('buildPhotographicReportData (por empresa)', () => {
         operator_id: 'user-1',
         photo_ids: ['photo-ion-w1-1', 'photo-ion-w1-2'],
         observations: '',
+        company_id: 'company-ion',
       },
       {
         id: 'reception-ion-2',
@@ -112,6 +115,7 @@ describe('buildPhotographicReportData (por empresa)', () => {
         operator_id: 'user-1',
         photo_ids: ['photo-ion-w2-1', 'photo-ion-w2-2'],
         observations: '',
+        company_id: 'company-ion',
       },
       // A-903 recogida en route-ion-2 pero sin reception → Pesaje 2da se omite
     ],

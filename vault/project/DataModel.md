@@ -20,13 +20,15 @@ updated: 2026-05-17
 ## Entidades principales
 
 ### Container (Envase)
-Identificador físico real. Pertenece a una Empresa.
+Identificador físico real. **Independiente: NO pertenece a ninguna empresa.** La
+empresa es propiedad del *registro* (recorrido / pesaje), no del tacho — un mismo
+tacho pasa por distintas empresas a lo largo de su vida. Ver
+`decisions/2026-06-10-empresa-por-registro.md`.
 
 | Campo | Tipo | Notas |
 |-------|------|-------|
-| id | string | Compuesto: `{letra_empresa}-{numero}` ej: `I-001` (ION), `A-001` (Airkem) |
-| company_id | FK → Company | Reemplaza al antiguo `client_id` directo |
-| size_liters | enum | 240 / 750 / 1100 |
+| id | string | Identificador físico: `001`, `M1`, `Y1` (en Supabase, sin prefijo de empresa — ver `decisions/2026-06-01-ids-tachos-supabase-vs-mock.md`) |
+| size_liters | enum | 120 / 240 / 750 / 1100 |
 | tare_weight_kg | decimal | Peso en vacío, se registra una sola vez al dar de alta |
 | waste_type | enum | Ver [[WasteTypes]] |
 | status | enum | `active` / `decommissioned` |
@@ -122,7 +124,8 @@ Sin cambios estructurales — solo se quitó el `batch_id` (que ya no existe).
 ## Relaciones clave
 
 - Un `Client` tiene muchas `Company`
-- Una `Company` tiene muchos `Container`
+- Un `Container` es **independiente** (sin empresa); su empresa "actual" se deriva del último registro
+- La empresa de un `RouteEvent` y de un `ContainerReception` es del **registro** (snapshot), no del tacho
 - Un `Container` tiene muchos `ContainerReception` (histórico)
 - Un `RouteEvent` agrupa N envases intercambiados por (slot, día)
 - Un `WeighingSession` agrupa N receptions de una misma jornada de pesaje

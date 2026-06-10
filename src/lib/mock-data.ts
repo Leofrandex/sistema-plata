@@ -22,8 +22,12 @@ import historical from './data/historical-data.json'
 // participaba en el periodo capturado).
 const HISTORICAL_CONTAINERS = historical.containers as Container[]
 const HISTORICAL_WEIGHING_SESSIONS = historical.weighing_sessions as WeighingSession[]
+// El histórico capturado (2026-01-01 → 2026-05-11) es íntegramente de Airkem.
+// La empresa es propiedad del registro, así que se la fijamos a cada recepción
+// (sin esto, el dashboard/reporte por empresa ya no las vería).
 const HISTORICAL_RECEPTIONS: ContainerReception[] = (historical.receptions as Omit<ContainerReception, 'observations'>[]).map((r) => ({
   ...r,
+  company_id: r.company_id ?? 'company-airkem',
   observations: '',
 }))
 const HISTORICAL_STORAGE_EVENTS = historical.storage_events as StorageEvent[]
@@ -67,7 +71,6 @@ const METALLIC_TARES: Record<string, number> = {
 
 const METALLIC_CONTAINERS: Container[] = Object.entries(METALLIC_TARES).map(([id, tare]) => ({
   id,
-  company_id: '',
   size_liters: 120,
   tare_weight_kg: tare,
   status: 'active',
@@ -79,7 +82,6 @@ const METALLIC_CONTAINERS: Container[] = Object.entries(METALLIC_TARES).map(([id
 // alternativos is_yaris_dedicated). Siempre disponibles en recorrido.
 const YARIS_ROUTE_CONTAINERS: Container[] = Array.from({ length: 26 }, (_, i) => ({
   id: `Y${i + 1}`,
-  company_id: '',
   size_liters: 1100,
   tare_weight_kg: 0,
   status: 'active',
@@ -103,6 +105,7 @@ export const MOCK_ROUTE_EVENTS: RouteEvent[] = [
   {
     id: 'route-1',
     client_id: 'client-1',
+    company_id: 'company-airkem',
     kind: 'anden',
     slot: '06:30',
     date: '2026-05-17',
@@ -120,6 +123,7 @@ export const MOCK_ROUTE_EVENTS: RouteEvent[] = [
   {
     id: 'route-2',
     client_id: 'client-1',
+    company_id: 'company-airkem',
     kind: 'anden',
     slot: '10:30',
     date: '2026-05-17',
@@ -174,6 +178,7 @@ export const MOCK_RECEPTIONS: ContainerReception[] = [
     operator_id: 'user-1',
     photo_ids: [],
     observations: '',
+    company_id: 'company-airkem',
   },
   {
     id: 'reception-prev-4',
@@ -184,6 +189,7 @@ export const MOCK_RECEPTIONS: ContainerReception[] = [
     operator_id: 'user-1',
     photo_ids: [],
     observations: '',
+    company_id: 'company-airkem',
   },
   // Recepciones históricas (~14k filas, generadas desde el Excel)
   ...HISTORICAL_RECEPTIONS,

@@ -35,9 +35,6 @@ export default function ContainerDetailPage({ params }: Props) {
   const container = containers.find((c) => c.id === id)
   if (!container) notFound()
 
-  const company = companies.find((c) => c.id === container.company_id)
-  const client = company ? clients.find((c) => c.id === company.client_id) : undefined
-
   const routeIds = getRouteEventIdsForContainer(routeEvents, container.id)
 
   const reception = useMemo(() => {
@@ -45,6 +42,11 @@ export default function ContainerDetailPage({ params }: Props) {
       .filter((r) => r.container_id === container.id && !r.voided_at)
       .sort((a, b) => new Date(b.arrived_at).getTime() - new Date(a.arrived_at).getTime())[0] ?? null
   }, [receptions, container.id])
+
+  // El tacho es independiente: su "empresa" es la del último registro de pesaje.
+  const lastCompany = reception?.company_id
+    ? companies.find((c) => c.id === reception.company_id)
+    : undefined
 
   const storage = useMemo(() => {
     return [...storageEvents]
@@ -105,7 +107,7 @@ export default function ContainerDetailPage({ params }: Props) {
         <div>
           <h1 className="text-xl font-bold font-mono text-slate-800">{formatTachoNumber(container.id)}</h1>
           <p className="text-sm text-slate-500">
-            {company?.name ?? '—'} · {client?.name ?? '—'}
+            Última empresa: {lastCompany?.name ?? '—'}
           </p>
         </div>
       </div>
@@ -121,12 +123,8 @@ export default function ContainerDetailPage({ params }: Props) {
               <dd className="font-mono font-semibold">{formatTachoNumber(container.id)}</dd>
             </div>
             <div>
-              <dt className="text-slate-500">Empresa</dt>
-              <dd className="font-medium">{company?.name ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-slate-500">Cliente</dt>
-              <dd className="font-medium">{client?.name ?? '—'}</dd>
+              <dt className="text-slate-500">Última empresa</dt>
+              <dd className="font-medium">{lastCompany?.name ?? '—'}</dd>
             </div>
             <div>
               <dt className="text-slate-500">Tipo de desecho</dt>

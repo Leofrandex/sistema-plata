@@ -13,11 +13,8 @@ import type { Container } from '@/lib/types'
 import { formatTachoNumber } from '@/lib/data/containers'
 
 export default function AdminContainersPage() {
-  const { containers, clients, companies, addContainer, updateContainer } = useStore()
+  const { containers, addContainer, updateContainer } = useStore()
   const [showForm, setShowForm] = useState(false)
-
-  const companyMap = Object.fromEntries(companies.map((c) => [c.id, c]))
-  const clientMap = Object.fromEntries(clients.map((c) => [c.id, c.name]))
 
   async function handleAdd(data: Omit<Container, 'registered_at' | 'status'>) {
     const now = new Date().toISOString()
@@ -25,7 +22,6 @@ export default function AdminContainersPage() {
       const supabase = createClient()
       await q.createContainer(supabase, {
         id: data.id,
-        company_id: data.company_id || null,
         size_liters: String(data.size_liters) as '120' | '240' | '750' | '1100',
         tare_weight_kg: data.tare_weight_kg,
         status: 'active',
@@ -101,8 +97,6 @@ export default function AdminContainersPage() {
           <CardHeader><CardTitle className="text-base">Agregar nuevo tacho</CardTitle></CardHeader>
           <CardContent>
             <ContainerForm
-              clients={clients}
-              companies={companies}
               onSubmit={handleAdd}
               onCancel={() => setShowForm(false)}
             />
@@ -114,8 +108,6 @@ export default function AdminContainersPage() {
           <thead>
             <tr className="border-b bg-slate-50 text-slate-500 text-left">
               <th className="px-4 py-3 font-medium">Tacho</th>
-              <th className="px-4 py-3 font-medium">Empresa</th>
-              <th className="px-4 py-3 font-medium">Cliente</th>
               <th className="px-4 py-3 font-medium">Tamaño</th>
               <th className="px-4 py-3 font-medium">Tara</th>
               <th className="px-4 py-3 font-medium">Estado</th>
@@ -127,13 +119,9 @@ export default function AdminContainersPage() {
           </thead>
           <tbody className="divide-y">
             {containers.map((c) => {
-              const company = companyMap[c.company_id]
-              const clientName = company ? clientMap[company.client_id] ?? '—' : '—'
               return (
                 <tr key={c.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3 font-mono font-semibold">{formatTachoNumber(c.id)}</td>
-                  <td className="px-4 py-3 text-slate-600">{company?.name ?? '—'}</td>
-                  <td className="px-4 py-3 text-slate-600">{clientName}</td>
                   <td className="px-4 py-3 text-slate-600">{c.size_liters} L</td>
                   <td className="px-4 py-3 text-slate-600">{c.tare_weight_kg} kg</td>
                   <td className="px-4 py-3">

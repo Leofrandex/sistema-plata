@@ -68,6 +68,7 @@ updated: 2026-05-21
 - `decisions/2026-05-21-supabase-integracion.md`
 - `decisions/2026-05-21-estado-envase-derivado.md` — estado derivado de eventos; P1 avanzado (tratamiento completado → clean)
 - `decisions/2026-05-30-empresa-tipo-dinamicos-tacho.md` — empresa y tipo de desecho dinámicos del tacho
+- `decisions/2026-06-10-empresa-por-registro.md` — la empresa es del registro (recorrido/pesaje), no del tacho; `containers.company_id` eliminado
 - `decisions/2026-06-01-roles-acceso.md` — roles coordinador/operador; control en UI + middleware + RLS
 - `decisions/2026-06-01-ids-tachos-supabase-vs-mock.md` — ⚠️ IDs en Supabase son numéricos sin prefijo (`020`), no `A-020`; el prefijo es solo del mock
 
@@ -92,6 +93,8 @@ updated: 2026-05-21
 - `logs/2026-06-03-tratamiento-confirmacion-refresco.md`
 - `logs/2026-06-03-fix-sesion-no-cargada-boton-iniciar.md`
 - `logs/2026-06-03-contenedores-yaris-recorrido.md`
+- `logs/2026-06-10-sesion-no-persistente-cookies-de-sesion.md`
+- `logs/2026-06-10-empresa-por-registro-tacho-independiente.md`
 
 ---
 

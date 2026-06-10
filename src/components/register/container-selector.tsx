@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Input } from '@/components/ui/input'
-import type { Container, Company } from '@/lib/types'
+import type { Container } from '@/lib/types'
 import { formatTachoNumber } from '@/lib/data/containers'
 
 export function filterContainers(containers: Container[], search: string): Container[] {
@@ -13,13 +13,11 @@ export function filterContainers(containers: Container[], search: string): Conta
 
 interface Props {
   containers: Container[]
-  companies: Company[]
   onSelect: (container: Container) => void
 }
 
-export function ContainerSelector({ containers, companies, onSelect }: Props) {
+export function ContainerSelector({ containers, onSelect }: Props) {
   const [search, setSearch] = useState('')
-  const companyMap = Object.fromEntries(companies.map((c) => [c.id, c.name]))
 
   const results = filterContainers(containers, search).slice(0, 8)
 
@@ -47,7 +45,7 @@ export function ContainerSelector({ containers, companies, onSelect }: Props) {
             >
               <p className="font-mono font-semibold text-slate-800">{formatTachoNumber(container.id)}</p>
               <p className="text-sm text-slate-500">
-                {companyMap[container.company_id] ?? '—'} · {container.size_liters}L
+                {container.size_liters}L
               </p>
             </button>
           ))}

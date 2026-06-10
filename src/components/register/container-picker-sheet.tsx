@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { Search, Check, X, Trash2, Sparkles } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import type { Container, Company } from '@/lib/types'
+import type { Container } from '@/lib/types'
 import { formatTachoNumber } from '@/lib/data/containers'
 
 export type PickerVariant = 'dirty' | 'clean'
@@ -15,7 +15,6 @@ interface Props {
   variant: PickerVariant
   /** Catálogo ya filtrado (sin tachos del otro lado). */
   containers: Container[]
-  companies: Company[]
   /** Ids actualmente seleccionados en el form padre (estado inicial del modal). */
   selectedIds: string[]
   onClose: () => void
@@ -61,17 +60,12 @@ export function ContainerPickerSheet({
   open,
   variant,
   containers,
-  companies,
   selectedIds,
   onClose,
   onConfirm,
 }: Props) {
   const styles = VARIANT_STYLES[variant]
   const Icon = styles.Icon
-  const companyMap = useMemo(
-    () => Object.fromEntries(companies.map((c) => [c.id, c.name])),
-    [companies],
-  )
 
   const [search, setSearch] = useState('')
   const [local, setLocal] = useState<Set<string>>(new Set(selectedIds))
@@ -208,7 +202,7 @@ export function ContainerPickerSheet({
                         {formatTachoNumber(c.id)}
                       </p>
                       <p className="text-sm text-muted-foreground truncate">
-                        {companyMap[c.company_id] ?? '—'} · {c.size_liters} L
+                        {c.size_liters} L
                       </p>
                     </div>
                   </button>

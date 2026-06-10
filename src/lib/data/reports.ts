@@ -119,19 +119,10 @@ export function buildPhotographicReportData(
 
   const photoMap = new Map(store.photos.map((p) => [p.id, p]))
 
-  // ¿Esta reception pertenece a la empresa del reporte? Empresa registrada
-  // (snapshot en pesaje) o, para histórico sin snapshot, empresa-dueña del tacho.
-  const recBelongs = (r: ContainerReception): boolean => {
-    if (r.company_id) return r.company_id === companyId
-    const c = store.containers.find((x) => x.id === r.container_id)
-    return c?.company_id === companyId
-  }
-  // Idem para recorridos: empresa registrada o, en histórico, por los tachos que toca.
-  const routeBelongs = (e: RouteEvent): boolean => {
-    if (e.company_id) return e.company_id === companyId
-    const ids = [...e.containers_dirty_received, ...e.containers_clean_delivered]
-    return ids.some((cid) => store.containers.find((x) => x.id === cid)?.company_id === companyId)
-  }
+  // La empresa es propiedad del registro (snapshot en pesaje / recorrido). El tacho
+  // es independiente, así que un registro sin empresa no pertenece a ningún reporte.
+  const recBelongs = (r: ContainerReception): boolean => r.company_id === companyId
+  const routeBelongs = (e: RouteEvent): boolean => e.company_id === companyId
 
   const routeEvents = store.routeEvents.filter(
     (r) => r.kind === 'anden' && withinRange(r.started_at, start, end) && routeBelongs(r),

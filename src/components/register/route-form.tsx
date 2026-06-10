@@ -15,6 +15,8 @@ import { formatTachoNumber } from '@/lib/data/containers'
 const LOCATION_OPTIONS = ['Pediatría', 'Andén 3'] as const
 
 export interface RouteFormState {
+  /** Empresa de ESTE registro (ION/Airkem). Propiedad del registro, no del tacho. */
+  companyId: string
   /** Tachos sucios recogidos en este recorrido (van a pesaje). */
   dirtyReceivedIds: string[]
   /** Tachos limpios entregados al cliente durante el recorrido. */
@@ -29,11 +31,15 @@ interface Props {
   state: RouteFormState
   onChange: (updates: Partial<RouteFormState>) => void
   containers: Container[]
+  /** Empresas seleccionables para el registro (las del cliente del recorrido). */
   companies: Company[]
   locked: boolean
+  /** Muestra el selector de empresa dentro del formulario (andén multi-registro).
+   *  Morgue lo desactiva: elige empresa al iniciar (un solo registro). */
+  showCompanySelector?: boolean
 }
 
-export function RouteForm({ state, onChange, containers, companies, locked }: Props) {
+export function RouteForm({ state, onChange, containers, companies, locked, showCompanySelector = false }: Props) {
   const [pickerOpen, setPickerOpen] = useState<'dirty' | 'clean' | null>(null)
 
   const dirtyContainers = containers.filter((c) => state.dirtyReceivedIds.includes(c.id))
@@ -68,6 +74,35 @@ export function RouteForm({ state, onChange, containers, companies, locked }: Pr
       )}
       aria-disabled={locked}
     >
+      {/* Empresa de este registro */}
+      {showCompanySelector && (
+        <section className="space-y-3">
+          <header>
+            <h2 className="text-sm font-semibold text-foreground">
+              Empresa <span className="text-red-500">*</span>
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Cada registro es de una sola empresa. Para otra empresa, guardá este y abrí uno nuevo.
+            </p>
+          </header>
+          <Select
+            value={state.companyId || undefined}
+            onValueChange={(v) => onChange({ companyId: v ?? '' })}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Seleccionar empresa" />
+            </SelectTrigger>
+            <SelectContent>
+              {companies.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </section>
+      )}
+
       {/* Tachos sucios recogidos */}
       <section className="space-y-3">
         <header className="flex items-center gap-2">
@@ -220,7 +255,6 @@ export function RouteForm({ state, onChange, containers, companies, locked }: Pr
         open={pickerOpen === 'dirty'}
         variant="dirty"
         containers={dirtyCatalog}
-        companies={companies}
         selectedIds={state.dirtyReceivedIds}
         onClose={() => setPickerOpen(null)}
         onConfirm={(ids) => onChange({ dirtyReceivedIds: ids })}
@@ -229,7 +263,6 @@ export function RouteForm({ state, onChange, containers, companies, locked }: Pr
         open={pickerOpen === 'clean'}
         variant="clean"
         containers={cleanCatalog}
-        companies={companies}
         selectedIds={state.cleanDeliveredIds}
         onClose={() => setPickerOpen(null)}
         onConfirm={(ids) => onChange({ cleanDeliveredIds: ids })}

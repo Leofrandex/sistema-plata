@@ -10,14 +10,13 @@ import type { ContainerWithPhase } from '@/lib/types'
 
 const DEFAULT_FILTERS: Filters = {
   search: '',
-  companyId: 'all',
   size: 'all',
 }
 
 export default function ContainersPage() {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const {
-    containers, clients, companies, routeEvents, receptions,
+    containers, clients, routeEvents, receptions,
     storageEvents, treatmentRuns, externalTransfers, locations,
   } = useStore()
 
@@ -53,7 +52,6 @@ export default function ContainersPage() {
   const filtered = useMemo(() => {
     return allContainersWithPhase.filter((c) => {
       if (filters.search && !c.id.toLowerCase().includes(filters.search.toLowerCase())) return false
-      if (filters.companyId !== 'all' && c.company_id !== filters.companyId) return false
       if (filters.size !== 'all' && c.size_liters !== filters.size) return false
       return true
     })
@@ -67,12 +65,10 @@ export default function ContainersPage() {
       </div>
       <ContainerFilters
         filters={filters}
-        companies={companies}
         onChange={setFilters}
       />
       <ContainerTable
         containers={filtered}
-        companies={companies.map((c) => ({ id: c.id, name: c.name, client_id: c.client_id }))}
         clients={clients.map((c) => ({ id: c.id, name: c.name }))}
       />
     </div>

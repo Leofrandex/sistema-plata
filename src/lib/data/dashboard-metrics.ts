@@ -192,31 +192,32 @@ export function computeMonthlyKgByCompany(
     buckets.set(company.id, { receivedKg: 0, processedKg: 0 })
   }
 
-  // Recibidos: receptions del mes, agrupados por empresa del container
+  // Recibidos: receptions del mes, agrupados por la empresa del REGISTRO de pesaje.
   for (const r of store.receptions) {
     if (r.voided_at) continue
     const day = isoDayOf(r.arrived_at)
     if (!day.startsWith(month)) continue
     const container = containerMap.get(r.container_id)
     if (!container) continue
-    const bucket = buckets.get(container.company_id)
+    const bucket = r.company_id ? buckets.get(r.company_id) : undefined
     if (!bucket) continue
     bucket.receivedKg += computeNetWeight(r.gross_weight_kg, container.tare_weight_kg)
   }
 
-  // Procesados: treatments completados del mes
+  // Procesados: treatments completados del mes. La empresa se toma de la recepción
+  // más reciente del tacho (snapshot del registro), no del tacho.
   for (const t of store.treatmentRuns) {
     if (!t.completed_at) continue
     const day = isoDayOf(t.completed_at)
     if (!day.startsWith(month)) continue
     const container = containerMap.get(t.container_id)
     if (!container) continue
-    const bucket = buckets.get(container.company_id)
-    if (!bucket) continue
     const reception = [...store.receptions]
       .filter((r) => r.container_id === t.container_id && !r.voided_at)
       .sort((a, b) => new Date(b.arrived_at).getTime() - new Date(a.arrived_at).getTime())[0]
     if (!reception) continue
+    const bucket = reception.company_id ? buckets.get(reception.company_id) : undefined
+    if (!bucket) continue
     bucket.processedKg += computeNetWeight(reception.gross_weight_kg, container.tare_weight_kg)
   }
 
