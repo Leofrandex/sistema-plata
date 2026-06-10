@@ -10,6 +10,10 @@ import type {
   ContainerReception,
   RouteEvent,
   Photo,
+  StorageEvent,
+  TreatmentRun,
+  ExternalTransfer,
+  ContainerLocation,
 } from '@/lib/types'
 
 /**
@@ -44,14 +48,20 @@ export function SupabaseHydrator() {
         // Sin sesión → no traer datos (el middleware redirige a /login)
         if (!profile) return
 
-        const [containersRaw, sessionsRaw, routeEventsRaw, dirtyLinks, cleanLinks, photosRaw] =
-          await Promise.all([
+        const [
+          containersRaw, sessionsRaw, routeEventsRaw, dirtyLinks, cleanLinks, photosRaw,
+          storageRaw, treatmentRaw, transfersRaw, locationsRaw,
+        ] = await Promise.all([
             q.listContainers(supabase),
             q.listWeighingSessions(supabase),
             q.listRouteEvents(supabase),
             q.listAllRouteContainersDirty(supabase),
             q.listAllRouteContainersClean(supabase),
             q.listAllPhotos(supabase),
+            q.listStorageEvents(supabase),
+            q.listTreatmentRuns(supabase),
+            q.listExternalTransfers(supabase),
+            q.listContainerLocations(supabase),
           ])
         if (cancelled) return
 
@@ -113,12 +123,21 @@ export function SupabaseHydrator() {
           photo_ids: photoIdsByEvent.get(r.id) ?? [],
         }))
 
+        const storageEvents: StorageEvent[] = storageRaw.map(rowToStorageEvent)
+        const treatmentRuns: TreatmentRun[] = treatmentRaw.map(rowToTreatmentRun)
+        const externalTransfers: ExternalTransfer[] = transfersRaw.map(rowToExternalTransfer)
+        const locations: ContainerLocation[] = locationsRaw.map(rowToLocation)
+
         useStore.getState().hydrate({
           containers,
           weighingSessions,
           receptions,
           routeEvents,
           photos,
+          storageEvents,
+          treatmentRuns,
+          externalTransfers,
+          locations,
         })
         // Éxito: marcamos la conexión como online.
         useStore.getState().setConnectionStatus('online')
@@ -230,4 +249,50 @@ function groupContainers(links: q.RouteContainerLink[]): Map<string, string[]> {
     map.set(l.route_event_id, arr)
   }
   return map
+}
+
+export function rowToStorageEvent(r: q.StorageEventRow): StorageEvent {
+  return {
+    id: r.id,
+    container_id: r.container_id,
+    entry_at: r.entry_at,
+    exit_at: r.exit_at,
+    operator_id: r.operator_id,
+    photo_ids: [],
+  }
+}
+
+export function rowToTreatmentRun(r: q.TreatmentRunRow): TreatmentRun {
+  return {
+    id: r.id,
+    container_id: r.container_id,
+    started_at: r.started_at,
+    completed_at: r.completed_at,
+    operator_id: r.operator_id,
+  }
+}
+
+export function rowToExternalTransfer(r: q.ExternalTransferRow): ExternalTransfer {
+  return {
+    id: r.id,
+    container_id: r.container_id,
+    storage_started_at: r.storage_started_at,
+    transferred_at: r.transferred_at,
+    destination: r.destination,
+    operator_id: r.operator_id,
+  }
+}
+
+export function rowToLocation(r: q.ContainerLocationRow): ContainerLocation {
+  return {
+    id: r.id,
+    container_id: r.container_id,
+    reported_at: r.reported_at,
+    operator_id: r.operator_id,
+    location_type: r.location_type,
+    client_id: r.client_id,
+    floor: r.floor,
+    area: r.area,
+    notes: r.notes,
+  }
 }
