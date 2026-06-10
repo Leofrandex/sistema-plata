@@ -65,6 +65,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [confirmingFinish, setConfirmingFinish] = useState(false)
   const [confirmingCancel, setConfirmingCancel] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   const client = clients[0]
   const clientCompanies = companies.filter((c) => c.client_id === client?.id)
@@ -139,11 +140,16 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   }
 
   async function handleSaveAnden() {
-    if (!currentProfileId || !client) return
-    if (editingAndenId) {
-      await handleUpdateAnden(editingAndenId)
-    } else {
-      await handleCreateAnden()
+    if (!currentProfileId || !client || saving) return
+    setSaving(true)
+    try {
+      if (editingAndenId) {
+        await handleUpdateAnden(editingAndenId)
+      } else {
+        await handleCreateAnden()
+      }
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -469,9 +475,9 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       {/* Acción: guardar andén y agregar otro */}
       {isRunning && (
         <div className="flex flex-col gap-3 sm:flex-row-reverse">
-          <Button onClick={handleSaveAnden} disabled={!canSaveAnden} size="lg" className="gap-2 sm:flex-1">
+          <Button onClick={handleSaveAnden} disabled={!canSaveAnden || saving} size="lg" className="gap-2 sm:flex-1">
             <Plus className="h-4 w-4" />
-            {isEditing ? 'Guardar cambios del andén' : 'Guardar andén y agregar otro'}
+            {saving ? 'Guardando…' : isEditing ? 'Guardar cambios del andén' : 'Guardar andén y agregar otro'}
           </Button>
           {isEditing && (
             <>
