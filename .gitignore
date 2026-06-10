@@ -43,6 +43,9 @@ next-env.d.ts
 # obsidian
 .obsidian/
 
+# credenciales en texto plano (NUNCA versionar)
+vault/secrets/
+
 # claude code local config
 .claude/
 
