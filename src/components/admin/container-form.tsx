@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import type { Client, Company, Container, ContainerSize } from '@/lib/types'
+import type { Container, ContainerSize } from '@/lib/types'
 
 const SIZE_OPTIONS: { value: ContainerSize; label: string }[] = [
   { value: 120, label: '120 L' },
@@ -14,15 +14,11 @@ const SIZE_OPTIONS: { value: ContainerSize; label: string }[] = [
 ]
 
 interface Props {
-  clients: Client[]
-  companies: Company[]
   onSubmit: (data: Omit<Container, 'registered_at' | 'status'>) => void
   onCancel: () => void
 }
 
-export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props) {
-  const [clientId, setClientId] = useState('')
-  const [companyId, setCompanyId] = useState('')
+export function ContainerForm({ onSubmit, onCancel }: Props) {
   const [containerNumber, setContainerNumber] = useState('')
   const [size, setSize] = useState<ContainerSize | ''>('')
   const [tare, setTare] = useState('')
@@ -30,32 +26,15 @@ export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props)
   const [isMetallic, setIsMetallic] = useState(false)
   const [isYarisContainer, setIsYarisContainer] = useState(false)
 
-  const companiesOfClient = useMemo(
-    () => companies.filter((c) => c.client_id === clientId),
-    [companies, clientId]
-  )
-
-  const selectedCompany = companies.find((c) => c.id === companyId)
-  // Metálico o Yaris recorrido: id libre (M1… / Y1…) sin empresa. Normal: {letra}-NNN.
-  const freeId = isMetallic || isYarisContainer
-  const computedId = freeId
-    ? containerNumber.trim()
-    : selectedCompany && containerNumber
-      ? `${selectedCompany.code_letter}-${containerNumber.padStart(3, '0')}`
-      : ''
-
-  function handleClientChange(newClientId: string) {
-    setClientId(newClientId)
-    setCompanyId('') // reset cascade
-  }
+  // El tacho es independiente (sin empresa). Su ID es el identificador físico
+  // tal cual: '001', 'M1', 'Y1'.
+  const computedId = containerNumber.trim()
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!computedId || !size || !tare) return
-    if (!freeId && (!clientId || !companyId)) return
     onSubmit({
       id: computedId,
-      company_id: freeId ? '' : companyId,
       size_liters: size as ContainerSize,
       tare_weight_kg: parseFloat(tare),
       is_yaris_dedicated: isYaris,
@@ -64,56 +43,18 @@ export function ContainerForm({ clients, companies, onSubmit, onCancel }: Props)
     })
   }
 
-  const canSubmit = computedId && size && tare && (freeId || (clientId && companyId))
+  const canSubmit = computedId && size && tare
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <label className="text-sm font-medium">Cliente</label>
-        <Select value={clientId} onValueChange={(v) => handleClientChange(v ?? '')}>
-          <SelectTrigger><SelectValue placeholder="Seleccionar cliente" /></SelectTrigger>
-          <SelectContent>
-            {clients.map((c) => (
-              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Empresa</label>
-        <Select
-          value={companyId}
-          onValueChange={(v) => setCompanyId(v ?? '')}
-          disabled={!clientId}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder={clientId ? 'Seleccionar empresa' : 'Primero elige un cliente'} />
-          </SelectTrigger>
-          <SelectContent>
-            {companiesOfClient.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.name} ({c.code_letter})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Número de tacho</label>
-        <div className="flex gap-2 items-center">
-          {selectedCompany && !freeId && (
-            <span className="font-mono font-semibold text-slate-600">{selectedCompany.code_letter}-</span>
-          )}
-          <Input
-            type={freeId ? 'text' : 'number'}
-            placeholder={freeId ? (isYarisContainer ? 'Y1' : 'M1') : '001'}
-            value={containerNumber}
-            onChange={(e) => setContainerNumber(e.target.value)}
-            className="flex-1"
-          />
-        </div>
+        <label className="text-sm font-medium">Número / ID de tacho</label>
+        <Input
+          type="text"
+          placeholder="001, M1, Y1…"
+          value={containerNumber}
+          onChange={(e) => setContainerNumber(e.target.value)}
+        />
         {computedId && (
           <p className="text-xs text-slate-500">ID del tacho: <strong className="font-mono">{computedId}</strong></p>
         )}

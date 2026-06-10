@@ -10,7 +10,7 @@ import { useStore } from '@/lib/store'
 import type { Client } from '@/lib/types'
 
 export default function AdminClientsPage() {
-  const { clients, companies, containers, addClient } = useStore()
+  const { clients, companies, addClient } = useStore()
   const [showForm, setShowForm] = useState(false)
 
   function handleAdd(data: Omit<Client, 'id' | 'locations'>) {
@@ -37,9 +37,6 @@ export default function AdminClientsPage() {
       <div className="space-y-3">
         {clients.map((client) => {
           const clientCompanies = companies.filter((c) => c.client_id === client.id)
-          const totalContainers = containers.filter((c) =>
-            clientCompanies.some((co) => co.id === c.company_id)
-          ).length
 
           return (
             <div key={client.id} className="p-4 bg-white rounded-lg border space-y-3">
@@ -48,23 +45,17 @@ export default function AdminClientsPage() {
                   <p className="font-semibold text-slate-800">{client.name}</p>
                   <p className="text-sm text-slate-500">
                     {clientCompanies.length} empresa{clientCompanies.length !== 1 ? 's' : ''}
-                    {' · '}
-                    {totalContainers} tacho{totalContainers !== 1 ? 's' : ''} total
                   </p>
                 </div>
               </div>
               {clientCompanies.length > 0 && (
                 <div className="flex flex-wrap gap-2 pt-2 border-t">
-                  {clientCompanies.map((co) => {
-                    const count = containers.filter((c) => c.company_id === co.id).length
-                    return (
-                      <Badge key={co.id} variant="outline" className="gap-1.5">
-                        <span className="font-semibold">{co.name}</span>
-                        <span className="font-mono text-xs text-slate-500">({co.code_letter})</span>
-                        <span className="text-xs text-slate-500">· {count} tachos</span>
-                      </Badge>
-                    )
-                  })}
+                  {clientCompanies.map((co) => (
+                    <Badge key={co.id} variant="outline" className="gap-1.5">
+                      <span className="font-semibold">{co.name}</span>
+                      <span className="font-mono text-xs text-slate-500">({co.code_letter})</span>
+                    </Badge>
+                  ))}
                 </div>
               )}
             </div>

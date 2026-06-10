@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { ArrowLeft, Play, StopCircle, AlertCircle, X, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { RouteForm, type RouteFormState } from '@/components/register/route-form'
 import { RouteSessionDrawer } from '@/components/register/route-session-drawer'
 import { StartSessionButton } from '@/components/register/start-session-button'
@@ -34,6 +33,7 @@ interface Props {
 const VALID_SLOTS: RouteSlot[] = ['06:30', '10:30', '13:20', '14:30', '18:30', '21:00']
 
 const EMPTY_FORM: RouteFormState = {
+  companyId: '',
   dirtyReceivedIds: [],
   cleanDeliveredIds: [],
   floor: '',
@@ -56,7 +56,6 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   } = useStore()
 
   const [today] = useState<string>(todayLocal)
-  const [companyId, setCompanyId] = useState('')
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null)
   const [formState, setFormState] = useState<RouteFormState>(EMPTY_FORM)
   // Andén actualmente en edición (null = creando uno nuevo).
@@ -152,14 +151,15 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     if (!currentProfileId || !client) return
     const now = new Date().toISOString()
     const supabase = createClient()
-    const sessionCompanyId = activeSession?.context.type === 'route' ? (activeSession.context.company_id ?? companyId) : companyId
+    // La empresa es propiedad de ESTE registro (no de la sesión ni del tacho).
+    const recordCompanyId = formState.companyId
 
     // 1) Crear el route_event (in_progress) del andén
     let routeEventId: string
     try {
       const row = await q.createRouteEvent(supabase, {
         client_id: client.id,
-        company_id: sessionCompanyId || null,
+        company_id: recordCompanyId || null,
         kind: 'anden',
         slot: slotId,
         date: today,
@@ -204,7 +204,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     addRouteEvent({
       id: routeEventId,
       client_id: client.id,
-      company_id: sessionCompanyId || null,
+      company_id: recordCompanyId || null,
       kind: 'anden',
       slot: slotId,
       date: today,
@@ -227,6 +227,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     const ev = routeEvents.find((r) => r.id === id)
     if (!ev) return
     setFormState({
+      companyId: ev.company_id ?? '',
       dirtyReceivedIds: ev.containers_dirty_received,
       cleanDeliveredIds: ev.containers_clean_delivered,
       floor: ev.floor,
@@ -247,6 +248,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     // 1) Actualizar ubicación + tachos
     try {
       await q.updateRouteEvent(supabase, id, {
+        company_id: formState.companyId || null,
         floor: formState.floor,
         area: formState.area,
         dock: formState.dock,
@@ -278,6 +280,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     }
 
     updateRouteEvent(id, {
+      company_id: formState.companyId || null,
       containers_dirty_received: formState.dirtyReceivedIds,
       containers_clean_delivered: formState.cleanDeliveredIds,
       floor: formState.floor,
@@ -305,7 +308,6 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     // El botón ya está bloqueado hasta que currentProfileId esté hidratado
     // (ver StartSessionButton); este guard es defensivo.
     if (!currentProfileId || !client) return
-    if (!companyId) { alert('Seleccioná la empresa del recorrido antes de iniciar.'); return }
     const now = new Date().toISOString()
     const session: ActiveSession = {
       key: routeAndenSessionKey(today, slotId),
@@ -314,7 +316,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       context: {
         type: 'route',
         client_id: client.id,
-        company_id: companyId,
+        company_id: null, // la empresa ahora es por registro, no por sesión
         kind: 'anden',
         slot: slotId,
         date: today,
@@ -394,6 +396,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
 
   const canSaveAnden =
     isRunning &&
+    !!formState.companyId &&
     (formState.dirtyReceivedIds.length + formState.cleanDeliveredIds.length > 0) &&
     (formState.photos.length > 0 || existingPhotoIds.length > 0)
   const canFinish = sessionAndenes.length > 0
@@ -431,29 +434,17 @@ export default function RegisterRouteSlotPage({ params }: Props) {
         </Card>
       ) : (
         <Card className="bg-card">
-          <CardContent className="pt-4 space-y-3">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Empresa del recorrido <span className="text-red-500">*</span></label>
-              <Select value={companyId} onValueChange={(v) => setCompanyId(v ?? '')}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar empresa" /></SelectTrigger>
-                <SelectContent>
-                  {clientCompanies.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <p className="text-sm text-muted-foreground">Iniciá el recorrido para registrar los andenes.</p>
-              <StartSessionButton
-                sessionReady={!!currentProfileId}
-                onStart={handleStart}
-                disabled={!companyId}
-                icon={<Play className="h-4 w-4" />}
-              >
-                Iniciar recorrido
-              </StartSessionButton>
-            </div>
+          <CardContent className="pt-4 flex items-center justify-between gap-4">
+            <p className="text-sm text-muted-foreground">
+              Iniciá el recorrido para registrar los andenes. La empresa se elige en cada registro.
+            </p>
+            <StartSessionButton
+              sessionReady={!!currentProfileId}
+              onStart={handleStart}
+              icon={<Play className="h-4 w-4" />}
+            >
+              Iniciar recorrido
+            </StartSessionButton>
           </CardContent>
         </Card>
       )}
@@ -470,7 +461,8 @@ export default function RegisterRouteSlotPage({ params }: Props) {
         state={formState}
         onChange={updateForm}
         containers={containers}
-        companies={companies}
+        companies={clientCompanies}
+        showCompanySelector
         locked={!isRunning}
       />
 

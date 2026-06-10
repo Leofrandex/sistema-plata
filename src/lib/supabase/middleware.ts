@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import type { Database } from './database.types'
+import { sessionCookieOptions } from './cookie-session'
 
 /**
  * Rutas públicas (no requieren sesión). El resto se protege con redirect
@@ -47,7 +48,7 @@ export async function updateSession(request: NextRequest) {
           )
           response = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
+            response.cookies.set(name, value, sessionCookieOptions(value, options))
           )
         },
       },

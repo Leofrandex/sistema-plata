@@ -17,13 +17,11 @@ const PHASE_LABELS: Record<ContainerPhase, string> = {
 
 interface Props {
   containers: ContainerWithPhase[]
-  companies: { id: string; name: string; client_id: string }[]
   clients: { id: string; name: string }[]
 }
 
-export function ContainerTable({ containers, companies, clients }: Props) {
+export function ContainerTable({ containers, clients }: Props) {
   const router = useRouter()
-  const companyMap = Object.fromEntries(companies.map((c) => [c.id, c]))
   const clientMap = Object.fromEntries(clients.map((c) => [c.id, c.name]))
 
   if (containers.length === 0) {
@@ -40,8 +38,6 @@ export function ContainerTable({ containers, companies, clients }: Props) {
         <thead>
           <tr className="border-b text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             <th className="px-4 py-3">Tacho</th>
-            <th className="px-4 py-3">Empresa</th>
-            <th className="px-4 py-3">Cliente</th>
             <th className="px-4 py-3">Tamaño</th>
             <th className="px-4 py-3">Fase actual</th>
             <th className="px-4 py-3">Ubicación actual</th>
@@ -56,8 +52,6 @@ export function ContainerTable({ containers, companies, clients }: Props) {
                 : loc.location_type.replace('_', ' ')
               : '—'
             const href = `/containers/${c.id}`
-            const company = companyMap[c.company_id]
-            const clientName = company ? clientMap[company.client_id] ?? '—' : '—'
 
             return (
               <tr
@@ -85,8 +79,6 @@ export function ContainerTable({ containers, companies, clients }: Props) {
                     {formatTachoNumber(c.id)}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-foreground/80">{company?.name ?? '—'}</td>
-                <td className="px-4 py-3 text-foreground/80">{clientName}</td>
                 <td className="px-4 py-3 text-foreground/80">{c.size_liters} L</td>
                 <td className="px-4 py-3">
                   <Badge variant="outline">{PHASE_LABELS[c.current_phase]}</Badge>

@@ -10,7 +10,7 @@ import { useStore } from '@/lib/store'
 import type { Company } from '@/lib/types'
 
 export default function AdminCompaniesPage() {
-  const { clients, companies, containers, addCompany } = useStore()
+  const { clients, companies, addCompany } = useStore()
   const [showForm, setShowForm] = useState(false)
 
   function handleAdd(data: Omit<Company, 'id'>) {
@@ -38,7 +38,6 @@ export default function AdminCompaniesPage() {
       )}
       <div className="space-y-3">
         {companies.map((company) => {
-          const containerCount = containers.filter((c) => c.company_id === company.id).length
           return (
             <div
               key={company.id}
@@ -51,8 +50,6 @@ export default function AdminCompaniesPage() {
                 </div>
                 <p className="text-sm text-slate-500">
                   Cliente: {clientNameMap[company.client_id] ?? '—'}
-                  {' · '}
-                  {containerCount} tacho{containerCount !== 1 ? 's' : ''}
                 </p>
               </div>
             </div>

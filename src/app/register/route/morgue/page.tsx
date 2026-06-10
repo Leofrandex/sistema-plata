@@ -36,6 +36,7 @@ export default function RegisterMorgueRoutePage() {
   const [companyId, setCompanyId] = useState('')
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null)
   const [formState, setFormState] = useState<RouteFormState>({
+    companyId: '',
     dirtyReceivedIds: [],
     cleanDeliveredIds: [],
     floor: '',
@@ -64,6 +65,7 @@ export default function RegisterMorgueRoutePage() {
           const event = useStore.getState().routeEvents.find((r) => r.id === ctx.route_event_id)
           if (event) {
             setFormState({
+              companyId: event.company_id ?? '',
               dirtyReceivedIds: event.containers_dirty_received,
               cleanDeliveredIds: event.containers_clean_delivered,
               floor: event.floor,
@@ -174,7 +176,7 @@ export default function RegisterMorgueRoutePage() {
     deleteRouteEvent(ctx.route_event_id)
     await endSession(activeSession.key)
     setActiveSession(null)
-    setFormState({ dirtyReceivedIds: [], cleanDeliveredIds: [], floor: '', area: '', dock: '', photos: [] })
+    setFormState({ companyId: '', dirtyReceivedIds: [], cleanDeliveredIds: [], floor: '', area: '', dock: '', photos: [] })
     router.push('/register/route')
   }
 

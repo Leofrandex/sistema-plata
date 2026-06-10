@@ -69,8 +69,7 @@ export interface Company {
 }
 
 export interface Container {
-  id: string             // '{company.code_letter}-NNN' → 'I-001', 'A-007'
-  company_id: string     // FK → Company
+  id: string             // identificador físico, ej: '001', 'M1', 'Y1'
   size_liters: ContainerSize
   tare_weight_kg: number
   status: ContainerStatus

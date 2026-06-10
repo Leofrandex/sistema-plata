@@ -240,7 +240,6 @@ export type Database = {
       }
       containers: {
         Row: {
-          company_id: string | null
           id: string
           is_metallic_dedicated: boolean
           is_yaris_container: boolean
@@ -251,7 +250,6 @@ export type Database = {
           tare_weight_kg: number
         }
         Insert: {
-          company_id?: string | null
           id: string
           is_metallic_dedicated?: boolean
           is_yaris_container?: boolean
@@ -262,7 +260,6 @@ export type Database = {
           tare_weight_kg: number
         }
         Update: {
-          company_id?: string | null
           id?: string
           is_metallic_dedicated?: boolean
           is_yaris_container?: boolean
@@ -272,15 +269,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["container_status"]
           tare_weight_kg?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "containers_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       external_transfers: {
         Row: {
@@ -699,7 +688,6 @@ export type Database = {
       }
       v_containers_pending_weighing: {
         Row: {
-          company_id: string | null
           id: string | null
           is_metallic_dedicated: boolean | null
           is_yaris_container: boolean | null

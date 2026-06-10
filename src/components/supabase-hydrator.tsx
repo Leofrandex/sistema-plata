@@ -164,7 +164,6 @@ export function SupabaseHydrator() {
 function rowToContainer(r: q.ContainerRow): Container {
   return {
     id: r.id,
-    company_id: r.company_id ?? '', // store espera string; '' = sin empresa
     size_liters: Number(r.size_liters) as 120 | 240 | 750 | 1100,
     tare_weight_kg: Number(r.tare_weight_kg),
     status: r.status,
