@@ -9,3 +9,7 @@ export async function createTreatmentRun(
 ): Promise<TreatmentRunRow> {
   return unwrap(await db.from('treatment_runs').insert(input).select().single())
 }
+
+export async function listTreatmentRuns(db: DB): Promise<TreatmentRunRow[]> {
+  return unwrap(await db.from('treatment_runs').select('*').order('started_at'))
+}
