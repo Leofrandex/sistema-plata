@@ -143,6 +143,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "container_locations_container_id_fkey"
+            columns: ["container_id"]
+            isOneToOne: false
+            referencedRelation: "v_containers_pending_weighing"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "container_locations_operator_id_fkey"
             columns: ["operator_id"]
             isOneToOne: false
@@ -202,13 +209,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "container_receptions_voided_by_fkey"
-            columns: ["voided_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "container_receptions_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -223,8 +223,22 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "container_receptions_container_id_fkey"
+            columns: ["container_id"]
+            isOneToOne: false
+            referencedRelation: "v_containers_pending_weighing"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "container_receptions_operator_id_fkey"
             columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "container_receptions_voided_by_fkey"
+            columns: ["voided_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -240,6 +254,7 @@ export type Database = {
       }
       containers: {
         Row: {
+          created_by: string | null
           id: string
           is_metallic_dedicated: boolean
           is_yaris_container: boolean
@@ -250,6 +265,7 @@ export type Database = {
           tare_weight_kg: number
         }
         Insert: {
+          created_by?: string | null
           id: string
           is_metallic_dedicated?: boolean
           is_yaris_container?: boolean
@@ -260,6 +276,7 @@ export type Database = {
           tare_weight_kg: number
         }
         Update: {
+          created_by?: string | null
           id?: string
           is_metallic_dedicated?: boolean
           is_yaris_container?: boolean
@@ -269,7 +286,15 @@ export type Database = {
           status?: Database["public"]["Enums"]["container_status"]
           tare_weight_kg?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "containers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       external_transfers: {
         Row: {
@@ -305,6 +330,13 @@ export type Database = {
             columns: ["container_id"]
             isOneToOne: false
             referencedRelation: "containers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_transfers_container_id_fkey"
+            columns: ["container_id"]
+            isOneToOne: false
+            referencedRelation: "v_containers_pending_weighing"
             referencedColumns: ["id"]
           },
           {
@@ -403,6 +435,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "route_event_containers_clean_container_id_fkey"
+            columns: ["container_id"]
+            isOneToOne: false
+            referencedRelation: "v_containers_pending_weighing"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "route_event_containers_clean_route_event_id_fkey"
             columns: ["route_event_id"]
             isOneToOne: false
@@ -430,6 +469,13 @@ export type Database = {
             columns: ["container_id"]
             isOneToOne: false
             referencedRelation: "containers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_event_containers_dirty_container_id_fkey"
+            columns: ["container_id"]
+            isOneToOne: false
+            referencedRelation: "v_containers_pending_weighing"
             referencedColumns: ["id"]
           },
           {
@@ -492,17 +538,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "route_events_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "route_events_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
           {
@@ -548,6 +594,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "storage_events_container_id_fkey"
+            columns: ["container_id"]
+            isOneToOne: false
+            referencedRelation: "v_containers_pending_weighing"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "storage_events_operator_id_fkey"
             columns: ["operator_id"]
             isOneToOne: false
@@ -587,6 +640,13 @@ export type Database = {
             columns: ["container_id"]
             isOneToOne: false
             referencedRelation: "containers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treatment_runs_container_id_fkey"
+            columns: ["container_id"]
+            isOneToOne: false
+            referencedRelation: "v_containers_pending_weighing"
             referencedColumns: ["id"]
           },
           {
@@ -651,18 +711,29 @@ export type Database = {
       container_receptions_with_net: {
         Row: {
           arrived_at: string | null
+          company_id: string | null
           container_id: string | null
           created_at: string | null
           gross_weight_kg: number | null
           id: string | null
           net_weight_kg: number | null
+          observations: string | null
           operator_id: string | null
+          treat_immediately: boolean | null
           void_reason: string | null
           voided_at: string | null
           voided_by: string | null
+          waste_type: Database["public"]["Enums"]["waste_type"] | null
           weighing_session_id: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "container_receptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "container_receptions_container_id_fkey"
             columns: ["container_id"]
@@ -671,8 +742,22 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "container_receptions_container_id_fkey"
+            columns: ["container_id"]
+            isOneToOne: false
+            referencedRelation: "v_containers_pending_weighing"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "container_receptions_operator_id_fkey"
             columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "container_receptions_voided_by_fkey"
+            columns: ["voided_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -697,11 +782,32 @@ export type Database = {
           status: Database["public"]["Enums"]["container_status"] | null
           tare_weight_kg: number | null
         }
+        Insert: {
+          id?: string | null
+          is_metallic_dedicated?: boolean | null
+          is_yaris_container?: boolean | null
+          is_yaris_dedicated?: boolean | null
+          registered_at?: string | null
+          size_liters?: Database["public"]["Enums"]["container_size"] | null
+          status?: Database["public"]["Enums"]["container_status"] | null
+          tare_weight_kg?: number | null
+        }
+        Update: {
+          id?: string | null
+          is_metallic_dedicated?: boolean | null
+          is_yaris_container?: boolean | null
+          is_yaris_dedicated?: boolean | null
+          registered_at?: string | null
+          size_liters?: Database["public"]["Enums"]["container_size"] | null
+          status?: Database["public"]["Enums"]["container_status"] | null
+          tare_weight_kg?: number | null
+        }
         Relationships: []
       }
     }
     Functions: {
-      [_ in never]: never
+      cleanup_stale_route_events: { Args: never; Returns: number }
+      is_coordinator: { Args: never; Returns: boolean }
     }
     Enums: {
       container_phase:
@@ -711,7 +817,7 @@ export type Database = {
         | "treatment"
         | "transfer"
         | "clean"
-      container_size: "120" | "240" | "750" | "1100"
+      container_size: "240" | "750" | "1100" | "120"
       container_status: "active" | "decommissioned"
       location_type:
         | "client_site"
@@ -722,6 +828,7 @@ export type Database = {
       route_event_status: "in_progress" | "completed"
       route_kind: "anden" | "morgue"
       route_slot: "06:30" | "10:30" | "13:20" | "14:30" | "18:30" | "21:00"
+      user_role: "coordinator" | "operator"
       waste_type:
         | "infectious"
         | "anatomopathological"
@@ -729,7 +836,6 @@ export type Database = {
         | "liquid"
         | "morgue"
         | "metallic"
-      user_role: "coordinator" | "operator"
       weighing_session_status: "in_progress" | "completed"
     }
     CompositeTypes: {
@@ -866,7 +972,7 @@ export const Constants = {
         "transfer",
         "clean",
       ],
-      container_size: ["120", "240", "750", "1100"],
+      container_size: ["240", "750", "1100", "120"],
       container_status: ["active", "decommissioned"],
       location_type: [
         "client_site",
@@ -878,6 +984,7 @@ export const Constants = {
       route_event_status: ["in_progress", "completed"],
       route_kind: ["anden", "morgue"],
       route_slot: ["06:30", "10:30", "13:20", "14:30", "18:30", "21:00"],
+      user_role: ["coordinator", "operator"],
       waste_type: [
         "infectious",
         "anatomopathological",
@@ -886,7 +993,6 @@ export const Constants = {
         "morgue",
         "metallic",
       ],
-      user_role: ["coordinator", "operator"],
       weighing_session_status: ["in_progress", "completed"],
     },
   },
