@@ -119,6 +119,10 @@ export interface RouteEvent {
   area: string
   // Fotos ilimitadas
   photo_ids: string[]
+  // Fotos del recorrido por categoría. `photo_ids` es la unión (lo usan los reportes).
+  // Opcionales: los mocks y literales que no las setean quedan undefined (se leen con `?? []`).
+  dirty_photo_ids?: string[]
+  clean_photo_ids?: string[]
 }
 
 // Sesión de pesaje. Agrupa N receptions creadas en el mismo "turno" de pesaje.

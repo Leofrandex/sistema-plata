@@ -45,6 +45,8 @@ describe('mapRouteEvents', () => {
     const result = mapRouteEvents([makeRow({ id: 'evt-x' })], [], [])
     expect(result[0].containers_dirty_received).toEqual([])
     expect(result[0].containers_clean_delivered).toEqual([])
+    expect(result[0].dirty_photo_ids).toEqual([])
+    expect(result[0].clean_photo_ids).toEqual([])
   })
 
   it('preserva los campos base del recorrido', () => {

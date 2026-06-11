@@ -87,9 +87,15 @@ export function SupabaseHydrator() {
           photoIdsByEvent.set(p.event_id, arr)
         }
 
-        const routeEvents = mapRouteEvents(routeEventsRaw, dirtyLinks, cleanLinks).map(
-          (e) => ({ ...e, photo_ids: photoIdsByEvent.get(e.id) ?? [] })
-        )
+        const { dirtyByEvent: dirtyPhotosByEvent, cleanByEvent: cleanPhotosByEvent } =
+          groupRoutePhotosByRole(photosRaw)
+
+        const routeEvents = mapRouteEvents(routeEventsRaw, dirtyLinks, cleanLinks).map((e) => ({
+          ...e,
+          photo_ids: photoIdsByEvent.get(e.id) ?? [],
+          dirty_photo_ids: dirtyPhotosByEvent.get(e.id) ?? [],
+          clean_photo_ids: cleanPhotosByEvent.get(e.id) ?? [],
+        }))
 
         // Traer todas las receptions de las sesiones en una sola query y
         // luego agruparlas para derivar reception_ids[] por sesión.
@@ -240,7 +246,28 @@ export function mapRouteEvents(
     containers_clean_delivered: cleanByEvent.get(e.id) ?? [],
     area: e.area,
     photo_ids: [], // el hydrator los rellena desde photoIdsByEvent
+    dirty_photo_ids: [],
+    clean_photo_ids: [],
   }))
+}
+
+/** Agrupa las fotos de eventos 'route' por rol (dirty/clean) y por event_id.
+ *  Las fotos sin role (legacy/pesaje) se ignoran. Exportada para test. */
+export function groupRoutePhotosByRole(photos: q.PhotoRow[]): {
+  dirtyByEvent: Map<string, string[]>
+  cleanByEvent: Map<string, string[]>
+} {
+  const dirtyByEvent = new Map<string, string[]>()
+  const cleanByEvent = new Map<string, string[]>()
+  for (const p of photos) {
+    if (p.event_type !== 'route') continue
+    const target = p.role === 'dirty' ? dirtyByEvent : p.role === 'clean' ? cleanByEvent : null
+    if (!target) continue
+    const arr = target.get(p.event_id) ?? []
+    arr.push(p.id)
+    target.set(p.event_id, arr)
+  }
+  return { dirtyByEvent, cleanByEvent }
 }
 
 function groupContainers(links: q.RouteContainerLink[]): Map<string, string[]> {
