@@ -136,6 +136,8 @@ export default function RegisterMorgueRoutePage() {
       containers_clean_delivered: formState.cleanDeliveredIds,
       area: formState.area,
       photo_ids: [],
+      dirty_photo_ids: [],
+      clean_photo_ids: [],
     })
     const session: ActiveSession = {
       key: routeMorgueSessionKey(today, now),

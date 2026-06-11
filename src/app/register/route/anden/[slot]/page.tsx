@@ -192,14 +192,15 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     // 3) Subir fotos AHORA por categoría (evita pérdida al editar luego)
     let dirtyIds: string[] = []
     let cleanIds: string[] = []
+    const label = buildLabel()
     try {
       const upDirty = await uploadEventPhotos(supabase, {
         dataUrls: formState.dirtyPhotos, eventType: 'route', eventId: routeEventId,
-        label: buildLabel(), uploadedBy: currentProfileId, takenAt: now, role: 'dirty',
+        label, uploadedBy: currentProfileId, takenAt: now, role: 'dirty',
       })
       const upClean = await uploadEventPhotos(supabase, {
         dataUrls: formState.cleanPhotos, eventType: 'route', eventId: routeEventId,
-        label: buildLabel(), uploadedBy: currentProfileId, takenAt: now, role: 'clean',
+        label, uploadedBy: currentProfileId, takenAt: now, role: 'clean',
       })
       ;[...upDirty, ...upClean].forEach(addPhoto)
       dirtyIds = upDirty.map((p) => p.id)
@@ -275,14 +276,15 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     // 2) Subir fotos nuevas por categoría; conservar las existentes que quedaron.
     let newDirtyIds: string[] = []
     let newCleanIds: string[] = []
+    const label = buildLabel()
     try {
       const upDirty = await uploadEventPhotos(supabase, {
         dataUrls: formState.dirtyPhotos, eventType: 'route', eventId: id,
-        label: buildLabel(), uploadedBy: currentProfileId, takenAt: now, role: 'dirty',
+        label, uploadedBy: currentProfileId, takenAt: now, role: 'dirty',
       })
       const upClean = await uploadEventPhotos(supabase, {
         dataUrls: formState.cleanPhotos, eventType: 'route', eventId: id,
-        label: buildLabel(), uploadedBy: currentProfileId, takenAt: now, role: 'clean',
+        label, uploadedBy: currentProfileId, takenAt: now, role: 'clean',
       })
       ;[...upDirty, ...upClean].forEach(addPhoto)
       newDirtyIds = upDirty.map((p) => p.id)
@@ -295,6 +297,8 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     const dirtyIds = [...existingDirty.map((p) => p.id), ...newDirtyIds]
     const cleanIds = [...existingClean.map((p) => p.id), ...newCleanIds]
 
+    // photo_ids/dirty_photo_ids/clean_photo_ids son campos solo-store: se derivan al
+    // hidratar desde photos.event_id (no hay columna en route_events que actualizar aquí).
     updateRouteEvent(id, {
       company_id: formState.companyId || null,
       containers_dirty_received: formState.dirtyReceivedIds,
@@ -322,9 +326,11 @@ export default function RegisterRouteSlotPage({ params }: Props) {
 
   function removeExistingDirty(id: string) {
     setExistingDirty((prev) => prev.filter((p) => p.id !== id))
+    // Nota: quita la foto del registro pero no borra la fila/archivo en Supabase (queda huérfana). Pendiente: limpieza.
   }
   function removeExistingClean(id: string) {
     setExistingClean((prev) => prev.filter((p) => p.id !== id))
+    // Nota: quita la foto del registro pero no borra la fila/archivo en Supabase (queda huérfana). Pendiente: limpieza.
   }
 
   async function handleStart() {
