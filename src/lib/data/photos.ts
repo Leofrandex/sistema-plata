@@ -21,6 +21,7 @@ export async function uploadEventPhotos(
     label: string
     uploadedBy?: string | null
     takenAt?: string
+    role?: string | null
   }
 ): Promise<Photo[]> {
   const photos: Photo[] = []
@@ -34,6 +35,7 @@ export async function uploadEventPhotos(
         label: args.label,
         uploadedBy: args.uploadedBy,
         takenAt: args.takenAt,
+        role: args.role ?? null,
       })
       const url = await q.getPhotoUrl(db, row)
       photos.push({

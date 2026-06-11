@@ -27,6 +27,7 @@ export async function uploadPhoto(
     label?: string
     uploadedBy?: string | null
     takenAt?: string
+    role?: string | null
   }
 ): Promise<PhotoRow> {
   const ext = blobExtension(args.file)
@@ -47,6 +48,7 @@ export async function uploadPhoto(
     label: args.label ?? '',
     uploaded_by: args.uploadedBy ?? null,
     taken_at: args.takenAt ?? new Date().toISOString(),
+    role: args.role ?? null,
   }
   return unwrap(await db.from('photos').insert(insert).select().single())
 }
@@ -65,6 +67,7 @@ export async function uploadPhotoFromDataUrl(
     label?: string
     uploadedBy?: string | null
     takenAt?: string
+    role?: string | null
   }
 ): Promise<PhotoRow> {
   const file = dataUrlToBlob(args.dataUrl)
