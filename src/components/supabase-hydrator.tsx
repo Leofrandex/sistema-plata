@@ -238,9 +238,7 @@ export function mapRouteEvents(
     status: e.status,
     containers_dirty_received: dirtyByEvent.get(e.id) ?? [],
     containers_clean_delivered: cleanByEvent.get(e.id) ?? [],
-    floor: e.floor,
     area: e.area,
-    dock: e.dock,
     photo_ids: [], // el hydrator los rellena desde photoIdsByEvent
   }))
 }

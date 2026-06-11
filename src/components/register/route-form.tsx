@@ -21,9 +21,7 @@ export interface RouteFormState {
   dirtyReceivedIds: string[]
   /** Tachos limpios entregados al cliente durante el recorrido. */
   cleanDeliveredIds: string[]
-  floor: string
   area: string
-  dock: string
   photos: string[] // dataURLs
 }
 

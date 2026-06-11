@@ -113,7 +113,7 @@ describe('getRouteEventIdsForContainer', () => {
     ended_at: '2026-05-17T08:00:00Z',
     operator_id: 'user-1',
     status: 'completed',
-    floor: '1', area: 'Emergencias', dock: 'Norte',
+    area: 'Emergencias',
     photo_ids: [],
   }
 
@@ -146,7 +146,7 @@ describe('getContainerCurrentCompanyId', () => {
       date: '2026-05-29', started_at: '2026-05-29T06:30:00Z', ended_at: null,
       operator_id: 'op', status: 'completed',
       containers_dirty_received: [], containers_clean_delivered: [],
-      floor: '', area: '', dock: '', photo_ids: [],
+      area: '', photo_ids: [],
       ...partial,
     }
   }

@@ -36,9 +36,7 @@ const EMPTY_FORM: RouteFormState = {
   companyId: '',
   dirtyReceivedIds: [],
   cleanDeliveredIds: [],
-  floor: '',
   area: '',
-  dock: '',
   photos: [],
 }
 
@@ -220,9 +218,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       status: 'in_progress',
       containers_dirty_received: formState.dirtyReceivedIds,
       containers_clean_delivered: formState.cleanDeliveredIds,
-      floor: formState.floor,
       area: formState.area,
-      dock: formState.dock,
       photo_ids: photoIds,
     })
 
@@ -236,9 +232,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       companyId: ev.company_id ?? '',
       dirtyReceivedIds: ev.containers_dirty_received,
       cleanDeliveredIds: ev.containers_clean_delivered,
-      floor: ev.floor,
       area: ev.area,
-      dock: ev.dock,
       photos: [], // las nuevas a subir; las existentes se preservan por id
     })
     setExistingPhotoIds(ev.photo_ids)
@@ -255,9 +249,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     try {
       await q.updateRouteEvent(supabase, id, {
         company_id: formState.companyId || null,
-        floor: formState.floor,
         area: formState.area,
-        dock: formState.dock,
       })
       await q.setRouteContainersDirty(supabase, id, formState.dirtyReceivedIds)
       await q.setRouteContainersClean(supabase, id, formState.cleanDeliveredIds)
@@ -289,9 +281,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       company_id: formState.companyId || null,
       containers_dirty_received: formState.dirtyReceivedIds,
       containers_clean_delivered: formState.cleanDeliveredIds,
-      floor: formState.floor,
       area: formState.area,
-      dock: formState.dock,
       photo_ids: mergePhotoIds(existingPhotoIds, newPhotoIds),
     })
 

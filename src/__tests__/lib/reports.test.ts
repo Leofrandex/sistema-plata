@@ -73,7 +73,7 @@ describe('buildPhotographicReportData (por empresa)', () => {
         status: 'completed',
         containers_dirty_received: ['A-901', 'A-902'],
         containers_clean_delivered: [],
-        floor: '1', area: 'Emergencias', dock: 'Andén Norte',
+        area: 'Emergencias',
         photo_ids: ['photo-ion-r1-1', 'photo-ion-r1-2', 'photo-ion-r1-3'],
       },
       {
@@ -89,7 +89,7 @@ describe('buildPhotographicReportData (por empresa)', () => {
         status: 'completed',
         containers_dirty_received: ['A-903'],
         containers_clean_delivered: [],
-        floor: '2', area: 'Pediatría', dock: 'Andén Sur',
+        area: 'Pediatría',
         photo_ids: ['photo-ion-r2-1', 'photo-ion-r2-2'],
       },
     ],

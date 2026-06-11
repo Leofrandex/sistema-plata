@@ -116,9 +116,7 @@ export interface RouteEvent {
   // Tachos LIMPIOS entregados al cliente durante el recorrido
   containers_clean_delivered: string[]
   // Ubicación del recorrido
-  floor: string
   area: string
-  dock: string                  // andén
   // Fotos ilimitadas
   photo_ids: string[]
 }

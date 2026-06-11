@@ -97,7 +97,7 @@ export function RouteSessionDrawer({
             andenes.map((a, idx) => {
               const isSelected = a.id === selectedAndenId
               const containerCount = a.containers_dirty_received.length + a.containers_clean_delivered.length
-              const ubic = [a.floor && `Piso ${a.floor}`, a.area, a.dock].filter(Boolean).join(' · ') || 'Sin ubicación'
+              const ubic = [a.area].filter(Boolean).join(' · ') || 'Sin ubicación'
               return (
                 <button
                   key={a.id}

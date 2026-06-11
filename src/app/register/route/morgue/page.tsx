@@ -39,9 +39,7 @@ export default function RegisterMorgueRoutePage() {
     companyId: '',
     dirtyReceivedIds: [],
     cleanDeliveredIds: [],
-    floor: '',
     area: '',
-    dock: '',
     photos: [],
   })
   const [confirmingFinish, setConfirmingFinish] = useState(false)
@@ -68,9 +66,7 @@ export default function RegisterMorgueRoutePage() {
               companyId: event.company_id ?? '',
               dirtyReceivedIds: event.containers_dirty_received,
               cleanDeliveredIds: event.containers_clean_delivered,
-              floor: event.floor,
               area: event.area,
-              dock: event.dock,
               photos: [],
             })
           }
@@ -91,9 +87,7 @@ export default function RegisterMorgueRoutePage() {
       updateRouteEvent(activeSession.context.route_event_id, {
         ...(updates.dirtyReceivedIds !== undefined && { containers_dirty_received: updates.dirtyReceivedIds }),
         ...(updates.cleanDeliveredIds !== undefined && { containers_clean_delivered: updates.cleanDeliveredIds }),
-        ...(updates.floor !== undefined && { floor: updates.floor }),
         ...(updates.area !== undefined && { area: updates.area }),
-        ...(updates.dock !== undefined && { dock: updates.dock }),
       })
     }
   }
@@ -138,9 +132,7 @@ export default function RegisterMorgueRoutePage() {
       status: 'in_progress',
       containers_dirty_received: formState.dirtyReceivedIds,
       containers_clean_delivered: formState.cleanDeliveredIds,
-      floor: formState.floor,
       area: formState.area,
-      dock: formState.dock,
       photo_ids: [],
     })
     const session: ActiveSession = {
@@ -176,7 +168,7 @@ export default function RegisterMorgueRoutePage() {
     deleteRouteEvent(ctx.route_event_id)
     await endSession(activeSession.key)
     setActiveSession(null)
-    setFormState({ companyId: '', dirtyReceivedIds: [], cleanDeliveredIds: [], floor: '', area: '', dock: '', photos: [] })
+    setFormState({ companyId: '', dirtyReceivedIds: [], cleanDeliveredIds: [], area: '', photos: [] })
     router.push('/register/route')
   }
 
@@ -193,9 +185,7 @@ export default function RegisterMorgueRoutePage() {
       await q.updateRouteEvent(supabase, routeEventId, {
         status: 'completed',
         ended_at: now,
-        floor: formState.floor,
         area: formState.area,
-        dock: formState.dock,
       })
       await q.setRouteContainersDirty(supabase, routeEventId, formState.dirtyReceivedIds)
       await q.setRouteContainersClean(supabase, routeEventId, formState.cleanDeliveredIds)
@@ -229,9 +219,7 @@ export default function RegisterMorgueRoutePage() {
       photo_ids: photoIds,
       containers_dirty_received: formState.dirtyReceivedIds,
       containers_clean_delivered: formState.cleanDeliveredIds,
-      floor: formState.floor,
       area: formState.area,
-      dock: formState.dock,
     }
     updateRouteEvent(routeEventId, patch)
 

@@ -494,9 +494,7 @@ export type Database = {
           company_id: string | null
           created_at: string
           date: string
-          dock: string
           ended_at: string | null
-          floor: string
           id: string
           kind: Database["public"]["Enums"]["route_kind"]
           operator_id: string
@@ -510,9 +508,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           date: string
-          dock?: string
           ended_at?: string | null
-          floor?: string
           id?: string
           kind: Database["public"]["Enums"]["route_kind"]
           operator_id: string
@@ -526,9 +522,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           date?: string
-          dock?: string
           ended_at?: string | null
-          floor?: string
           id?: string
           kind?: Database["public"]["Enums"]["route_kind"]
           operator_id?: string
