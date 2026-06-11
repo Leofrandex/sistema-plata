@@ -40,7 +40,8 @@ export default function RegisterMorgueRoutePage() {
     dirtyReceivedIds: [],
     cleanDeliveredIds: [],
     area: '',
-    photos: [],
+    dirtyPhotos: [],
+    cleanPhotos: [],
   })
   const [confirmingFinish, setConfirmingFinish] = useState(false)
   const [confirmingCancel, setConfirmingCancel] = useState(false)
@@ -67,7 +68,8 @@ export default function RegisterMorgueRoutePage() {
               dirtyReceivedIds: event.containers_dirty_received,
               cleanDeliveredIds: event.containers_clean_delivered,
               area: event.area,
-              photos: [],
+              dirtyPhotos: [],
+              cleanPhotos: [],
             })
           }
         }
@@ -168,7 +170,7 @@ export default function RegisterMorgueRoutePage() {
     deleteRouteEvent(ctx.route_event_id)
     await endSession(activeSession.key)
     setActiveSession(null)
-    setFormState({ companyId: '', dirtyReceivedIds: [], cleanDeliveredIds: [], area: '', photos: [] })
+    setFormState({ companyId: '', dirtyReceivedIds: [], cleanDeliveredIds: [], area: '', dirtyPhotos: [], cleanPhotos: [] })
     router.push('/register/route')
   }
 
@@ -196,18 +198,20 @@ export default function RegisterMorgueRoutePage() {
     }
 
     // 2. DESPUÉS las fotos (lento). El recorrido ya quedó cerrado.
-    let photoIds: string[] = []
+    let dirtyIds: string[] = []
+    let cleanIds: string[] = []
     try {
-      const uploadedPhotos = await uploadEventPhotos(supabase, {
-        dataUrls: formState.photos,
-        eventType: 'route',
-        eventId: routeEventId,
-        label,
-        uploadedBy: currentProfileId,
-        takenAt: now,
+      const upDirty = await uploadEventPhotos(supabase, {
+        dataUrls: formState.dirtyPhotos, eventType: 'route', eventId: routeEventId,
+        label, uploadedBy: currentProfileId, takenAt: now, role: 'dirty',
       })
-      uploadedPhotos.forEach(addPhoto)
-      photoIds = uploadedPhotos.map((p) => p.id)
+      const upClean = await uploadEventPhotos(supabase, {
+        dataUrls: formState.cleanPhotos, eventType: 'route', eventId: routeEventId,
+        label, uploadedBy: currentProfileId, takenAt: now, role: 'clean',
+      })
+      ;[...upDirty, ...upClean].forEach(addPhoto)
+      dirtyIds = upDirty.map((p) => p.id)
+      cleanIds = upClean.map((p) => p.id)
     } catch (err) {
       console.error('[recorrido morgue] subir fotos falló (recorrido ya cerrado):', err)
       alert('El recorrido se finalizó, pero algunas fotos no se subieron por la conexión.')
@@ -216,7 +220,9 @@ export default function RegisterMorgueRoutePage() {
     const patch: Partial<RouteEvent> = {
       status: 'completed',
       ended_at: now,
-      photo_ids: photoIds,
+      dirty_photo_ids: dirtyIds,
+      clean_photo_ids: cleanIds,
+      photo_ids: [...dirtyIds, ...cleanIds],
       containers_dirty_received: formState.dirtyReceivedIds,
       containers_clean_delivered: formState.cleanDeliveredIds,
       area: formState.area,
@@ -232,7 +238,8 @@ export default function RegisterMorgueRoutePage() {
 
   const isRunning = !!activeSession
   const totalContainers = formState.dirtyReceivedIds.length + formState.cleanDeliveredIds.length
-  const canFinish = totalContainers > 0 && formState.photos.length > 0
+  // Morgue recoge sucios: exige al menos una foto de sucios. Limpios opcional.
+  const canFinish = totalContainers > 0 && formState.dirtyPhotos.length > 0
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -315,7 +322,7 @@ export default function RegisterMorgueRoutePage() {
       {confirmingFinish && (
         <ConfirmDialog
           title="¿Finalizar el recorrido de Morgue?"
-          body={`Duración: ${formatElapsed(elapsed)}. Sucios recogidos: ${formState.dirtyReceivedIds.length}. Limpios entregados: ${formState.cleanDeliveredIds.length}. Fotos: ${formState.photos.length}.`}
+          body={`Duración: ${formatElapsed(elapsed)}. Sucios recogidos: ${formState.dirtyReceivedIds.length}. Limpios entregados: ${formState.cleanDeliveredIds.length}. Fotos sucios: ${formState.dirtyPhotos.length}, limpios: ${formState.cleanPhotos.length}.`}
           confirmLabel="Sí, finalizar"
           tone="amber"
           onCancel={() => setConfirmingFinish(false)}

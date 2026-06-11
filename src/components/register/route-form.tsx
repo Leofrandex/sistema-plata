@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { X, Trash2, Sparkles, Plus } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
@@ -22,7 +23,9 @@ export interface RouteFormState {
   /** Tachos limpios entregados al cliente durante el recorrido. */
   cleanDeliveredIds: string[]
   area: string
-  photos: string[] // dataURLs
+  /** Fotos NUEVAS (dataURLs) a subir, por categoría. */
+  dirtyPhotos: string[]
+  cleanPhotos: string[]
 }
 
 interface Props {
@@ -35,9 +38,17 @@ interface Props {
   /** Muestra el selector de empresa dentro del formulario (andén multi-registro).
    *  Morgue lo desactiva: elige empresa al iniciar (un solo registro). */
   showCompanySelector?: boolean
+  /** Fotos ya subidas que se conservan (modo edición), por categoría. */
+  existingDirtyPhotos?: { id: string; url: string }[]
+  existingCleanPhotos?: { id: string; url: string }[]
+  onRemoveExistingDirty?: (id: string) => void
+  onRemoveExistingClean?: (id: string) => void
 }
 
-export function RouteForm({ state, onChange, containers, companies, locked, showCompanySelector = false }: Props) {
+export function RouteForm({
+  state, onChange, containers, companies, locked, showCompanySelector = false,
+  existingDirtyPhotos, existingCleanPhotos, onRemoveExistingDirty, onRemoveExistingClean,
+}: Props) {
   const [pickerOpen, setPickerOpen] = useState<'dirty' | 'clean' | null>(null)
 
   const dirtyContainers = containers.filter((c) => state.dirtyReceivedIds.includes(c.id))
@@ -54,14 +65,6 @@ export function RouteForm({ state, onChange, containers, companies, locked, show
 
   function removeClean(id: string) {
     onChange({ cleanDeliveredIds: state.cleanDeliveredIds.filter((cid) => cid !== id) })
-  }
-
-  function addPhoto(dataUrl: string) {
-    onChange({ photos: [...state.photos, dataUrl] })
-  }
-
-  function removePhoto(index: number) {
-    onChange({ photos: state.photos.filter((_, i) => i !== index) })
   }
 
   return (
@@ -222,15 +225,39 @@ export function RouteForm({ state, onChange, containers, companies, locked, show
         </div>
       </section>
 
-      {/* Fotos ilimitadas */}
-      <section>
+      {/* Fotos de tachos sucios (primero) */}
+      <section className="space-y-2">
+        <ExistingPhotosGrid
+          label="Foto de tachos sucios — ya cargadas"
+          photos={existingDirtyPhotos ?? []}
+          disabled={locked}
+          onRemove={onRemoveExistingDirty}
+        />
         <PhotoCaptureMulti
-          label="Fotos del recorrido"
+          label="Foto de tachos sucios"
           required
           disabled={locked}
-          photos={state.photos}
-          onAdd={addPhoto}
-          onRemove={removePhoto}
+          photos={state.dirtyPhotos}
+          onAdd={(url) => onChange({ dirtyPhotos: [...state.dirtyPhotos, url] })}
+          onRemove={(i) => onChange({ dirtyPhotos: state.dirtyPhotos.filter((_, idx) => idx !== i) })}
+        />
+      </section>
+
+      {/* Fotos de tachos limpios (después) */}
+      <section className="space-y-2">
+        <ExistingPhotosGrid
+          label="Foto de tachos limpios — ya cargadas"
+          photos={existingCleanPhotos ?? []}
+          disabled={locked}
+          onRemove={onRemoveExistingClean}
+        />
+        <PhotoCaptureMulti
+          label="Foto de tachos limpios"
+          required
+          disabled={locked}
+          photos={state.cleanPhotos}
+          onAdd={(url) => onChange({ cleanPhotos: [...state.cleanPhotos, url] })}
+          onRemove={(i) => onChange({ cleanPhotos: state.cleanPhotos.filter((_, idx) => idx !== i) })}
         />
       </section>
 
@@ -265,6 +292,40 @@ export function RouteForm({ state, onChange, containers, companies, locked, show
         onClose={() => setPickerOpen(null)}
         onConfirm={(ids) => onChange({ cleanDeliveredIds: ids })}
       />
+    </div>
+  )
+}
+
+function ExistingPhotosGrid({
+  label, photos, disabled, onRemove,
+}: {
+  label: string
+  photos: { id: string; url: string }[]
+  disabled: boolean
+  onRemove?: (id: string) => void
+}) {
+  if (photos.length === 0) return null
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-slate-500">{label}</p>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {photos.map((p) => (
+          <div key={p.id} className="relative">
+            <div className="relative aspect-[4/3] rounded-lg overflow-hidden border bg-slate-900">
+              <Image src={p.url} alt="Foto cargada" fill className="object-contain" sizes="(max-width: 640px) 50vw, 33vw" />
+            </div>
+            {!disabled && onRemove && (
+              <Button
+                type="button" variant="destructive" size="icon"
+                className="absolute top-1 right-1 h-6 w-6"
+                onClick={() => onRemove(p.id)} aria-label="Quitar foto cargada"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
