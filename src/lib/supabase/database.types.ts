@@ -355,6 +355,7 @@ export type Database = {
           event_type: Database["public"]["Enums"]["photo_event_type"]
           id: string
           label: string
+          role: string | null
           storage_path: string | null
           taken_at: string
           uploaded_by: string | null
@@ -366,6 +367,7 @@ export type Database = {
           event_type: Database["public"]["Enums"]["photo_event_type"]
           id?: string
           label?: string
+          role?: string | null
           storage_path?: string | null
           taken_at?: string
           uploaded_by?: string | null
@@ -377,6 +379,7 @@ export type Database = {
           event_type?: Database["public"]["Enums"]["photo_event_type"]
           id?: string
           label?: string
+          role?: string | null
           storage_path?: string | null
           taken_at?: string
           uploaded_by?: string | null
