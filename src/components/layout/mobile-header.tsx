@@ -37,9 +37,10 @@ export function MobileHeader() {
         <button
           type="submit"
           aria-label="Cerrar sesión"
-          className="flex items-center justify-center p-2 -mr-2 rounded-md text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-white/10 transition-colors"
+          className="flex items-center gap-1.5 py-1.5 pl-2.5 pr-3 -mr-1 rounded-md border border-sidebar-border/60 bg-white/5 text-sm font-medium text-sidebar-foreground hover:bg-white/15 active:bg-white/20 transition-colors"
         >
-          <LogOut className="h-5 w-5" />
+          <LogOut className="h-4 w-4" />
+          Salir
         </button>
       </form>
     </header>
