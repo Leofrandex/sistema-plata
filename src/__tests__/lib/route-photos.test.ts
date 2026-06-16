@@ -33,13 +33,14 @@ describe('groupRoutePhotosByRole', () => {
 
   it('agrupa la firma por evento (última gana)', () => {
     const rows: PhotoRow[] = [
-      photo({ id: 's1', event_id: 'e1', role: 'signature' }),
+      photo({ id: 's1a', event_id: 'e1', role: 'signature' }),
       photo({ id: 'd1', event_id: 'e1', role: 'dirty' }),
+      photo({ id: 's1b', event_id: 'e1', role: 'signature' }),
       photo({ id: 's2', event_id: 'e2', role: 'signature' }),
       photo({ id: 's3', event_id: 'e2', role: 'signature' }),
     ]
     const { signatureByEvent } = groupRoutePhotosByRole(rows)
-    expect(signatureByEvent.get('e1')).toBe('s1')
+    expect(signatureByEvent.get('e1')).toBe('s1b')
     expect(signatureByEvent.get('e2')).toBe('s3')
   })
 })
