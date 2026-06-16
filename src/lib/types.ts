@@ -123,6 +123,8 @@ export interface RouteEvent {
   // Opcionales: los mocks y literales que no las setean quedan undefined (se leen con `?? []`).
   dirty_photo_ids?: string[]
   clean_photo_ids?: string[]
+  // Firma dibujada del recorrido (foto con role='signature'). Una por registro.
+  signature_photo_id?: string | null
 }
 
 // Sesión de pesaje. Agrupa N receptions creadas en el mismo "turno" de pesaje.

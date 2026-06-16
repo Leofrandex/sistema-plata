@@ -87,7 +87,7 @@ export function SupabaseHydrator() {
           photoIdsByEvent.set(p.event_id, arr)
         }
 
-        const { dirtyByEvent: dirtyPhotosByEvent, cleanByEvent: cleanPhotosByEvent } =
+        const { dirtyByEvent: dirtyPhotosByEvent, cleanByEvent: cleanPhotosByEvent, signatureByEvent } =
           groupRoutePhotosByRole(photosRaw)
 
         const routeEvents = mapRouteEvents(routeEventsRaw, dirtyLinks, cleanLinks).map((e) => ({
@@ -95,6 +95,7 @@ export function SupabaseHydrator() {
           photo_ids: photoIdsByEvent.get(e.id) ?? [],
           dirty_photo_ids: dirtyPhotosByEvent.get(e.id) ?? [],
           clean_photo_ids: cleanPhotosByEvent.get(e.id) ?? [],
+          signature_photo_id: signatureByEvent.get(e.id) ?? null,
         }))
 
         // Traer todas las receptions de las sesiones en una sola query y
@@ -251,23 +252,30 @@ export function mapRouteEvents(
   }))
 }
 
-/** Agrupa las fotos de eventos 'route' por rol (dirty/clean) y por event_id.
- *  Las fotos sin role (legacy/pesaje) se ignoran. Exportada para test. */
+/** Agrupa las fotos de eventos 'route' por rol (dirty/clean/signature) y por event_id.
+ *  Las fotos sin role (legacy/pesaje) se ignoran. La firma es una sola por evento
+ *  (si hubiera más de una, gana la última). Exportada para test. */
 export function groupRoutePhotosByRole(photos: q.PhotoRow[]): {
   dirtyByEvent: Map<string, string[]>
   cleanByEvent: Map<string, string[]>
+  signatureByEvent: Map<string, string>
 } {
   const dirtyByEvent = new Map<string, string[]>()
   const cleanByEvent = new Map<string, string[]>()
+  const signatureByEvent = new Map<string, string>()
   for (const p of photos) {
     if (p.event_type !== 'route') continue
+    if (p.role === 'signature') {
+      signatureByEvent.set(p.event_id, p.id)
+      continue
+    }
     const target = p.role === 'dirty' ? dirtyByEvent : p.role === 'clean' ? cleanByEvent : null
     if (!target) continue
     const arr = target.get(p.event_id) ?? []
     arr.push(p.id)
     target.set(p.event_id, arr)
   }
-  return { dirtyByEvent, cleanByEvent }
+  return { dirtyByEvent, cleanByEvent, signatureByEvent }
 }
 
 function groupContainers(links: q.RouteContainerLink[]): Map<string, string[]> {
