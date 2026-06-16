@@ -16,7 +16,7 @@ const FORMATTER = new Intl.DateTimeFormat('es-PA', {
   year: 'numeric',
 })
 
-export function DashboardHero() {
+export function DashboardHero({ name }: { name?: string }) {
   const { greeting, dateLabel } = useMemo(() => {
     const now = new Date()
     return {
@@ -36,7 +36,7 @@ export function DashboardHero() {
         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary-foreground/70">
           Dashboard
         </span>
-        <h1 className="text-2xl font-bold sm:text-3xl">{greeting}</h1>
+        <h1 className="text-2xl font-bold sm:text-3xl">{greeting}{name ? `, ${name}` : ''}</h1>
         <p className="text-sm text-primary-foreground/80 first-letter:uppercase">
           {dateLabel}
         </p>
