@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { PenLine, X, Eraser, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -36,6 +36,7 @@ export function SignaturePad({ value, existing, onChange, onRemoveExisting, disa
         type="button"
         disabled={disabled}
         onClick={() => setOpen(true)}
+        aria-label="Abrir panel de firma"
         className={cn(
           'w-full rounded-lg border-2 border-dashed transition-colors',
           'flex items-center justify-center text-muted-foreground',
@@ -98,7 +99,7 @@ function SignatureOverlay({
   const [hasInk, setHasInk] = useState(false)
 
   // Ajusta el tamaño físico del canvas al de su contenedor (nitidez en DPR alto).
-  useEffect(() => {
+  useLayoutEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
     const dpr = window.devicePixelRatio || 1
@@ -148,7 +149,9 @@ function SignatureOverlay({
     const canvas = canvasRef.current
     const ctx = canvas?.getContext('2d')
     if (!canvas || !ctx) return
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    // ctx ya está escalado por DPR, así que limpiamos en coordenadas CSS.
+    const dpr = window.devicePixelRatio || 1
+    ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr)
     dirty.current = false
     setHasInk(false)
   }
@@ -174,6 +177,7 @@ function SignatureOverlay({
           onPointerMove={move}
           onPointerUp={end}
           onPointerLeave={end}
+          onPointerCancel={end}
           className="w-full flex-1 touch-none rounded-xl bg-white"
         />
         <div className="flex gap-3">
