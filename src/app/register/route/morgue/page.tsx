@@ -42,6 +42,7 @@ export default function RegisterMorgueRoutePage() {
     area: '',
     dirtyPhotos: [],
     cleanPhotos: [],
+    signature: null,
   })
   const [confirmingFinish, setConfirmingFinish] = useState(false)
   const [confirmingCancel, setConfirmingCancel] = useState(false)
@@ -70,6 +71,7 @@ export default function RegisterMorgueRoutePage() {
               area: event.area,
               dirtyPhotos: [],
               cleanPhotos: [],
+              signature: null,
             })
           }
         }
@@ -138,6 +140,7 @@ export default function RegisterMorgueRoutePage() {
       photo_ids: [],
       dirty_photo_ids: [],
       clean_photo_ids: [],
+      signature_photo_id: null,
     })
     const session: ActiveSession = {
       key: routeMorgueSessionKey(today, now),
@@ -172,7 +175,7 @@ export default function RegisterMorgueRoutePage() {
     deleteRouteEvent(ctx.route_event_id)
     await endSession(activeSession.key)
     setActiveSession(null)
-    setFormState({ companyId: '', dirtyReceivedIds: [], cleanDeliveredIds: [], area: '', dirtyPhotos: [], cleanPhotos: [] })
+    setFormState({ companyId: '', dirtyReceivedIds: [], cleanDeliveredIds: [], area: '', dirtyPhotos: [], cleanPhotos: [], signature: null })
     router.push('/register/route')
   }
 
@@ -202,6 +205,7 @@ export default function RegisterMorgueRoutePage() {
     // 2. DESPUÉS las fotos (lento). El recorrido ya quedó cerrado.
     let dirtyIds: string[] = []
     let cleanIds: string[] = []
+    let signatureId: string | null = null
     try {
       const upDirty = await uploadEventPhotos(supabase, {
         dataUrls: formState.dirtyPhotos, eventType: 'route', eventId: routeEventId,
@@ -211,9 +215,14 @@ export default function RegisterMorgueRoutePage() {
         dataUrls: formState.cleanPhotos, eventType: 'route', eventId: routeEventId,
         label, uploadedBy: currentProfileId, takenAt: now, role: 'clean',
       })
-      ;[...upDirty, ...upClean].forEach(addPhoto)
+      const upSignature = await uploadEventPhotos(supabase, {
+        dataUrls: formState.signature ? [formState.signature] : [], eventType: 'route', eventId: routeEventId,
+        label, uploadedBy: currentProfileId, takenAt: now, role: 'signature',
+      })
+      ;[...upDirty, ...upClean, ...upSignature].forEach(addPhoto)
       dirtyIds = upDirty.map((p) => p.id)
       cleanIds = upClean.map((p) => p.id)
+      signatureId = upSignature[0]?.id ?? null
     } catch (err) {
       console.error('[recorrido morgue] subir fotos falló (recorrido ya cerrado):', err)
       alert('El recorrido se finalizó, pero algunas fotos no se subieron por la conexión.')
@@ -225,6 +234,7 @@ export default function RegisterMorgueRoutePage() {
       dirty_photo_ids: dirtyIds,
       clean_photo_ids: cleanIds,
       photo_ids: [...dirtyIds, ...cleanIds],
+      signature_photo_id: signatureId,
       containers_dirty_received: formState.dirtyReceivedIds,
       containers_clean_delivered: formState.cleanDeliveredIds,
       area: formState.area,
@@ -241,7 +251,7 @@ export default function RegisterMorgueRoutePage() {
   const isRunning = !!activeSession
   const totalContainers = formState.dirtyReceivedIds.length + formState.cleanDeliveredIds.length
   // Morgue recoge sucios: exige al menos una foto de sucios. Limpios opcional.
-  const canFinish = totalContainers > 0 && formState.dirtyPhotos.length > 0
+  const canFinish = totalContainers > 0 && formState.dirtyPhotos.length > 0 && !!formState.signature
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
