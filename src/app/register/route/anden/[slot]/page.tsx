@@ -39,6 +39,7 @@ const EMPTY_FORM: RouteFormState = {
   area: '',
   dirtyPhotos: [],
   cleanPhotos: [],
+  signature: null,
 }
 
 export default function RegisterRouteSlotPage({ params }: Props) {
@@ -62,6 +63,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   // Fotos existentes del andén en edición que se conservan (no se re-suben).
   const [existingDirty, setExistingDirty] = useState<{ id: string; url: string }[]>([])
   const [existingClean, setExistingClean] = useState<{ id: string; url: string }[]>([])
+  const [existingSignature, setExistingSignature] = useState<{ id: string; url: string } | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [confirmingFinish, setConfirmingFinish] = useState(false)
   const [confirmingCancel, setConfirmingCancel] = useState(false)
@@ -134,6 +136,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     setEditingAndenId(null)
     setExistingDirty([])
     setExistingClean([])
+    setExistingSignature(null)
   }
 
   function buildLabel(): string {
@@ -192,6 +195,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     // 3) Subir fotos AHORA por categoría (evita pérdida al editar luego)
     let dirtyIds: string[] = []
     let cleanIds: string[] = []
+    let signatureId: string | null = null
     const label = buildLabel()
     try {
       const upDirty = await uploadEventPhotos(supabase, {
@@ -202,9 +206,14 @@ export default function RegisterRouteSlotPage({ params }: Props) {
         dataUrls: formState.cleanPhotos, eventType: 'route', eventId: routeEventId,
         label, uploadedBy: currentProfileId, takenAt: now, role: 'clean',
       })
-      ;[...upDirty, ...upClean].forEach(addPhoto)
+      const upSignature = await uploadEventPhotos(supabase, {
+        dataUrls: [formState.signature], eventType: 'route', eventId: routeEventId,
+        label, uploadedBy: currentProfileId, takenAt: now, role: 'signature',
+      })
+      ;[...upDirty, ...upClean, ...upSignature].forEach(addPhoto)
       dirtyIds = upDirty.map((p) => p.id)
       cleanIds = upClean.map((p) => p.id)
+      signatureId = upSignature[0]?.id ?? null
     } catch (err) {
       console.error('[recorrido andén] subir fotos falló:', err)
       alert('El andén se guardó, pero algunas fotos no se subieron por la conexión.')
@@ -228,6 +237,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       dirty_photo_ids: dirtyIds,
       clean_photo_ids: cleanIds,
       photo_ids: [...dirtyIds, ...cleanIds],
+      signature_photo_id: signatureId,
     })
 
     resetForm()
@@ -247,9 +257,11 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       area: ev.area,
       dirtyPhotos: [],
       cleanPhotos: [],
+      signature: null,
     })
     setExistingDirty((ev.dirty_photo_ids ?? []).map(toPhoto).filter((x): x is { id: string; url: string } => x !== null))
     setExistingClean((ev.clean_photo_ids ?? []).map(toPhoto).filter((x): x is { id: string; url: string } => x !== null))
+    setExistingSignature(ev.signature_photo_id ? toPhoto(ev.signature_photo_id) : null)
     setEditingAndenId(id)
     setDrawerOpen(false)
   }
@@ -276,6 +288,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     // 2) Subir fotos nuevas por categoría; conservar las existentes que quedaron.
     let newDirtyIds: string[] = []
     let newCleanIds: string[] = []
+    let newSignatureId: string | null = null
     const label = buildLabel()
     try {
       const upDirty = await uploadEventPhotos(supabase, {
@@ -286,9 +299,14 @@ export default function RegisterRouteSlotPage({ params }: Props) {
         dataUrls: formState.cleanPhotos, eventType: 'route', eventId: id,
         label, uploadedBy: currentProfileId, takenAt: now, role: 'clean',
       })
-      ;[...upDirty, ...upClean].forEach(addPhoto)
+      const upSignature = await uploadEventPhotos(supabase, {
+        dataUrls: [formState.signature], eventType: 'route', eventId: id,
+        label, uploadedBy: currentProfileId, takenAt: now, role: 'signature',
+      })
+      ;[...upDirty, ...upClean, ...upSignature].forEach(addPhoto)
       newDirtyIds = upDirty.map((p) => p.id)
       newCleanIds = upClean.map((p) => p.id)
+      newSignatureId = upSignature[0]?.id ?? null
     } catch (err) {
       console.error('[recorrido andén] subir fotos nuevas falló:', err)
       alert('Los cambios se guardaron, pero algunas fotos nuevas no se subieron.')
@@ -296,6 +314,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
 
     const dirtyIds = [...existingDirty.map((p) => p.id), ...newDirtyIds]
     const cleanIds = [...existingClean.map((p) => p.id), ...newCleanIds]
+    const signatureId = newSignatureId ?? existingSignature?.id ?? null
 
     // photo_ids/dirty_photo_ids/clean_photo_ids son campos solo-store: se derivan al
     // hidratar desde photos.event_id (no hay columna en route_events que actualizar aquí).
@@ -307,6 +326,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       dirty_photo_ids: dirtyIds,
       clean_photo_ids: cleanIds,
       photo_ids: [...dirtyIds, ...cleanIds],
+      signature_photo_id: signatureId,
     })
 
     resetForm()
@@ -331,6 +351,10 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   function removeExistingClean(id: string) {
     setExistingClean((prev) => prev.filter((p) => p.id !== id))
     // Nota: quita la foto del registro pero no borra la fila/archivo en Supabase (queda huérfana). Pendiente: limpieza.
+  }
+  function removeExistingSignature() {
+    setExistingSignature(null)
+    // Nota: quita la firma del registro pero no borra la fila/archivo en Supabase (queda huérfana). Pendiente: limpieza.
   }
 
   async function handleStart() {
@@ -425,12 +449,14 @@ export default function RegisterRouteSlotPage({ params }: Props) {
 
   const hasDirtyPhoto = formState.dirtyPhotos.length > 0 || existingDirty.length > 0
   const hasCleanPhoto = formState.cleanPhotos.length > 0 || existingClean.length > 0
+  const hasSignature = !!formState.signature || !!existingSignature
   const canSaveAnden =
     isRunning &&
     !!formState.companyId &&
     (formState.dirtyReceivedIds.length + formState.cleanDeliveredIds.length > 0) &&
     hasDirtyPhoto &&
-    hasCleanPhoto
+    hasCleanPhoto &&
+    hasSignature
   const canFinish = sessionAndenes.length > 0
 
   return (
@@ -500,6 +526,8 @@ export default function RegisterRouteSlotPage({ params }: Props) {
         existingCleanPhotos={existingClean}
         onRemoveExistingDirty={removeExistingDirty}
         onRemoveExistingClean={removeExistingClean}
+        existingSignature={existingSignature}
+        onRemoveExistingSignature={removeExistingSignature}
       />
 
       {/* Acción: guardar andén y agregar otro */}
