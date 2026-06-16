@@ -354,7 +354,7 @@ export function WeighingForm({
           {state.treat_immediately ? <CheckSquare className="h-5 w-5 shrink-0 text-accent" /> : <Square className="h-5 w-5 shrink-0 text-muted-foreground" />}
           <div className="flex-1">
             <p className="text-sm font-semibold text-foreground">Tratar inmediatamente</p>
-            <p className="text-xs text-muted-foreground">Al finalizar el pesaje, este tacho salta cámara fría y queda disponible.</p>
+            <p className="text-xs text-muted-foreground">Marcar para enviar el tacho directamente a tratamiento.</p>
           </div>
         </button>
       )}

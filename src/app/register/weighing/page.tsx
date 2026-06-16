@@ -401,29 +401,47 @@ export default function WeighingPage() {
       ended_at: now,
     })
 
-    // 2. Crear StorageEvent + ContainerLocation por cada reception
-    for (const [idx, r] of sessionReceptions.entries()) {
+    // 2. Crear TreatmentRun (inmediato) o StorageEvent + ContainerLocation por reception.
+    //    Todo se persiste a Supabase primero y se refleja en el store con el id real.
+    const supabaseEvents = createClient()
+    for (const r of sessionReceptions) {
       if (r.treat_immediately && r.waste_type === 'infectious') {
         try {
-          const supabase = createClient()
-          const tr = await q.createTreatmentRun(supabase, {
+          const tr = await q.createTreatmentRun(supabaseEvents, {
             container_id: r.container_id,
             started_at: now,
             completed_at: now,
             operator_id: currentProfileId,
           })
           addTreatmentRun({ id: tr.id, container_id: r.container_id, started_at: now, completed_at: now, operator_id: currentProfileId })
+          const loc = await q.createContainerLocation(supabaseEvents, {
+            container_id: r.container_id, reported_at: now, operator_id: currentProfileId,
+            location_type: 'treatment', client_id: null, floor: null, area: null, notes: 'Tratado al finalizar pesaje',
+          })
+          addLocation({
+            id: loc.id, container_id: r.container_id, reported_at: now, operator_id: currentProfileId,
+            location_type: 'treatment', client_id: null, floor: null, area: null, notes: 'Tratado al finalizar pesaje',
+          })
         } catch (err) {
           console.error('[pesaje] tratamiento inmediato falló:', err)
         }
-        addLocation({
-          id: `loc-${Date.now()}-${idx}`, container_id: r.container_id, reported_at: now,
-          operator_id: currentProfileId, location_type: 'treatment', client_id: null,
-          floor: null, area: null, notes: 'Tratado al finalizar pesaje',
-        })
       } else {
-        addStorageEvent({ id: `storage-${Date.now()}-${idx}`, container_id: r.container_id, entry_at: now, exit_at: null, operator_id: currentProfileId, photo_ids: [] })
-        addLocation({ id: `loc-${Date.now()}-${idx}`, container_id: r.container_id, reported_at: now, operator_id: currentProfileId, location_type: 'cold_storage', client_id: null, floor: null, area: null, notes: 'Cámara fría (auto tras pesaje)' })
+        try {
+          const st = await q.createStorageEvent(supabaseEvents, {
+            container_id: r.container_id, entry_at: now, exit_at: null, operator_id: currentProfileId,
+          })
+          addStorageEvent({ id: st.id, container_id: r.container_id, entry_at: now, exit_at: null, operator_id: currentProfileId, photo_ids: [] })
+          const loc = await q.createContainerLocation(supabaseEvents, {
+            container_id: r.container_id, reported_at: now, operator_id: currentProfileId,
+            location_type: 'cold_storage', client_id: null, floor: null, area: null, notes: 'Cámara fría (auto tras pesaje)',
+          })
+          addLocation({
+            id: loc.id, container_id: r.container_id, reported_at: now, operator_id: currentProfileId,
+            location_type: 'cold_storage', client_id: null, floor: null, area: null, notes: 'Cámara fría (auto tras pesaje)',
+          })
+        } catch (err) {
+          console.error('[pesaje] pase a cámara fría falló:', err)
+        }
       }
     }
 

@@ -86,6 +86,8 @@ export interface Container {
    *  de la cola de pesaje y del dashboard de circulación. Distinto de
    *  is_yaris_dedicated. Opcional para compat con data histórica/mocks. */
   is_yaris_container?: boolean
+  /** Perfil que registró el tacho. Null para históricos importados. */
+  created_by?: string | null
 }
 
 export interface Photo {
@@ -114,11 +116,15 @@ export interface RouteEvent {
   // Tachos LIMPIOS entregados al cliente durante el recorrido
   containers_clean_delivered: string[]
   // Ubicación del recorrido
-  floor: string
   area: string
-  dock: string                  // andén
   // Fotos ilimitadas
   photo_ids: string[]
+  // Fotos del recorrido por categoría. `photo_ids` es la unión (lo usan los reportes).
+  // Opcionales: los mocks y literales que no las setean quedan undefined (se leen con `?? []`).
+  dirty_photo_ids?: string[]
+  clean_photo_ids?: string[]
+  // Firma dibujada del recorrido (foto con role='signature'). Una por registro.
+  signature_photo_id?: string | null
 }
 
 // Sesión de pesaje. Agrupa N receptions creadas en el mismo "turno" de pesaje.

@@ -10,6 +10,10 @@ import type {
   ContainerReception,
   RouteEvent,
   Photo,
+  StorageEvent,
+  TreatmentRun,
+  ExternalTransfer,
+  ContainerLocation,
 } from '@/lib/types'
 
 /**
@@ -44,14 +48,21 @@ export function SupabaseHydrator() {
         // Sin sesión → no traer datos (el middleware redirige a /login)
         if (!profile) return
 
-        const [containersRaw, sessionsRaw, routeEventsRaw, dirtyLinks, cleanLinks, photosRaw] =
-          await Promise.all([
+        const [
+          containersRaw, sessionsRaw, routeEventsRaw, dirtyLinks, cleanLinks, photosRaw,
+          storageRaw, treatmentRaw, transfersRaw, locationsRaw, profilesRaw,
+        ] = await Promise.all([
             q.listContainers(supabase),
             q.listWeighingSessions(supabase),
             q.listRouteEvents(supabase),
             q.listAllRouteContainersDirty(supabase),
             q.listAllRouteContainersClean(supabase),
             q.listAllPhotos(supabase),
+            q.listStorageEvents(supabase),
+            q.listTreatmentRuns(supabase),
+            q.listExternalTransfers(supabase),
+            q.listContainerLocations(supabase),
+            q.listProfiles(supabase),
           ])
         if (cancelled) return
 
@@ -76,9 +87,16 @@ export function SupabaseHydrator() {
           photoIdsByEvent.set(p.event_id, arr)
         }
 
-        const routeEvents = mapRouteEvents(routeEventsRaw, dirtyLinks, cleanLinks).map(
-          (e) => ({ ...e, photo_ids: photoIdsByEvent.get(e.id) ?? [] })
-        )
+        const { dirtyByEvent: dirtyPhotosByEvent, cleanByEvent: cleanPhotosByEvent, signatureByEvent } =
+          groupRoutePhotosByRole(photosRaw)
+
+        const routeEvents = mapRouteEvents(routeEventsRaw, dirtyLinks, cleanLinks).map((e) => ({
+          ...e,
+          photo_ids: photoIdsByEvent.get(e.id) ?? [],
+          dirty_photo_ids: dirtyPhotosByEvent.get(e.id) ?? [],
+          clean_photo_ids: cleanPhotosByEvent.get(e.id) ?? [],
+          signature_photo_id: signatureByEvent.get(e.id) ?? null,
+        }))
 
         // Traer todas las receptions de las sesiones en una sola query y
         // luego agruparlas para derivar reception_ids[] por sesión.
@@ -113,12 +131,23 @@ export function SupabaseHydrator() {
           photo_ids: photoIdsByEvent.get(r.id) ?? [],
         }))
 
+        const storageEvents: StorageEvent[] = storageRaw.map(rowToStorageEvent)
+        const treatmentRuns: TreatmentRun[] = treatmentRaw.map(rowToTreatmentRun)
+        const externalTransfers: ExternalTransfer[] = transfersRaw.map(rowToExternalTransfer)
+        const locations: ContainerLocation[] = locationsRaw.map(rowToLocation)
+        const users = profilesRaw.map((p) => ({ id: p.id, name: p.name }))
+
         useStore.getState().hydrate({
           containers,
           weighingSessions,
           receptions,
           routeEvents,
           photos,
+          storageEvents,
+          treatmentRuns,
+          externalTransfers,
+          locations,
+          users,
         })
         // Éxito: marcamos la conexión como online.
         useStore.getState().setConnectionStatus('online')
@@ -171,6 +200,7 @@ function rowToContainer(r: q.ContainerRow): Container {
     is_yaris_dedicated: r.is_yaris_dedicated,
     is_metallic_dedicated: r.is_metallic_dedicated,
     is_yaris_container: r.is_yaris_container,
+    created_by: r.created_by ?? null,
   }
 }
 
@@ -215,11 +245,37 @@ export function mapRouteEvents(
     status: e.status,
     containers_dirty_received: dirtyByEvent.get(e.id) ?? [],
     containers_clean_delivered: cleanByEvent.get(e.id) ?? [],
-    floor: e.floor,
     area: e.area,
-    dock: e.dock,
     photo_ids: [], // el hydrator los rellena desde photoIdsByEvent
+    dirty_photo_ids: [],
+    clean_photo_ids: [],
   }))
+}
+
+/** Agrupa las fotos de eventos 'route' por rol (dirty/clean/signature) y por event_id.
+ *  Las fotos sin role (legacy/pesaje) se ignoran. La firma es una sola por evento
+ *  (si hubiera más de una, gana la última). Exportada para test. */
+export function groupRoutePhotosByRole(photos: q.PhotoRow[]): {
+  dirtyByEvent: Map<string, string[]>
+  cleanByEvent: Map<string, string[]>
+  signatureByEvent: Map<string, string>
+} {
+  const dirtyByEvent = new Map<string, string[]>()
+  const cleanByEvent = new Map<string, string[]>()
+  const signatureByEvent = new Map<string, string>()
+  for (const p of photos) {
+    if (p.event_type !== 'route') continue
+    if (p.role === 'signature') {
+      signatureByEvent.set(p.event_id, p.id)
+      continue
+    }
+    const target = p.role === 'dirty' ? dirtyByEvent : p.role === 'clean' ? cleanByEvent : null
+    if (!target) continue
+    const arr = target.get(p.event_id) ?? []
+    arr.push(p.id)
+    target.set(p.event_id, arr)
+  }
+  return { dirtyByEvent, cleanByEvent, signatureByEvent }
 }
 
 function groupContainers(links: q.RouteContainerLink[]): Map<string, string[]> {
@@ -230,4 +286,50 @@ function groupContainers(links: q.RouteContainerLink[]): Map<string, string[]> {
     map.set(l.route_event_id, arr)
   }
   return map
+}
+
+export function rowToStorageEvent(r: q.StorageEventRow): StorageEvent {
+  return {
+    id: r.id,
+    container_id: r.container_id,
+    entry_at: r.entry_at,
+    exit_at: r.exit_at,
+    operator_id: r.operator_id,
+    photo_ids: [],
+  }
+}
+
+export function rowToTreatmentRun(r: q.TreatmentRunRow): TreatmentRun {
+  return {
+    id: r.id,
+    container_id: r.container_id,
+    started_at: r.started_at,
+    completed_at: r.completed_at,
+    operator_id: r.operator_id,
+  }
+}
+
+export function rowToExternalTransfer(r: q.ExternalTransferRow): ExternalTransfer {
+  return {
+    id: r.id,
+    container_id: r.container_id,
+    storage_started_at: r.storage_started_at,
+    transferred_at: r.transferred_at,
+    destination: r.destination,
+    operator_id: r.operator_id,
+  }
+}
+
+export function rowToLocation(r: q.ContainerLocationRow): ContainerLocation {
+  return {
+    id: r.id,
+    container_id: r.container_id,
+    reported_at: r.reported_at,
+    operator_id: r.operator_id,
+    location_type: r.location_type,
+    client_id: r.client_id,
+    floor: r.floor,
+    area: r.area,
+    notes: r.notes,
+  }
 }

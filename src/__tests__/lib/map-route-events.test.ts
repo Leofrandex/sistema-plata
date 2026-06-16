@@ -12,9 +12,7 @@ function makeRow(over: Partial<RouteEventRow> = {}): RouteEventRow {
     ended_at: '2026-05-25T07:00:00Z',
     operator_id: 'op-1',
     status: 'completed',
-    floor: '2',
     area: 'UCI',
-    dock: 'A',
     created_at: '2026-05-25T06:30:00Z',
     ...over,
   }
@@ -47,6 +45,8 @@ describe('mapRouteEvents', () => {
     const result = mapRouteEvents([makeRow({ id: 'evt-x' })], [], [])
     expect(result[0].containers_dirty_received).toEqual([])
     expect(result[0].containers_clean_delivered).toEqual([])
+    expect(result[0].dirty_photo_ids).toEqual([])
+    expect(result[0].clean_photo_ids).toEqual([])
   })
 
   it('preserva los campos base del recorrido', () => {
@@ -54,9 +54,7 @@ describe('mapRouteEvents', () => {
     expect(result[0]).toMatchObject({
       kind: 'morgue',
       slot: null,
-      floor: '2',
       area: 'UCI',
-      dock: 'A',
       status: 'completed',
     })
   })

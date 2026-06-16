@@ -14,9 +14,7 @@ function ev(partial: Partial<RouteEvent>): RouteEvent {
     status: 'in_progress',
     containers_dirty_received: [],
     containers_clean_delivered: [],
-    floor: '',
     area: '',
-    dock: '',
     photo_ids: [],
     ...partial,
   }

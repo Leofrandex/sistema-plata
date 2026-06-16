@@ -12,7 +12,8 @@
 
 **Convenciones del repo:**
 - Queries: cada función recibe `db: DB` primero, usa `unwrap(...)`, devuelve filas tipadas. Se exportan vía `src/lib/supabase/queries/index.ts`.
-- Tests Jest en `src/__tests__/lib/`. Correr todo: `npm test`. Build/typecheck: `npm run build`.
+- Tests Jest en `src/__tests__/lib/`. **Correrlos con `npm run test:jest`** (NO `npm test`: ese es vitest y solo cubre `src/components/ui/**`). Filtrar un archivo: `npx jest <patrón>` (ej. `npx jest hydrate-adapters`). Build/typecheck: `npm run build`.
+- Baseline: `npm run test:jest` → 15 suites / 75 tests verdes.
 - Commits frecuentes, mensajes en español tipo `feat(...)`/`fix(...)`/`chore(...)`, terminando con la línea `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`.
 - Estás en `main`. Antes de la primera tarea, crear rama de trabajo (Task 0).
 
@@ -58,7 +59,7 @@ git checkout -b feat/lote-fotos-persistencia-traza
 
 - [ ] **Step 2: Verificar baseline verde**
 
-Run: `npm test`
+Run: `npm run test:jest`
 Expected: PASS (suite actual, ~todos los tests verdes).
 
 ---
@@ -213,7 +214,7 @@ describe('hydrate adapters', () => {
 
 - [ ] **Step 2: Correr el test para ver que falla**
 
-Run: `npm test -- hydrate-adapters`
+Run: `npx jest hydrate-adapters`
 Expected: FAIL — `rowToStorageEvent is not a function` (aún no exportados).
 
 - [ ] **Step 3: Agregar los adaptadores y la carga en el hydrator**
@@ -334,7 +335,7 @@ export function rowToLocation(r: q.ContainerLocationRow): ContainerLocation {
 
 - [ ] **Step 4: Correr el test para ver que pasa**
 
-Run: `npm test -- hydrate-adapters`
+Run: `npx jest hydrate-adapters`
 Expected: PASS (4 tests).
 
 - [ ] **Step 5: Typecheck completo**
@@ -773,7 +774,7 @@ In `src/lib/mock-data.ts`: si los route events mock definen `floor`/`dock`, elim
 
 - [ ] **Step 7: Correr tests + build**
 
-Run: `npm test`
+Run: `npm run test:jest`
 Expected: PASS (incl. map-route-events ajustado).
 Run: `npm run build`
 Expected: compila sin referencias a `floor`/`dock`.
@@ -939,7 +940,7 @@ describe('groupRoutePhotosByRole', () => {
 
 - [ ] **Step 3: Correr el test para ver que falla**
 
-Run: `npm test -- route-photos`
+Run: `npx jest route-photos`
 Expected: FAIL — `groupRoutePhotosByRole is not a function`.
 
 - [ ] **Step 4: Implementar el helper y usarlo en el hydrator**
@@ -1006,7 +1007,7 @@ In `src/__tests__/lib/map-route-events.test.ts`, en el test "devuelve arrays vac
 
 - [ ] **Step 6: Correr tests + build**
 
-Run: `npm test`
+Run: `npm run test:jest`
 Expected: PASS (route-photos + map-route-events + resto).
 Run: `npm run build`
 Expected: compila.
@@ -1510,7 +1511,7 @@ delete from route_events where id='a9c4e57a-1530-46cf-a970-13bcc6407e9e';
 
 - [ ] **Step 1: Suite + build verdes**
 
-Run: `npm test`
+Run: `npm run test:jest`
 Expected: PASS (todos).
 Run: `npm run build`
 Expected: compila sin errores ni referencias a `floor`/`dock`/`photos` viejas.

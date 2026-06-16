@@ -115,9 +115,7 @@ export const MOCK_ROUTE_EVENTS: RouteEvent[] = [
     status: 'completed',
     containers_dirty_received: ['A-001', 'A-002'],
     containers_clean_delivered: ['A-007', 'A-008'],
-    floor: '1',
     area: 'Emergencias',
-    dock: 'Andén Norte',
     photo_ids: ['photo-r1-1', 'photo-r1-2', 'photo-r1-3'],
   },
   {
@@ -133,9 +131,7 @@ export const MOCK_ROUTE_EVENTS: RouteEvent[] = [
     status: 'completed',
     containers_dirty_received: ['A-003', 'A-004'],
     containers_clean_delivered: ['A-009'],
-    floor: '2',
     area: 'Pediatría',
-    dock: 'Andén Sur',
     photo_ids: ['photo-r2-1', 'photo-r2-2'],
   },
 ]

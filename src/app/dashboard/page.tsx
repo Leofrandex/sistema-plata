@@ -17,7 +17,13 @@ export default function DashboardPage() {
   const {
     clients, companies, containers, routeEvents, receptions,
     storageEvents, treatmentRuns, externalTransfers, locations,
+    users, currentProfileId,
   } = useStore()
+
+  const firstName = useMemo(() => {
+    const full = users.find((u) => u.id === currentProfileId)?.name
+    return full ? full.split(' ')[0] : undefined
+  }, [users, currentProfileId])
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
   const currentMonth = today.slice(0, 7) // 'YYYY-MM'
@@ -47,7 +53,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 pb-8">
-      <DashboardHero />
+      <DashboardHero name={firstName} />
       <MetricsCards metrics={metrics} />
 
       {/* Fila 1: torta de circulación + donut kg/día (2 columnas en ≥lg) */}

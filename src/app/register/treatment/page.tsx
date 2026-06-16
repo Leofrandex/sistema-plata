@@ -101,8 +101,18 @@ export default function TreatmentPage() {
           completed_at: now,
           operator_id: currentProfileId,
         })
+        const loc = await q.createContainerLocation(supabase, {
+          container_id: id,
+          reported_at: now,
+          operator_id: currentProfileId,
+          location_type: 'treatment',
+          client_id: null,
+          floor: null,
+          area: null,
+          notes: 'Tratamiento',
+        })
         addLocation({
-          id: `loc-${Date.now()}-${id}`,
+          id: loc.id,
           container_id: id,
           reported_at: now,
           operator_id: currentProfileId,

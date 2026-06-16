@@ -22,7 +22,7 @@ updated: 2026-05-21
 **Fase:** Preparación lanzamiento PTDP — ajustes post-piloto; lanzamiento oficial 2026-06-01
 **Última reunión:** 2026-05-18 (Francesca + Karolyne + Marely + Sebastián) — ver `logs/2026-05-18-reunion-ptdp-demo-piloto.md`
 **Hito crítico:** lanzamiento oficial lunes 2026-06-01
-**Última actualización del vault:** 2026-06-01
+**Última actualización del vault:** 2026-06-16
 
 | Área | Estado | Archivo |
 |------|--------|---------|
@@ -43,6 +43,7 @@ updated: 2026-05-21
 | Pesaje (pendientes+bloqueo, tipo input, tratar inmediato) + Tratamiento activo + rename "tacho" | 🟢 Completado | `logs/2026-05-30-pesaje-tratamiento-rename-tacho.md` |
 | Tachos metálicos M1-M15 + tipo "Metálicos No reutilizables" | 🟢 Completado | `logs/2026-06-01-tachos-metalicos.md` |
 | Roles coordinador/operador (UI + middleware + RLS) + cuentas reales | 🟢 Completado | `logs/2026-06-01-roles-coordinador-operador.md` · `decisions/2026-06-01-roles-acceso.md` |
+| Firma por recorrido (andén+morgue) + saludo dashboard + redacción pesaje | 🟢 Completado | `logs/2026-06-16-firma-recorrido-saludo-dashboard-redaccion-pesaje.md` |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completo · ⚠️ Tiene incoherencias
 
@@ -95,6 +96,8 @@ updated: 2026-05-21
 - `logs/2026-06-03-contenedores-yaris-recorrido.md`
 - `logs/2026-06-10-sesion-no-persistente-cookies-de-sesion.md`
 - `logs/2026-06-10-empresa-por-registro-tacho-independiente.md`
+- `logs/2026-06-10-recorrido-fotos-persistencia-traza.md`
+- `logs/2026-06-16-firma-recorrido-saludo-dashboard-redaccion-pesaje.md`
 
 ---
 
@@ -103,6 +106,28 @@ updated: 2026-05-21
 *(Vacío)*
 
 ## Notas del último procesamiento
+
+**2026-06-16** — Firma por recorrido + saludo dashboard + redacción pesaje.
+Firma dibujada **obligatoria** y distinta por registro (andén y morgue), capturada con un
+`SignaturePad` (canvas + pointer events, overlay full-screen) y persistida como foto con
+`role='signature'` — **sin migración**, reutilizando `uploadEventPhotos` y
+`groupRoutePhotosByRole` (ahora devuelve `signatureByEvent`; última gana). Campo derivado
+`RouteEvent.signature_photo_id`. Dashboard saluda con el primer nombre del usuario logueado.
+Texto de "Tratar inmediatamente" en pesaje → "Marcar para enviar el tacho directamente a
+tratamiento". `jest` 82/82, `next build` OK. Pendiente: E2E manual de firma.
+Log: `logs/2026-06-16-firma-recorrido-saludo-dashboard-redaccion-pesaje.md`.
+
+**2026-06-10/11** — Lote post-lanzamiento (rama `feat/lote-fotos-persistencia-traza`).
+Causa raíz común de varios síntomas: hidratación/persistencia incompleta — el store solo
+hidrataba 5 colecciones y `storage_events`/`container_locations` se escribían solo al store
+local (nunca a Supabase). Se completó write-through + hidratación de las 4 tablas
+posteriores → arregla tratamiento cross-device y el gráfico kg/día. Además: fotos de
+recorrido por categoría (sucios/limpios, obligatorias, visibles al editar) vía `photos.role`;
+anti doble-submit en andén (+ borrado del andén duplicado en prod); traza `containers.created_by`
+con "registrado por" en admin; drop de `route_events.floor`/`dock`. 3 migraciones aplicadas.
+Eventos siguen siendo fuente de verdad (próximo paso de escala = vista de Postgres, no columna).
+`npm run test:jest` 81/81, `next build` OK. Pendiente E2E manual cross-device.
+Log: `logs/2026-06-10-recorrido-fotos-persistencia-traza.md`.
 
 **2026-05-30** — Lote grande: empresa y tipo de desecho pasan a ser **dinámicos** del tacho
 (empresa derivada del recorrido, reset al tratar; tipo = input en pesaje, `DROP` de

@@ -13,7 +13,7 @@ import { useStore } from '@/lib/store'
 import { createClient } from '@/lib/supabase/client'
 import * as q from '@/lib/supabase/queries'
 import { uploadEventPhotos } from '@/lib/data/photos'
-import { getSlotAndenEvents, mergePhotoIds } from '@/lib/data/route-sessions'
+import { getSlotAndenEvents } from '@/lib/data/route-sessions'
 import { getRouteSlotDefinition } from '@/lib/constants'
 import { useElapsed, formatElapsed } from '@/hooks/use-elapsed'
 import {
@@ -36,10 +36,10 @@ const EMPTY_FORM: RouteFormState = {
   companyId: '',
   dirtyReceivedIds: [],
   cleanDeliveredIds: [],
-  floor: '',
   area: '',
-  dock: '',
-  photos: [],
+  dirtyPhotos: [],
+  cleanPhotos: [],
+  signature: null,
 }
 
 export default function RegisterRouteSlotPage({ params }: Props) {
@@ -51,7 +51,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   const router = useRouter()
   const {
     clients, companies, containers, routeEvents,
-    addRouteEvent, updateRouteEvent, deleteRouteEvent, addPhoto,
+    addRouteEvent, updateRouteEvent, deleteRouteEvent, addPhoto, photos,
     currentProfileId,
   } = useStore()
 
@@ -60,11 +60,14 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   const [formState, setFormState] = useState<RouteFormState>(EMPTY_FORM)
   // Andén actualmente en edición (null = creando uno nuevo).
   const [editingAndenId, setEditingAndenId] = useState<string | null>(null)
-  // photo_ids existentes del andén en edición que se conservan (no se re-suben).
-  const [existingPhotoIds, setExistingPhotoIds] = useState<string[]>([])
+  // Fotos existentes del andén en edición que se conservan (no se re-suben).
+  const [existingDirty, setExistingDirty] = useState<{ id: string; url: string }[]>([])
+  const [existingClean, setExistingClean] = useState<{ id: string; url: string }[]>([])
+  const [existingSignature, setExistingSignature] = useState<{ id: string; url: string } | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [confirmingFinish, setConfirmingFinish] = useState(false)
   const [confirmingCancel, setConfirmingCancel] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   const client = clients[0]
   const clientCompanies = companies.filter((c) => c.client_id === client?.id)
@@ -131,7 +134,9 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   function resetForm() {
     setFormState(EMPTY_FORM)
     setEditingAndenId(null)
-    setExistingPhotoIds([])
+    setExistingDirty([])
+    setExistingClean([])
+    setExistingSignature(null)
   }
 
   function buildLabel(): string {
@@ -139,11 +144,16 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   }
 
   async function handleSaveAnden() {
-    if (!currentProfileId || !client) return
-    if (editingAndenId) {
-      await handleUpdateAnden(editingAndenId)
-    } else {
-      await handleCreateAnden()
+    if (!currentProfileId || !client || saving) return
+    setSaving(true)
+    try {
+      if (editingAndenId) {
+        await handleUpdateAnden(editingAndenId)
+      } else {
+        await handleCreateAnden()
+      }
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -182,19 +192,28 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       console.error('[recorrido andén] asociar tachos falló:', err)
     }
 
-    // 3) Subir fotos AHORA (evita pérdida al editar luego)
-    let photoIds: string[] = []
+    // 3) Subir fotos AHORA por categoría (evita pérdida al editar luego)
+    let dirtyIds: string[] = []
+    let cleanIds: string[] = []
+    let signatureId: string | null = null
+    const label = buildLabel()
     try {
-      const uploaded = await uploadEventPhotos(supabase, {
-        dataUrls: formState.photos,
-        eventType: 'route',
-        eventId: routeEventId,
-        label: buildLabel(),
-        uploadedBy: currentProfileId,
-        takenAt: now,
+      const upDirty = await uploadEventPhotos(supabase, {
+        dataUrls: formState.dirtyPhotos, eventType: 'route', eventId: routeEventId,
+        label, uploadedBy: currentProfileId, takenAt: now, role: 'dirty',
       })
-      uploaded.forEach(addPhoto)
-      photoIds = uploaded.map((p) => p.id)
+      const upClean = await uploadEventPhotos(supabase, {
+        dataUrls: formState.cleanPhotos, eventType: 'route', eventId: routeEventId,
+        label, uploadedBy: currentProfileId, takenAt: now, role: 'clean',
+      })
+      const upSignature = await uploadEventPhotos(supabase, {
+        dataUrls: formState.signature ? [formState.signature] : [], eventType: 'route', eventId: routeEventId,
+        label, uploadedBy: currentProfileId, takenAt: now, role: 'signature',
+      })
+      ;[...upDirty, ...upClean, ...upSignature].forEach(addPhoto)
+      dirtyIds = upDirty.map((p) => p.id)
+      cleanIds = upClean.map((p) => p.id)
+      signatureId = upSignature[0]?.id ?? null
     } catch (err) {
       console.error('[recorrido andén] subir fotos falló:', err)
       alert('El andén se guardó, pero algunas fotos no se subieron por la conexión.')
@@ -214,10 +233,11 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       status: 'in_progress',
       containers_dirty_received: formState.dirtyReceivedIds,
       containers_clean_delivered: formState.cleanDeliveredIds,
-      floor: formState.floor,
       area: formState.area,
-      dock: formState.dock,
-      photo_ids: photoIds,
+      dirty_photo_ids: dirtyIds,
+      clean_photo_ids: cleanIds,
+      photo_ids: [...dirtyIds, ...cleanIds],
+      signature_photo_id: signatureId,
     })
 
     resetForm()
@@ -226,16 +246,22 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   function handleSelectAnden(id: string) {
     const ev = routeEvents.find((r) => r.id === id)
     if (!ev) return
+    const toPhoto = (pid: string) => {
+      const p = photos.find((ph) => ph.id === pid)
+      return p ? { id: p.id, url: p.url } : null
+    }
     setFormState({
       companyId: ev.company_id ?? '',
       dirtyReceivedIds: ev.containers_dirty_received,
       cleanDeliveredIds: ev.containers_clean_delivered,
-      floor: ev.floor,
       area: ev.area,
-      dock: ev.dock,
-      photos: [], // las nuevas a subir; las existentes se preservan por id
+      dirtyPhotos: [],
+      cleanPhotos: [],
+      signature: null,
     })
-    setExistingPhotoIds(ev.photo_ids)
+    setExistingDirty((ev.dirty_photo_ids ?? []).map(toPhoto).filter((x): x is { id: string; url: string } => x !== null))
+    setExistingClean((ev.clean_photo_ids ?? []).map(toPhoto).filter((x): x is { id: string; url: string } => x !== null))
+    setExistingSignature(ev.signature_photo_id ? toPhoto(ev.signature_photo_id) : null)
     setEditingAndenId(id)
     setDrawerOpen(false)
   }
@@ -249,9 +275,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     try {
       await q.updateRouteEvent(supabase, id, {
         company_id: formState.companyId || null,
-        floor: formState.floor,
         area: formState.area,
-        dock: formState.dock,
       })
       await q.setRouteContainersDirty(supabase, id, formState.dirtyReceivedIds)
       await q.setRouteContainersClean(supabase, id, formState.cleanDeliveredIds)
@@ -261,32 +285,48 @@ export default function RegisterRouteSlotPage({ params }: Props) {
       return
     }
 
-    // 2) Subir SOLO las fotos nuevas; preservar las existentes por id
-    let newPhotoIds: string[] = []
+    // 2) Subir fotos nuevas por categoría; conservar las existentes que quedaron.
+    let newDirtyIds: string[] = []
+    let newCleanIds: string[] = []
+    let newSignatureId: string | null = null
+    const label = buildLabel()
     try {
-      const uploaded = await uploadEventPhotos(supabase, {
-        dataUrls: formState.photos,
-        eventType: 'route',
-        eventId: id,
-        label: buildLabel(),
-        uploadedBy: currentProfileId,
-        takenAt: now,
+      const upDirty = await uploadEventPhotos(supabase, {
+        dataUrls: formState.dirtyPhotos, eventType: 'route', eventId: id,
+        label, uploadedBy: currentProfileId, takenAt: now, role: 'dirty',
       })
-      uploaded.forEach(addPhoto)
-      newPhotoIds = uploaded.map((p) => p.id)
+      const upClean = await uploadEventPhotos(supabase, {
+        dataUrls: formState.cleanPhotos, eventType: 'route', eventId: id,
+        label, uploadedBy: currentProfileId, takenAt: now, role: 'clean',
+      })
+      const upSignature = await uploadEventPhotos(supabase, {
+        dataUrls: formState.signature ? [formState.signature] : [], eventType: 'route', eventId: id,
+        label, uploadedBy: currentProfileId, takenAt: now, role: 'signature',
+      })
+      ;[...upDirty, ...upClean, ...upSignature].forEach(addPhoto)
+      newDirtyIds = upDirty.map((p) => p.id)
+      newCleanIds = upClean.map((p) => p.id)
+      newSignatureId = upSignature[0]?.id ?? null
     } catch (err) {
       console.error('[recorrido andén] subir fotos nuevas falló:', err)
       alert('Los cambios se guardaron, pero algunas fotos nuevas no se subieron.')
     }
 
+    const dirtyIds = [...existingDirty.map((p) => p.id), ...newDirtyIds]
+    const cleanIds = [...existingClean.map((p) => p.id), ...newCleanIds]
+    const signatureId = newSignatureId ?? existingSignature?.id ?? null
+
+    // photo_ids/dirty_photo_ids/clean_photo_ids son campos solo-store: se derivan al
+    // hidratar desde photos.event_id (no hay columna en route_events que actualizar aquí).
     updateRouteEvent(id, {
       company_id: formState.companyId || null,
       containers_dirty_received: formState.dirtyReceivedIds,
       containers_clean_delivered: formState.cleanDeliveredIds,
-      floor: formState.floor,
       area: formState.area,
-      dock: formState.dock,
-      photo_ids: mergePhotoIds(existingPhotoIds, newPhotoIds),
+      dirty_photo_ids: dirtyIds,
+      clean_photo_ids: cleanIds,
+      photo_ids: [...dirtyIds, ...cleanIds],
+      signature_photo_id: signatureId,
     })
 
     resetForm()
@@ -302,6 +342,19 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     }
     deleteRouteEvent(id)
     resetForm()
+  }
+
+  function removeExistingDirty(id: string) {
+    setExistingDirty((prev) => prev.filter((p) => p.id !== id))
+    // Nota: quita la foto del registro pero no borra la fila/archivo en Supabase (queda huérfana). Pendiente: limpieza.
+  }
+  function removeExistingClean(id: string) {
+    setExistingClean((prev) => prev.filter((p) => p.id !== id))
+    // Nota: quita la foto del registro pero no borra la fila/archivo en Supabase (queda huérfana). Pendiente: limpieza.
+  }
+  function removeExistingSignature() {
+    setExistingSignature(null)
+    // Nota: quita la firma del registro pero no borra la fila/archivo en Supabase (queda huérfana). Pendiente: limpieza.
   }
 
   async function handleStart() {
@@ -394,11 +447,16 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     )
   }
 
+  const hasDirtyPhoto = formState.dirtyPhotos.length > 0 || existingDirty.length > 0
+  const hasCleanPhoto = formState.cleanPhotos.length > 0 || existingClean.length > 0
+  const hasSignature = !!formState.signature || !!existingSignature
   const canSaveAnden =
     isRunning &&
     !!formState.companyId &&
     (formState.dirtyReceivedIds.length + formState.cleanDeliveredIds.length > 0) &&
-    (formState.photos.length > 0 || existingPhotoIds.length > 0)
+    hasDirtyPhoto &&
+    hasCleanPhoto &&
+    hasSignature
   const canFinish = sessionAndenes.length > 0
 
   return (
@@ -464,14 +522,20 @@ export default function RegisterRouteSlotPage({ params }: Props) {
         companies={clientCompanies}
         showCompanySelector
         locked={!isRunning}
+        existingDirtyPhotos={existingDirty}
+        existingCleanPhotos={existingClean}
+        onRemoveExistingDirty={removeExistingDirty}
+        onRemoveExistingClean={removeExistingClean}
+        existingSignature={existingSignature}
+        onRemoveExistingSignature={removeExistingSignature}
       />
 
       {/* Acción: guardar andén y agregar otro */}
       {isRunning && (
         <div className="flex flex-col gap-3 sm:flex-row-reverse">
-          <Button onClick={handleSaveAnden} disabled={!canSaveAnden} size="lg" className="gap-2 sm:flex-1">
+          <Button onClick={handleSaveAnden} disabled={!canSaveAnden || saving} size="lg" className="gap-2 sm:flex-1">
             <Plus className="h-4 w-4" />
-            {isEditing ? 'Guardar cambios del andén' : 'Guardar andén y agregar otro'}
+            {saving ? 'Guardando…' : isEditing ? 'Guardar cambios del andén' : 'Guardar andén y agregar otro'}
           </Button>
           {isEditing && (
             <>

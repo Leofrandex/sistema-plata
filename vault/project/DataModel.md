@@ -36,6 +36,10 @@ tacho pasa por distintas empresas a lo largo de su vida. Ver
 | is_yaris_dedicated | boolean | Tacho con el que se **pesa** una carga Yaris/Picanto (aparece en Pesaje en modo Yaris) |
 | is_metallic_dedicated | boolean | Tacho dedicado a "Metálicos No reutilizables" |
 | is_yaris_container | boolean | **Contenedor físico** de la flota Yaris (`Y1`…`Y26`): sin empresa, sin tara, siempre disponible en recorrido, EXCLUIDO de la cola de pesaje y del dashboard. Distinto de `is_yaris_dedicated`. Ver `logs/2026-06-03-contenedores-yaris-recorrido.md` |
+| created_by | FK → Profile / null | Quién registró el tacho. Null para históricos importados. Ver `logs/2026-06-10-recorrido-fotos-persistencia-traza.md` |
+
+> [!note] Desactualizado en esta tabla: `waste_type` ya **no** es columna de `containers`
+> (se eliminó; el tipo de desecho es input de pesaje). Ver `decisions/2026-05-30-empresa-tipo-dinamicos-tacho.md`.
 
 ### Client (Cliente)
 Entidad legal a la que se le presta el servicio. Agrupa varias Empresas.
@@ -72,13 +76,19 @@ Antes llamado `ExchangeEvent`. Registro de un recorrido completo: intercambio li
 | ended_at | datetime / null | null mientras está en curso |
 | operator_id | FK → User | |
 | status | enum | `'in_progress'` / `'completed'` |
-| containers_exchanged | array FK → Container | Selección acumulativa |
-| floor | string | Piso del recorrido |
-| area | string | Área / sala |
-| dock | string | Andén |
-| photo_ids | array FK → Photo | Fotos ilimitadas |
+| company_id | FK → Company / null | Empresa de ESTE registro (snapshot). Ver `decisions/2026-06-10-empresa-por-registro.md` |
+| containers_dirty_received | array FK → Container | Tachos sucios recogidos (van a pesaje) |
+| containers_clean_delivered | array FK → Container | Tachos limpios entregados al cliente |
+| area | string | Ubicación del recorrido (único selector activo). |
+| photo_ids | array FK → Photo | Unión de fotos del recorrido (lo usan los reportes) |
+| dirty_photo_ids | array FK → Photo | Fotos de tachos sucios (campo solo-store, derivado por `photos.role`) |
+| clean_photo_ids | array FK → Photo | Fotos de tachos limpios (campo solo-store, derivado por `photos.role`) |
 
-Los **slots** son fijos: 6:30 AM, 10:30 AM, 1:20 PM, 2:30 PM, 6:30 PM, 9:00 PM. Solo un RouteEvent activo o completado puede existir por (slot, fecha) — slots compartidos por todo el equipo.
+> [!note] 2026-06-10 — `floor` y `dock` se **eliminaron** de `route_events` (columnas
+> muertas, siempre `""`). La ubicación vive en `area`. Las fotos de recorrido se separan
+> en sucios/limpios vía `photos.role`. Ver `logs/2026-06-10-recorrido-fotos-persistencia-traza.md`.
+
+Los **slots** son fijos: 6:30 AM, 10:30 AM, 1:20 PM, 2:30 PM, 6:30 PM, 9:00 PM. Para `anden` cada andén es un `route_event` agrupado por (date, slot) — pueden coexistir varios (multi-andén).
 
 ### WeighingSession (Sesión de pesaje)
 Agrupa todas las recepciones pesadas durante una misma sesión (cronómetro entre "Iniciar pesaje" y "Finalizar pesaje").
@@ -110,6 +120,13 @@ Agrupa todas las recepciones pesadas durante una misma sesión (cronómetro entr
 ### StorageEvent, TreatmentRun, ExternalTransfer
 Sin cambios estructurales — solo se quitó el `batch_id` (que ya no existe).
 
+> [!note] 2026-06-10 — `storage_events` y `container_locations` **ahora se persisten** a
+> Supabase (antes el write-through se quedaba en el store local → 0 filas, causa del bug
+> cross-device de tratamiento). El hydrator carga las 4 tablas posteriores
+> (`storage_events`, `treatment_runs`, `external_transfers`, `container_locations`).
+> `client_locations` y `external_transfers` siguen **sin cablear** (0 filas):
+> `external_transfers` espera la pantalla de traslado "en construcción", no es obsoleta.
+
 ### Photo
 
 | Campo | Tipo | Notas |
@@ -120,6 +137,7 @@ Sin cambios estructurales — solo se quitó el `batch_id` (que ya no existe).
 | event_id | string | FK polimórfico al evento correspondiente |
 | taken_at | datetime | |
 | label | string | ej: "PTDP Centro Salud 17/05/2026 07:00 AM" |
+| role | string / null | Rol en el evento. Recorrido: `'dirty'` / `'clean'`. Null en pesaje (posicional) y resto. Ver `logs/2026-06-10-recorrido-fotos-persistencia-traza.md` |
 
 ## Relaciones clave
 

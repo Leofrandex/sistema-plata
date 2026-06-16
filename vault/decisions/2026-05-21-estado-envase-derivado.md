@@ -58,6 +58,16 @@ Mantener el modelo derivado **para el piloto**. La trazabilidad regulatoria exig
 3. **`DELETE` sobre `container_receptions` rompe la trazabilidad**: si alguien borra una recepción para "corregir", no queda rastro. Para auditoría se necesita **anulación lógica** (soft-delete con `voided_at` + `voided_by` + `void_reason`), nunca borrado físico.
 4. **Cada consulta re-escanea eventos**: vistas, dashboards y reportes recalculan la misma derivación una y otra vez. No es indexable directamente.
 
+> [!note] Reafirmado 2026-06-11 — el bug cross-device NO era del modelo derivado
+> El síntoma "desde otro dispositivo no veo los tachos disponibles para tratamiento" se
+> diagnosticó como un fallo de **persistencia/hidratación**, no del modelo derivado: los
+> `storage_events`/`container_locations` se escribían solo al store local (nunca a Supabase)
+> y el hydrator ni siquiera cargaba esas tablas. Se arregló completando el write-through +
+> la hidratación. **Una columna `current_phase` habría tenido el mismo bug** si olvidábamos
+> persistir el evento que dispara el trigger. Conclusión: eventos como fuente de verdad,
+> siempre; y el **próximo paso de escala es la vista de Postgres (modelo B)**, no la columna
+> cacheada. Ver `logs/2026-06-10-recorrido-fotos-persistencia-traza.md`.
+
 ## Plan de evolución (orden de prioridad)
 
 ### Antes del lanzamiento oficial (2026-06-01)
