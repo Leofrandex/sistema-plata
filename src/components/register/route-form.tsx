@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ContainerPickerSheet } from '@/components/register/container-picker-sheet'
 import { PhotoCaptureMulti } from '@/components/register/photo-capture-multi'
+import { SignaturePad } from '@/components/register/signature-pad'
 import { cn } from '@/lib/utils'
 import type { Container, Company } from '@/lib/types'
 import { formatTachoNumber } from '@/lib/data/containers'
@@ -26,6 +27,8 @@ export interface RouteFormState {
   /** Fotos NUEVAS (dataURLs) a subir, por categoría. */
   dirtyPhotos: string[]
   cleanPhotos: string[]
+  /** Firma nueva (data URL) a subir. */
+  signature: string | null
 }
 
 interface Props {
@@ -43,11 +46,15 @@ interface Props {
   existingCleanPhotos?: { id: string; url: string }[]
   onRemoveExistingDirty?: (id: string) => void
   onRemoveExistingClean?: (id: string) => void
+  /** Firma ya subida que se conserva (modo edición). */
+  existingSignature?: { id: string; url: string } | null
+  onRemoveExistingSignature?: () => void
 }
 
 export function RouteForm({
   state, onChange, containers, companies, locked, showCompanySelector = false,
   existingDirtyPhotos, existingCleanPhotos, onRemoveExistingDirty, onRemoveExistingClean,
+  existingSignature, onRemoveExistingSignature,
 }: Props) {
   const [pickerOpen, setPickerOpen] = useState<'dirty' | 'clean' | null>(null)
 
@@ -260,6 +267,15 @@ export function RouteForm({
           onRemove={(i) => onChange({ cleanPhotos: state.cleanPhotos.filter((_, idx) => idx !== i) })}
         />
       </section>
+
+      {/* Firma del recorrido */}
+      <SignaturePad
+        value={state.signature}
+        existing={existingSignature ?? null}
+        onChange={(dataUrl) => onChange({ signature: dataUrl })}
+        onRemoveExisting={onRemoveExistingSignature}
+        disabled={locked}
+      />
 
       {!locked && (state.dirtyReceivedIds.length > 0 || state.cleanDeliveredIds.length > 0) && (
         <div className="flex justify-end">
