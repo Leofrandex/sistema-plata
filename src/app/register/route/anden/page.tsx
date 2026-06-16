@@ -8,12 +8,13 @@ import { ROUTE_SLOTS } from '@/lib/constants'
 import { useStore } from '@/lib/store'
 import {
   listActiveSessions,
+  endSession,
   routeAndenSessionKey,
   todayLocal,
   type ActiveSession,
 } from '@/lib/active-session'
 import { RouteSlotCard, type RouteSlotStatus } from '@/components/register/route-slot-card'
-import { getSlotAndenEvents } from '@/lib/data/route-sessions'
+import { computeSlotStatus } from '@/lib/data/route-sessions'
 import type { RouteSlot } from '@/lib/types'
 
 interface SlotState {
@@ -35,11 +36,27 @@ export default function RegisterAndenRoutesPage() {
   useEffect(() => {
     let cancelled = false
     listActiveSessions('route')
-      .then((sessions) => {
+      .then(async (sessions) => {
         if (cancelled) return
-        setActiveSessions(
-          sessions.filter((s) => s.context.type === 'route' && s.context.kind === 'anden'),
+        const andenSessions = sessions.filter(
+          (s) => s.context.type === 'route' && s.context.kind === 'anden',
         )
+        // Reconciliar contra la BD: descartar (y borrar de IndexedDB) las sesiones
+        // colgadas cuyo horario ya está cerrado en Supabase. Sin esto, una sesión
+        // local fantasma mantenía el slot "en curso" para siempre.
+        const events = useStore.getState().routeEvents
+        const live: ActiveSession[] = []
+        for (const s of andenSessions) {
+          const ctx = s.context
+          if (ctx.type !== 'route' || ctx.slot == null) { live.push(s); continue }
+          const d = computeSlotStatus(events, ctx.date, ctx.slot, s.started_at)
+          if (d.staleLocalSession) {
+            await endSession(s.key)
+          } else {
+            live.push(s)
+          }
+        }
+        if (!cancelled) setActiveSessions(live)
       })
       .catch((err) => {
         // eslint-disable-next-line no-console
@@ -50,18 +67,9 @@ export default function RegisterAndenRoutesPage() {
   }, [today, routeEvents])
 
   function computeStatus(slot: RouteSlot): SlotState {
-    const inProgressKey = routeAndenSessionKey(today, slot)
-    const inProgressSession = activeSessions.find((s) => s.key === inProgressKey)
-    const inProgress = getSlotAndenEvents(routeEvents, today, slot, 'in_progress')
-    if (inProgressSession || inProgress.length > 0) {
-      return { status: 'in_progress', startedAt: inProgressSession?.started_at ?? inProgress[0]?.started_at }
-    }
-    const completed = getSlotAndenEvents(routeEvents, today, slot, 'completed')
-    if (completed.length > 0) {
-      const last = completed[completed.length - 1]
-      return { status: 'completed', completedAt: last.ended_at }
-    }
-    return { status: 'available' }
+    const localSession = activeSessions.find((s) => s.key === routeAndenSessionKey(today, slot))
+    const d = computeSlotStatus(routeEvents, today, slot, localSession?.started_at ?? null)
+    return { status: d.status, startedAt: d.startedAt, completedAt: d.completedAt }
   }
 
   return (

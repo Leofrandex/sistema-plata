@@ -44,6 +44,7 @@ updated: 2026-05-21
 | Tachos metálicos M1-M15 + tipo "Metálicos No reutilizables" | 🟢 Completado | `logs/2026-06-01-tachos-metalicos.md` |
 | Roles coordinador/operador (UI + middleware + RLS) + cuentas reales | 🟢 Completado | `logs/2026-06-01-roles-coordinador-operador.md` · `decisions/2026-06-01-roles-acceso.md` |
 | Firma por recorrido (andén+morgue) + saludo dashboard + redacción pesaje | 🟢 Completado | `logs/2026-06-16-firma-recorrido-saludo-dashboard-redaccion-pesaje.md` |
+| Fix: área del andén no persistía al crear + recorrido "activo" fantasma | 🟢 Completado | `logs/2026-06-16-fix-area-anden-y-activo-fantasma.md` |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completo · ⚠️ Tiene incoherencias
 
@@ -98,6 +99,7 @@ updated: 2026-05-21
 - `logs/2026-06-10-empresa-por-registro-tacho-independiente.md`
 - `logs/2026-06-10-recorrido-fotos-persistencia-traza.md`
 - `logs/2026-06-16-firma-recorrido-saludo-dashboard-redaccion-pesaje.md`
+- `logs/2026-06-16-fix-area-anden-y-activo-fantasma.md`
 
 ---
 

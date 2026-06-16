@@ -13,7 +13,7 @@ import { useStore } from '@/lib/store'
 import { createClient } from '@/lib/supabase/client'
 import * as q from '@/lib/supabase/queries'
 import { uploadEventPhotos } from '@/lib/data/photos'
-import { getSlotAndenEvents } from '@/lib/data/route-sessions'
+import { getSlotAndenEvents, computeSlotStatus } from '@/lib/data/route-sessions'
 import { getRouteSlotDefinition } from '@/lib/constants'
 import { useElapsed, formatElapsed } from '@/hooks/use-elapsed'
 import {
@@ -90,13 +90,20 @@ export default function RegisterRouteSlotPage({ params }: Props) {
     getActiveSession(key)
       .then(async (session) => {
         if (cancelled) return
+        const events = useStore.getState().routeEvents
+        // Si el horario ya cerró en la BD (andenes completed, ninguno in_progress),
+        // cualquier sesión local es fantasma: limpiarla y no marcar "en curso".
+        const decision = computeSlotStatus(events, today, slotId, session?.started_at ?? null)
+        if (decision.status === 'completed') {
+          if (session) await endSession(key)
+          if (!cancelled) setActiveSession(null)
+          return
+        }
         if (session) {
           setActiveSession(session)
           return
         }
-        const orphans = getSlotAndenEvents(
-          useStore.getState().routeEvents, today, slotId, 'in_progress',
-        )
+        const orphans = getSlotAndenEvents(events, today, slotId, 'in_progress')
         if (orphans.length === 0 || !currentProfileId) return
         const recovered: ActiveSession = {
           key,
@@ -121,7 +128,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
         console.error('[route] Error hidratando sesión activa:', err)
       })
     return () => { cancelled = true }
-  }, [today, slotId, currentProfileId])
+  }, [today, slotId, currentProfileId, routeEvents])
 
   const elapsed = useElapsed(activeSession?.started_at ?? null)
   const isRunning = !!activeSession
@@ -176,6 +183,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
         started_at: now,
         operator_id: currentProfileId,
         status: 'in_progress',
+        area: formState.area,
       })
       routeEventId = row.id
     } catch (err) {
