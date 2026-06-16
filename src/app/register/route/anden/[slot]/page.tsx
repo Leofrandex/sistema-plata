@@ -207,7 +207,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
         label, uploadedBy: currentProfileId, takenAt: now, role: 'clean',
       })
       const upSignature = await uploadEventPhotos(supabase, {
-        dataUrls: [formState.signature], eventType: 'route', eventId: routeEventId,
+        dataUrls: formState.signature ? [formState.signature] : [], eventType: 'route', eventId: routeEventId,
         label, uploadedBy: currentProfileId, takenAt: now, role: 'signature',
       })
       ;[...upDirty, ...upClean, ...upSignature].forEach(addPhoto)
@@ -300,7 +300,7 @@ export default function RegisterRouteSlotPage({ params }: Props) {
         label, uploadedBy: currentProfileId, takenAt: now, role: 'clean',
       })
       const upSignature = await uploadEventPhotos(supabase, {
-        dataUrls: [formState.signature], eventType: 'route', eventId: id,
+        dataUrls: formState.signature ? [formState.signature] : [], eventType: 'route', eventId: id,
         label, uploadedBy: currentProfileId, takenAt: now, role: 'signature',
       })
       ;[...upDirty, ...upClean, ...upSignature].forEach(addPhoto)
