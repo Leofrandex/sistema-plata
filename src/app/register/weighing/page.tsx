@@ -28,6 +28,8 @@ import { uploadEventPhotos } from '@/lib/data/photos'
 import { createClient } from '@/lib/supabase/client'
 import * as q from '@/lib/supabase/queries'
 import { ConfirmVoidDialog } from '@/components/ui/confirm-void-dialog'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { WeighingHistory } from '@/components/history/weighing-history'
 
 export default function WeighingPage() {
   const router = useRouter()
@@ -457,150 +459,165 @@ export default function WeighingPage() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-20">
-      <header>
-        <h1 className="text-2xl font-bold text-foreground">Pesaje</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Inicia la sesión de pesaje para registrar varios tachos de forma continua.
-          Cada registro se puede editar desde la lista lateral hasta finalizar.
-        </p>
-      </header>
+    <Tabs defaultValue="registrar" className="max-w-2xl mx-auto">
+      <TabsList>
+        <TabsTrigger value="registrar">Registrar</TabsTrigger>
+        <TabsTrigger value="historial">Historial</TabsTrigger>
+      </TabsList>
 
-      {/* Banner de estado */}
-      {isRunning ? (
-        <Card className="bg-accent/5 border-accent/30">
-          <CardContent className="pt-4 flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-accent">
-                Sesión de pesaje en curso
-              </p>
-              <p className="text-3xl font-bold tabular-nums text-foreground mt-1">
-                {formatElapsed(elapsed)}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {sessionReceptions.length} tacho{sessionReceptions.length !== 1 ? 's' : ''} registrado{sessionReceptions.length !== 1 ? 's' : ''}
-              </p>
-              {pendingList.length > 0 && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  Pendientes por pesar ({pendingNotSkipped.length}):{' '}
-                  {pendingList.map((id) => (
-                    <span key={id} className={cn('font-mono mr-1', skippedIds.has(id) && 'line-through opacity-60')}>
-                      {formatTachoNumber(id)}
-                      {!skippedIds.has(id) && (
-                        <button type="button" onClick={() => markAbsent(id)} className="ml-0.5 text-[10px] underline">ausente</button>
-                      )}
-                    </span>
-                  ))}
-                </p>
-              )}
-            </div>
-            <div className="flex gap-2 shrink-0 flex-wrap justify-end">
-              <Button
-                variant="outline"
-                onClick={() => setConfirmingCancel(true)}
-                className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-              >
-                <X className="h-4 w-4" />
-                Cancelar
-              </Button>
-              <Button
-                onClick={() => setConfirmingFinish(true)}
-                disabled={sessionReceptions.length === 0 || pendingNotSkipped.length > 0}
-                className="gap-2"
-              >
-                <StopCircle className="h-4 w-4" />
-                Finalizar pesaje
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardContent className="pt-4 flex items-center justify-between gap-4">
-            <p className="text-sm text-muted-foreground">
-              El formulario está bloqueado. Inicia el pesaje para empezar el cronómetro y registrar tachos.
+      <TabsContent value="registrar">
+        <div className="space-y-6 pb-20">
+          <header>
+            <h1 className="text-2xl font-bold text-foreground">Pesaje</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Inicia la sesión de pesaje para registrar varios tachos de forma continua.
+              Cada registro se puede editar desde la lista lateral hasta finalizar.
             </p>
-            <StartSessionButton
-              sessionReady={!!currentProfileId}
-              onStart={handleStart}
-              icon={<Play className="h-4 w-4" />}
-            >
-              Iniciar pesaje
-            </StartSessionButton>
-          </CardContent>
-        </Card>
-      )}
+          </header>
 
-      {/* Banner de modo edición */}
-      {isEditing && (
-        <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-2.5 text-sm text-amber-800">
-          Editando tacho <strong className="font-mono">{formState.container_id}</strong>.
-          Los cambios se guardan en la sesión actual.
+          {/* Banner de estado */}
+          {isRunning ? (
+            <Card className="bg-accent/5 border-accent/30">
+              <CardContent className="pt-4 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-accent">
+                    Sesión de pesaje en curso
+                  </p>
+                  <p className="text-3xl font-bold tabular-nums text-foreground mt-1">
+                    {formatElapsed(elapsed)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {sessionReceptions.length} tacho{sessionReceptions.length !== 1 ? 's' : ''} registrado{sessionReceptions.length !== 1 ? 's' : ''}
+                  </p>
+                  {pendingList.length > 0 && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Pendientes por pesar ({pendingNotSkipped.length}):{' '}
+                      {pendingList.map((id) => (
+                        <span key={id} className={cn('font-mono mr-1', skippedIds.has(id) && 'line-through opacity-60')}>
+                          {formatTachoNumber(id)}
+                          {!skippedIds.has(id) && (
+                            <button type="button" onClick={() => markAbsent(id)} className="ml-0.5 text-[10px] underline">ausente</button>
+                          )}
+                        </span>
+                      ))}
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2 shrink-0 flex-wrap justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => setConfirmingCancel(true)}
+                    className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                  >
+                    <X className="h-4 w-4" />
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={() => setConfirmingFinish(true)}
+                    disabled={sessionReceptions.length === 0 || pendingNotSkipped.length > 0}
+                    className="gap-2"
+                  >
+                    <StopCircle className="h-4 w-4" />
+                    Finalizar pesaje
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="pt-4 flex items-center justify-between gap-4">
+                <p className="text-sm text-muted-foreground">
+                  El formulario está bloqueado. Inicia el pesaje para empezar el cronómetro y registrar tachos.
+                </p>
+                <StartSessionButton
+                  sessionReady={!!currentProfileId}
+                  onStart={handleStart}
+                  icon={<Play className="h-4 w-4" />}
+                >
+                  Iniciar pesaje
+                </StartSessionButton>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Banner de modo edición */}
+          {isEditing && (
+            <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-2.5 text-sm text-amber-800">
+              Editando tacho <strong className="font-mono">{formState.container_id}</strong>.
+              Los cambios se guardan en la sesión actual.
+            </div>
+          )}
+
+          {/* Formulario */}
+          <WeighingForm
+            state={formState}
+            onChange={updateForm}
+            availableContainers={availableContainers}
+            yarisContainers={yarisContainers}
+            metallicContainers={metallicContainers}
+            allContainers={containers}
+            inheritedCompanyName={inheritedCompanyName}
+            locked={!isRunning}
+            mode={isEditing ? 'edit' : 'create'}
+            onSubmit={handleSubmitForm}
+            onCancelEdit={handleCancelEdit}
+            onDelete={() => setConfirmingVoid(true)}
+          />
+
+          {/* Drawer lateral */}
+          <WeighingSessionDrawer
+            receptions={sessionReceptions}
+            containers={containers}
+            selectedReceptionId={editingReceptionId}
+            open={drawerOpen}
+            onOpenChange={setDrawerOpen}
+            onSelectReception={handleSelectForEdit}
+          />
+
+          {/* Dialog de confirmación de finalización */}
+          {confirmingFinish && (
+            <ConfirmFinishDialog
+              count={sessionReceptions.length}
+              elapsed={elapsed}
+              onCancel={() => setConfirmingFinish(false)}
+              onConfirm={async () => {
+                setConfirmingFinish(false)
+                await handleFinish()
+              }}
+            />
+          )}
+
+          {/* Dialog de confirmación de cancelación (destructiva) */}
+          {confirmingCancel && (
+            <ConfirmCancelDialog
+              count={sessionReceptions.length}
+              onCancel={() => setConfirmingCancel(false)}
+              onConfirm={async () => {
+                setConfirmingCancel(false)
+                await handleCancel()
+              }}
+            />
+          )}
+
+          {/* Dialog de "Deshacer pesaje" (anulación lógica con motivo obligatorio) */}
+          {confirmingVoid && (
+            <ConfirmVoidDialog
+              title="¿Deshacer el pesaje?"
+              description={<>El tacho <strong className="font-mono">{formState.container_id}</strong> volverá a quedar disponible para pesar. El registro no se borra: queda anulado con motivo para trazabilidad.</>}
+              confirmLabel="Deshacer pesaje"
+              onCancel={() => setConfirmingVoid(false)}
+              onConfirm={async (reason) => { setConfirmingVoid(false); await handleVoidEditing(reason) }}
+            />
+          )}
         </div>
-      )}
+      </TabsContent>
 
-      {/* Formulario */}
-      <WeighingForm
-        state={formState}
-        onChange={updateForm}
-        availableContainers={availableContainers}
-        yarisContainers={yarisContainers}
-        metallicContainers={metallicContainers}
-        allContainers={containers}
-        inheritedCompanyName={inheritedCompanyName}
-        locked={!isRunning}
-        mode={isEditing ? 'edit' : 'create'}
-        onSubmit={handleSubmitForm}
-        onCancelEdit={handleCancelEdit}
-        onDelete={() => setConfirmingVoid(true)}
-      />
-
-      {/* Drawer lateral */}
-      <WeighingSessionDrawer
-        receptions={sessionReceptions}
-        containers={containers}
-        selectedReceptionId={editingReceptionId}
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
-        onSelectReception={handleSelectForEdit}
-      />
-
-      {/* Dialog de confirmación de finalización */}
-      {confirmingFinish && (
-        <ConfirmFinishDialog
-          count={sessionReceptions.length}
-          elapsed={elapsed}
-          onCancel={() => setConfirmingFinish(false)}
-          onConfirm={async () => {
-            setConfirmingFinish(false)
-            await handleFinish()
-          }}
-        />
-      )}
-
-      {/* Dialog de confirmación de cancelación (destructiva) */}
-      {confirmingCancel && (
-        <ConfirmCancelDialog
-          count={sessionReceptions.length}
-          onCancel={() => setConfirmingCancel(false)}
-          onConfirm={async () => {
-            setConfirmingCancel(false)
-            await handleCancel()
-          }}
-        />
-      )}
-
-      {/* Dialog de "Deshacer pesaje" (anulación lógica con motivo obligatorio) */}
-      {confirmingVoid && (
-        <ConfirmVoidDialog
-          title="¿Deshacer el pesaje?"
-          description={<>El tacho <strong className="font-mono">{formState.container_id}</strong> volverá a quedar disponible para pesar. El registro no se borra: queda anulado con motivo para trazabilidad.</>}
-          confirmLabel="Deshacer pesaje"
-          onCancel={() => setConfirmingVoid(false)}
-          onConfirm={async (reason) => { setConfirmingVoid(false); await handleVoidEditing(reason) }}
-        />
-      )}
-    </div>
+      <TabsContent value="historial">
+        <div className="pb-20">
+          <WeighingHistory />
+        </div>
+      </TabsContent>
+    </Tabs>
   )
 }
 
