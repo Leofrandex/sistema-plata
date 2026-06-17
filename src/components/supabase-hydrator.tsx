@@ -124,6 +124,9 @@ export function SupabaseHydrator() {
           operator_id: s.operator_id,
           status: s.status,
           reception_ids: receptionIdsBySession.get(s.id) ?? [],
+          voided_at: s.voided_at ?? null,
+          voided_by: s.voided_by ?? null,
+          void_reason: s.void_reason ?? null,
         }))
 
         const receptions: ContainerReception[] = receptionsRaw.map((r) => ({
@@ -217,6 +220,9 @@ function rowToReception(r: q.ReceptionRow): ContainerReception {
     company_id: r.company_id ?? null,
     waste_type: r.waste_type,
     treat_immediately: r.treat_immediately,
+    voided_at: r.voided_at ?? null,
+    voided_by: r.voided_by ?? null,
+    void_reason: r.void_reason ?? null,
   }
 }
 
@@ -249,6 +255,9 @@ export function mapRouteEvents(
     photo_ids: [], // el hydrator los rellena desde photoIdsByEvent
     dirty_photo_ids: [],
     clean_photo_ids: [],
+    voided_at: e.voided_at ?? null,
+    voided_by: e.voided_by ?? null,
+    void_reason: e.void_reason ?? null,
   }))
 }
 

@@ -58,4 +58,13 @@ describe('mapRouteEvents', () => {
       status: 'completed',
     })
   })
+
+  it('propaga voided_at/by/reason desde la fila', () => {
+    const rows = [
+      makeRow({ id: 're-v', voided_at: '2026-06-17T00:00:00Z', voided_by: 'op', void_reason: 'error' }),
+    ]
+    const [mapped] = mapRouteEvents(rows, [], [])
+    expect(mapped.voided_at).toBe('2026-06-17T00:00:00Z')
+    expect(mapped.void_reason).toBe('error')
+  })
 })
