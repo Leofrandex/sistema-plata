@@ -27,6 +27,7 @@ import { getPendingWeighingContainerIds, getContainerCurrentCompanyId, formatTac
 import { uploadEventPhotos } from '@/lib/data/photos'
 import { createClient } from '@/lib/supabase/client'
 import * as q from '@/lib/supabase/queries'
+import { ConfirmVoidDialog } from '@/components/ui/confirm-void-dialog'
 
 export default function WeighingPage() {
   const router = useRouter()
@@ -592,12 +593,11 @@ export default function WeighingPage() {
       {/* Dialog de "Deshacer pesaje" (anulación lógica con motivo obligatorio) */}
       {confirmingVoid && (
         <ConfirmVoidDialog
-          containerId={formState.container_id}
+          title="¿Deshacer el pesaje?"
+          description={<>El tacho <strong className="font-mono">{formState.container_id}</strong> volverá a quedar disponible para pesar. El registro no se borra: queda anulado con motivo para trazabilidad.</>}
+          confirmLabel="Deshacer pesaje"
           onCancel={() => setConfirmingVoid(false)}
-          onConfirm={async (reason) => {
-            setConfirmingVoid(false)
-            await handleVoidEditing(reason)
-          }}
+          onConfirm={async (reason) => { setConfirmingVoid(false); await handleVoidEditing(reason) }}
         />
       )}
     </div>
@@ -690,64 +690,3 @@ function ConfirmFinishDialog({ count, elapsed, onCancel, onConfirm }: DialogProp
   )
 }
 
-interface VoidDialogProps {
-  containerId: string
-  onCancel: () => void
-  onConfirm: (reason: string) => void
-}
-
-function ConfirmVoidDialog({ containerId, onCancel, onConfirm }: VoidDialogProps) {
-  const [reason, setReason] = useState('')
-  const trimmed = reason.trim()
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4"
-      onClick={onCancel}
-    >
-      <div
-        className="bg-card rounded-xl ring-1 ring-red-200 p-6 max-w-sm w-full space-y-4 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-700">
-            <AlertCircle className="h-5 w-5" />
-          </div>
-          <div className="space-y-1">
-            <h2 className="text-base font-semibold text-foreground">¿Deshacer el pesaje?</h2>
-            <p className="text-sm text-muted-foreground">
-              El tacho <strong className="font-mono">{containerId}</strong> volverá a quedar
-              disponible para pesar. El registro no se borra: queda anulado con motivo
-              para trazabilidad.
-            </p>
-          </div>
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="void-reason" className="text-sm font-medium text-foreground">
-            Motivo <span className="text-red-600">*</span>
-          </label>
-          <textarea
-            id="void-reason"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            rows={3}
-            autoFocus
-            placeholder="Ej.: peso mal tecleado, tacho equivocado…"
-            className="w-full rounded-lg border border-foreground/15 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-400/40"
-          />
-        </div>
-        <div className="flex gap-3 justify-end">
-          <Button variant="outline" onClick={onCancel}>Cancelar</Button>
-          <Button
-            onClick={() => onConfirm(trimmed)}
-            disabled={trimmed.length === 0}
-            className="bg-red-600 hover:bg-red-700 text-white"
-          >
-            Deshacer pesaje
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
-}
