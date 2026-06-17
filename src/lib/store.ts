@@ -80,12 +80,14 @@ interface HospiwasteStore {
   addRouteEvent: (event: RouteEvent) => void
   updateRouteEvent: (id: string, updates: Partial<RouteEvent>) => void
   deleteRouteEvent: (id: string) => void
+  voidRouteEvent: (id: string, voidedBy: string, reason: string) => void
 
   // Sesiones de pesaje y receptions
   addWeighingSession: (session: WeighingSession) => void
   updateWeighingSession: (id: string, updates: Partial<WeighingSession>) => void
   /** Borra una sesión y todas sus receptions y fotos asociadas. */
   deleteWeighingSession: (id: string) => void
+  voidWeighingSession: (id: string, voidedBy: string, reason: string) => void
   addReception: (reception: ContainerReception) => void
   updateReception: (id: string, updates: Partial<ContainerReception>) => void
 
@@ -165,6 +167,13 @@ export const useStore = create<HospiwasteStore>((set) => ({
       }
     }),
 
+  voidRouteEvent: (id, voidedBy, reason) =>
+    set((s) => ({
+      routeEvents: s.routeEvents.map((r) =>
+        r.id === id ? { ...r, voided_at: new Date().toISOString(), voided_by: voidedBy, void_reason: reason } : r
+      ),
+    })),
+
   addWeighingSession: (session) =>
     set((s) => ({ weighingSessions: [...s.weighingSessions, session] })),
 
@@ -190,6 +199,23 @@ export const useStore = create<HospiwasteStore>((set) => ({
         weighingSessions: s.weighingSessions.filter((w) => w.id !== id),
         receptions,
         photos: s.photos.filter((p) => !droppedPhotoIds.has(p.id)),
+      }
+    }),
+
+  voidWeighingSession: (id, voidedBy, reason) =>
+    set((s) => {
+      const now = new Date().toISOString()
+      const session = s.weighingSessions.find((w) => w.id === id)
+      const receptionIds = new Set(session?.reception_ids ?? [])
+      return {
+        weighingSessions: s.weighingSessions.map((w) =>
+          w.id === id ? { ...w, voided_at: now, voided_by: voidedBy, void_reason: reason } : w
+        ),
+        receptions: s.receptions.map((r) =>
+          receptionIds.has(r.id) && !r.voided_at
+            ? { ...r, voided_at: now, voided_by: voidedBy, void_reason: reason }
+            : r
+        ),
       }
     }),
 
