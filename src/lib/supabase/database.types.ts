@@ -504,6 +504,9 @@ export type Database = {
           slot: Database["public"]["Enums"]["route_slot"] | null
           started_at: string
           status: Database["public"]["Enums"]["route_event_status"]
+          voided_at: string | null
+          voided_by: string | null
+          void_reason: string | null
         }
         Insert: {
           area?: string
@@ -518,6 +521,9 @@ export type Database = {
           slot?: Database["public"]["Enums"]["route_slot"] | null
           started_at: string
           status?: Database["public"]["Enums"]["route_event_status"]
+          voided_at?: string | null
+          voided_by?: string | null
+          void_reason?: string | null
         }
         Update: {
           area?: string
@@ -532,6 +538,9 @@ export type Database = {
           slot?: Database["public"]["Enums"]["route_slot"] | null
           started_at?: string
           status?: Database["public"]["Enums"]["route_event_status"]
+          voided_at?: string | null
+          voided_by?: string | null
+          void_reason?: string | null
         }
         Relationships: [
           {
@@ -665,6 +674,9 @@ export type Database = {
           operator_id: string
           started_at: string
           status: Database["public"]["Enums"]["weighing_session_status"]
+          voided_at: string | null
+          voided_by: string | null
+          void_reason: string | null
         }
         Insert: {
           client_id: string
@@ -675,6 +687,9 @@ export type Database = {
           operator_id: string
           started_at: string
           status?: Database["public"]["Enums"]["weighing_session_status"]
+          voided_at?: string | null
+          voided_by?: string | null
+          void_reason?: string | null
         }
         Update: {
           client_id?: string
@@ -685,6 +700,9 @@ export type Database = {
           operator_id?: string
           started_at?: string
           status?: Database["public"]["Enums"]["weighing_session_status"]
+          voided_at?: string | null
+          voided_by?: string | null
+          void_reason?: string | null
         }
         Relationships: [
           {
