@@ -1,10 +1,6 @@
-'use client'
-
 import Link from 'next/link'
-import { Building2, Skull, ChevronRight } from 'lucide-react'
+import { Building2, Skull, History, ChevronRight } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { RouteHistory } from '@/components/history/route-history'
 
 const OPTIONS = [
   {
@@ -35,37 +31,46 @@ export default function RegisterRoutesPage() {
         </p>
       </header>
 
-      <Tabs defaultValue="registrar">
-        <TabsList>
-          <TabsTrigger value="registrar">Registrar</TabsTrigger>
-          <TabsTrigger value="historial">Historial</TabsTrigger>
-        </TabsList>
-        <TabsContent value="registrar">
-          <div className="space-y-3 pt-4">
-            {OPTIONS.map(({ href, label, description, icon: Icon, iconBg, iconText }) => (
-              <Link key={href} href={href} className="block">
-                <Card className="hover:border-accent/40 hover:bg-accent/5 transition-colors cursor-pointer">
-                  <CardContent className="pt-4 flex items-center gap-4">
-                    <span className={`flex size-12 items-center justify-center rounded-lg ring-1 ring-foreground/5 ${iconBg} ${iconText}`}>
-                      <Icon aria-hidden className="size-5" />
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-foreground">{label}</p>
-                      <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
-                    </div>
-                    <ChevronRight aria-hidden className="size-5 text-muted-foreground shrink-0" />
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </TabsContent>
-        <TabsContent value="historial">
-          <div className="pt-4">
-            <RouteHistory />
-          </div>
-        </TabsContent>
-      </Tabs>
+      <div className="space-y-3">
+        {OPTIONS.map(({ href, label, description, icon: Icon, iconBg, iconText }) => (
+          <Link key={href} href={href} className="block">
+            <Card className="hover:border-accent/40 hover:bg-accent/5 transition-colors cursor-pointer">
+              <CardContent className="pt-4 flex items-center gap-4">
+                <span className={`flex size-12 items-center justify-center rounded-lg ring-1 ring-foreground/5 ${iconBg} ${iconText}`}>
+                  <Icon aria-hidden className="size-5" />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-foreground">{label}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
+                </div>
+                <ChevronRight aria-hidden className="size-5 text-muted-foreground shrink-0" />
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
+
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground/70 mb-2">
+          Consultar
+        </p>
+        <Link href="/register/route/history" className="block">
+          <Card className="hover:border-accent/40 hover:bg-accent/5 transition-colors cursor-pointer">
+            <CardContent className="pt-4 flex items-center gap-4">
+              <span className="flex size-12 items-center justify-center rounded-lg ring-1 ring-foreground/5 bg-slate-100 text-slate-600">
+                <History aria-hidden className="size-5" />
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-foreground">Historial de recorridos</p>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Ver, editar o anular recorridos ya registrados.
+                </p>
+              </div>
+              <ChevronRight aria-hidden className="size-5 text-muted-foreground shrink-0" />
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
     </div>
   )
 }

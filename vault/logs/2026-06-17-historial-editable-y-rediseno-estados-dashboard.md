@@ -22,8 +22,11 @@ updated: 2026-06-17
 
 Hasta ahora, corregir un recorrido o un pesaje ya registrado solo se podía con SQL directo a
 Supabase — inviable en operación (lo advertía el ADR `2026-05-21-estado-envase-derivado`). Se
-agregó un apartado **"Historial"** como pestaña dentro de cada pantalla de registro
-(`/register/route` y `/register/weighing`), con pestañas **Registrar / Historial**.
+agregó el historial como **pantalla dedicada** por sección: `/register/route/history` y
+`/register/weighing/history`. El acceso es una **tarjeta "Historial de recorridos"** (sección
+"Consultar", estilo andén/morgue) en `/register/route`, y un **botón "Historial"** en el encabezado
+de `/register/weighing`. (Se descartó el patrón de pestañas Registrar/Historial: el componente
+de tabs se renderizaba mal y mezclaba registro con consulta.)
 
 - **Visible para todos; editar/anular solo coordinador** (mismo criterio de roles del resto del
   sistema; el control es por `currentRole === 'coordinator'` en UI, reforzado por middleware/RLS).

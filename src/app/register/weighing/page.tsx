@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Play, StopCircle, AlertCircle, X } from 'lucide-react'
+import { Play, StopCircle, AlertCircle, X, History } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -28,8 +29,6 @@ import { uploadEventPhotos } from '@/lib/data/photos'
 import { createClient } from '@/lib/supabase/client'
 import * as q from '@/lib/supabase/queries'
 import { ConfirmVoidDialog } from '@/components/ui/confirm-void-dialog'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { WeighingHistory } from '@/components/history/weighing-history'
 
 export default function WeighingPage() {
   const router = useRouter()
@@ -459,20 +458,22 @@ export default function WeighingPage() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <Tabs defaultValue="registrar" className="max-w-2xl mx-auto">
-      <TabsList>
-        <TabsTrigger value="registrar">Registrar</TabsTrigger>
-        <TabsTrigger value="historial">Historial</TabsTrigger>
-      </TabsList>
-
-      <TabsContent value="registrar">
-        <div className="space-y-6 pb-20">
-          <header>
-            <h1 className="text-2xl font-bold text-foreground">Pesaje</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Inicia la sesión de pesaje para registrar varios tachos de forma continua.
-              Cada registro se puede editar desde la lista lateral hasta finalizar.
-            </p>
+    <div className="max-w-2xl mx-auto space-y-6 pb-20">
+          <header className="flex items-start justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Pesaje</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Inicia la sesión de pesaje para registrar varios tachos de forma continua.
+                Cada registro se puede editar desde la lista lateral hasta finalizar.
+              </p>
+            </div>
+            <Link
+              href="/register/weighing/history"
+              className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-accent/40 hover:text-foreground"
+            >
+              <History className="h-4 w-4" />
+              Historial
+            </Link>
           </header>
 
           {/* Banner de estado */}
@@ -609,15 +610,7 @@ export default function WeighingPage() {
               onConfirm={async (reason) => { setConfirmingVoid(false); await handleVoidEditing(reason) }}
             />
           )}
-        </div>
-      </TabsContent>
-
-      <TabsContent value="historial">
-        <div className="pb-20">
-          <WeighingHistory />
-        </div>
-      </TabsContent>
-    </Tabs>
+    </div>
   )
 }
 
