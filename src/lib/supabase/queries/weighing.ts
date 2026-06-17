@@ -136,6 +136,29 @@ export async function deleteReception(db: DB, id: string): Promise<void> {
 }
 
 /**
+ * Anula lógicamente una sesión y, en cascada, sus recepciones vigentes. No borra
+ * físicamente: conserva la trazabilidad. Los tachos de esas recepciones vuelven
+ * a quedar pendientes por pesar.
+ */
+export async function voidWeighingSession(
+  db: DB,
+  id: string,
+  voidedBy: string,
+  reason: string
+): Promise<void> {
+  const now = new Date().toISOString()
+  const patch = { voided_at: now, voided_by: voidedBy, void_reason: reason }
+  const { error: recErr } = await db
+    .from('container_receptions')
+    .update(patch)
+    .eq('weighing_session_id', id)
+    .is('voided_at', null)
+  if (recErr) throw new Error(recErr.message)
+  const { error } = await db.from('weighing_sessions').update(patch).eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+/**
  * Anula lógicamente una recepción ("deshacer pesaje"): marca voided_at/by/reason
  * en vez de borrarla, conservando la trazabilidad. El tacho vuelve a pendiente.
  */
