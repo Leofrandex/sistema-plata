@@ -1,10 +1,11 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Ban, X } from 'lucide-react'
+import { Pencil, Ban, X } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 import { ConfirmVoidDialog } from '@/components/ui/confirm-void-dialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { formatTachoNumber, computeNetWeight } from '@/lib/data/containers'
 import { createClient } from '@/lib/supabase/client'
 import * as q from '@/lib/supabase/queries'
@@ -19,6 +20,12 @@ const WASTE_TYPES: { value: WasteType; label: string }[] = [
   { value: 'metallic', label: 'Metálicos' },
 ]
 
+interface RecDraft {
+  gross_weight_kg: string
+  waste_type: WasteType
+  container_id: string
+}
+
 export function WeighingHistory() {
   const {
     weighingSessions, receptions, containers, currentProfileId, currentRole,
@@ -27,6 +34,9 @@ export function WeighingHistory() {
   const isCoordinator = currentRole === 'coordinator'
 
   const [openId, setOpenId] = useState<string | null>(null)
+  const [editingRecId, setEditingRecId] = useState<string | null>(null)
+  const [draft, setDraft] = useState<RecDraft | null>(null)
+  const [confirmingSave, setConfirmingSave] = useState(false)
   const [voiding, setVoiding] = useState<{ kind: 'reception' | 'session'; id: string } | null>(null)
 
   const sorted = useMemo(
@@ -34,19 +44,30 @@ export function WeighingHistory() {
     [weighingSessions],
   )
 
-  async function saveField(rec: ContainerReception, patch: Partial<ContainerReception>) {
+  function startEdit(r: ContainerReception) {
+    setEditingRecId(r.id)
+    setDraft({ gross_weight_kg: String(r.gross_weight_kg), waste_type: r.waste_type ?? 'infectious', container_id: r.container_id })
+  }
+  function cancelEdit() { setEditingRecId(null); setDraft(null); setConfirmingSave(false) }
+
+  async function persist(r: ContainerReception) {
+    if (!draft) return
+    const gross = parseFloat(draft.gross_weight_kg)
+    if (Number.isNaN(gross)) { console.error('[historial pesaje] peso inválido'); return }
+    const patch = { gross_weight_kg: gross, waste_type: draft.waste_type, container_id: draft.container_id }
     try {
-      await q.updateReception(createClient(), rec.id, patch)
-    } catch (err) { console.error('[historial pesaje] editar falló:', err); return }
-    updateReception(rec.id, patch)
+      await q.updateReception(createClient(), r.id, patch)
+    } catch (err) { console.error('[historial pesaje] guardar falló:', err); return }
+    updateReception(r.id, patch)
+    cancelEdit()
   }
 
-  async function voidReception(rec: ContainerReception, reason: string) {
+  async function voidReception(r: ContainerReception, reason: string) {
     if (!currentProfileId) return
     try {
-      await q.voidReception(createClient(), rec.id, currentProfileId, reason)
+      await q.voidReception(createClient(), r.id, currentProfileId, reason)
     } catch (err) { console.error('[historial pesaje] anular recepción falló:', err); return }
-    updateReception(rec.id, { voided_at: new Date().toISOString(), voided_by: currentProfileId, void_reason: reason })
+    updateReception(r.id, { voided_at: new Date().toISOString(), voided_by: currentProfileId, void_reason: reason })
     setVoiding(null)
   }
 
@@ -84,41 +105,61 @@ export function WeighingHistory() {
                 {recs.map((r) => {
                   const cont = containers.find((c) => c.id === r.container_id)
                   const net = cont ? computeNetWeight(r.gross_weight_kg, cont.tare_weight_kg) : null
+                  const isEditing = editingRecId === r.id && isCoordinator && draft != null
+                  const takenContainerIds = new Set(
+                    receptions.filter((x) => !x.voided_at && x.id !== r.id).map((x) => x.container_id),
+                  )
+                  const containerOptions = containers.filter(
+                    (c) => c.status === 'active' && (!takenContainerIds.has(c.id) || c.id === r.container_id),
+                  )
                   return (
                     <div key={r.id} className={r.voided_at ? 'rounded-md bg-muted/40 p-2 text-xs opacity-60' : 'rounded-md bg-muted/20 p-2 text-xs'}>
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-mono font-semibold">{formatTachoNumber(r.container_id)}</span>
                         <span className="tabular-nums">{r.gross_weight_kg} kg bruto{net !== null ? ` · ${net} kg neto` : ''}</span>
-                        {isCoordinator && !r.voided_at && !s.voided_at && (
-                          <Button variant="ghost" size="icon" aria-label="Anular pesaje" className="text-red-600" onClick={() => setVoiding({ kind: 'reception', id: r.id })}>
-                            <Ban className="h-3.5 w-3.5" />
+                        {isCoordinator && !r.voided_at && !s.voided_at && !isEditing && (
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" aria-label="Editar pesaje" onClick={() => startEdit(r)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" aria-label="Anular pesaje" className="text-red-600" onClick={() => setVoiding({ kind: 'reception', id: r.id })}>
+                              <Ban className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        )}
+                        {isEditing && (
+                          <Button variant="ghost" size="icon" aria-label="Cancelar edición" onClick={cancelEdit}>
+                            <X className="h-3.5 w-3.5" />
                           </Button>
                         )}
                       </div>
-                      {isCoordinator && !r.voided_at && !s.voided_at && (
-                        <div className="mt-2 grid grid-cols-3 gap-2">
-                          <input
-                            type="number" step="0.01" defaultValue={r.gross_weight_kg}
-                            aria-label="Peso bruto"
-                            onBlur={(e) => { const v = parseFloat(e.target.value); if (!Number.isNaN(v) && v !== r.gross_weight_kg) saveField(r, { gross_weight_kg: v }) }}
-                            className="rounded border border-foreground/15 bg-background px-2 py-1"
-                          />
-                          <select
-                            defaultValue={r.waste_type ?? 'infectious'} aria-label="Tipo de desecho"
-                            onChange={(e) => saveField(r, { waste_type: e.target.value as WasteType })}
-                            className="rounded border border-foreground/15 bg-background px-2 py-1"
-                          >
-                            {WASTE_TYPES.map((w) => <option key={w.value} value={w.value}>{w.label}</option>)}
-                          </select>
-                          <select
-                            defaultValue={r.container_id} aria-label="Tacho"
-                            onChange={(e) => saveField(r, { container_id: e.target.value })}
-                            className="rounded border border-foreground/15 bg-background px-2 py-1 font-mono"
-                          >
-                            {containers.filter((c) => c.status === 'active').map((c) => (
-                              <option key={c.id} value={c.id}>{formatTachoNumber(c.id)}</option>
-                            ))}
-                          </select>
+                      {isEditing && draft && (
+                        <div className="mt-2 space-y-2">
+                          <div className="grid grid-cols-3 gap-2">
+                            <input
+                              type="number" step="0.01" value={draft.gross_weight_kg} aria-label="Peso bruto"
+                              onChange={(e) => setDraft({ ...draft, gross_weight_kg: e.target.value })}
+                              className="rounded border border-foreground/15 bg-background px-2 py-1"
+                            />
+                            <select
+                              value={draft.waste_type} aria-label="Tipo de desecho"
+                              onChange={(e) => setDraft({ ...draft, waste_type: e.target.value as WasteType })}
+                              className="rounded border border-foreground/15 bg-background px-2 py-1"
+                            >
+                              {WASTE_TYPES.map((w) => <option key={w.value} value={w.value}>{w.label}</option>)}
+                            </select>
+                            <select
+                              value={draft.container_id} aria-label="Tacho"
+                              onChange={(e) => setDraft({ ...draft, container_id: e.target.value })}
+                              className="rounded border border-foreground/15 bg-background px-2 py-1 font-mono"
+                            >
+                              {containerOptions.map((c) => <option key={c.id} value={c.id}>{formatTachoNumber(c.id)}</option>)}
+                            </select>
+                          </div>
+                          <div className="flex justify-end gap-2">
+                            <Button variant="outline" size="sm" onClick={cancelEdit}>Cancelar</Button>
+                            <Button size="sm" onClick={() => setConfirmingSave(true)}>Guardar cambios</Button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -134,6 +175,20 @@ export function WeighingHistory() {
           </div>
         )
       })}
+
+      {confirmingSave && editingRecId && (() => {
+        const r = receptions.find((x) => x.id === editingRecId)
+        if (!r) return null
+        return (
+          <ConfirmDialog
+            title="¿Guardar los cambios?"
+            description="Se actualizará este pesaje con los datos editados."
+            confirmLabel="Guardar"
+            onCancel={() => setConfirmingSave(false)}
+            onConfirm={() => { setConfirmingSave(false); persist(r) }}
+          />
+        )
+      })()}
 
       {voiding?.kind === 'reception' && (() => {
         const r = receptions.find((x) => x.id === voiding.id)
