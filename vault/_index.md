@@ -45,6 +45,7 @@ updated: 2026-05-21
 | Roles coordinador/operador (UI + middleware + RLS) + cuentas reales | 🟢 Completado | `logs/2026-06-01-roles-coordinador-operador.md` · `decisions/2026-06-01-roles-acceso.md` |
 | Firma por recorrido (andén+morgue) + saludo dashboard + redacción pesaje | 🟢 Completado | `logs/2026-06-16-firma-recorrido-saludo-dashboard-redaccion-pesaje.md` |
 | Fix: área del andén no persistía al crear + recorrido "activo" fantasma | 🟢 Completado | `logs/2026-06-16-fix-area-anden-y-activo-fantasma.md` |
+| Historial editable (recorridos+pesajes) + rediseño 4 estados dashboard | 🟢 Completado (E2E manual pendiente; migración sin aplicar) | `logs/2026-06-17-historial-editable-y-rediseno-estados-dashboard.md` |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completo · ⚠️ Tiene incoherencias
 
@@ -100,6 +101,7 @@ updated: 2026-05-21
 - `logs/2026-06-10-recorrido-fotos-persistencia-traza.md`
 - `logs/2026-06-16-firma-recorrido-saludo-dashboard-redaccion-pesaje.md`
 - `logs/2026-06-16-fix-area-anden-y-activo-fantasma.md`
+- `logs/2026-06-17-historial-editable-y-rediseno-estados-dashboard.md`
 
 ---
 
@@ -108,6 +110,18 @@ updated: 2026-05-21
 *(Vacío)*
 
 ## Notas del último procesamiento
+
+**2026-06-17** — Historial editable de recorridos y pesajes + rediseño de los 4 estados del
+dashboard. Apartado "Historial" como pestaña dentro de `/register/route` y `/register/weighing`:
+visible para todos, editar/anular solo coordinador. "Eliminar" es **anulación lógica**
+(`voided_*` en `route_events`/`weighing_sessions`, migración `20260617000000` — espejo de
+`container_receptions`); toda derivación (fase, cola de pesaje, circulación, reportes) filtra
+`voided_at is null`. Ediciones en **modo borrador + Guardar con confirmación**; anulaciones con
+motivo obligatorio. Se corrigió que el hydrator no propagaba `voided_at` de recepciones.
+**Dashboard**: nuevos 4 estados por línea de tiempo (gana el último evento) — En planta (limpio en
+planta) / En cliente (entregado limpio) / Pendiente por pesar (recogido sucio) / Pendiente por
+tratar (pesado). `jest` 98/98, `next build` OK. Pendiente: E2E manual + **aplicar la migración al
+piloto**. Log: `logs/2026-06-17-historial-editable-y-rediseno-estados-dashboard.md`.
 
 **2026-06-16** — Firma por recorrido + saludo dashboard + redacción pesaje.
 Firma dibujada **obligatoria** y distinta por registro (andén y morgue), capturada con un
