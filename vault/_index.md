@@ -22,7 +22,7 @@ updated: 2026-05-21
 **Fase:** Preparación lanzamiento PTDP — ajustes post-piloto; lanzamiento oficial 2026-06-01
 **Última reunión:** 2026-05-18 (Francesca + Karolyne + Marely + Sebastián) — ver `logs/2026-05-18-reunion-ptdp-demo-piloto.md`
 **Hito crítico:** lanzamiento oficial lunes 2026-06-01
-**Última actualización del vault:** 2026-06-16
+**Última actualización del vault:** 2026-06-19
 
 | Área | Estado | Archivo |
 |------|--------|---------|
@@ -46,6 +46,7 @@ updated: 2026-05-21
 | Firma por recorrido (andén+morgue) + saludo dashboard + redacción pesaje | 🟢 Completado | `logs/2026-06-16-firma-recorrido-saludo-dashboard-redaccion-pesaje.md` |
 | Fix: área del andén no persistía al crear + recorrido "activo" fantasma | 🟢 Completado | `logs/2026-06-16-fix-area-anden-y-activo-fantasma.md` |
 | Historial editable (recorridos+pesajes) + rediseño 4 estados dashboard | 🟢 Completado (E2E manual pendiente; migración sin aplicar) | `logs/2026-06-17-historial-editable-y-rediseno-estados-dashboard.md` |
+| Login por tarjetas + auto-logout de operador (1h) | 🟢 Completado (roster + E2E manual pendientes) | `logs/2026-06-19-login-tarjetas-auto-logout-operador.md` |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completo · ⚠️ Tiene incoherencias
 
@@ -102,6 +103,7 @@ updated: 2026-05-21
 - `logs/2026-06-16-firma-recorrido-saludo-dashboard-redaccion-pesaje.md`
 - `logs/2026-06-16-fix-area-anden-y-activo-fantasma.md`
 - `logs/2026-06-17-historial-editable-y-rediseno-estados-dashboard.md`
+- `logs/2026-06-19-login-tarjetas-auto-logout-operador.md`
 
 ---
 
