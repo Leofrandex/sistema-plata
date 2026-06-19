@@ -8,6 +8,7 @@ import { SyncIndicator } from '@/components/layout/sync-indicator'
 import { SWCleanup } from '@/components/layout/sw-cleanup'
 import { ConnectionBanner } from '@/components/layout/connection-banner'
 import { SupabaseHydrator } from '@/components/supabase-hydrator'
+import { OperatorSessionGuard } from '@/components/layout/operator-session-guard'
 import { APP_NAME, APP_DESCRIPTION, APP_TAGLINE } from '@/lib/constants'
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${plusJakartaSans.variable} font-sans`}>
         <SWCleanup />
         <SupabaseHydrator />
+        <OperatorSessionGuard />
         <div className="flex min-h-screen bg-background">
           <Sidebar />
           <div className="flex-1 flex flex-col">
