@@ -76,13 +76,15 @@ function LoginForm() {
                   <UserGroup title="Coordinadores" users={coordinators} onPick={setSelected} />
                 </>
               )}
-              <button
-                type="button"
-                onClick={() => setManual(true)}
-                className="w-full text-center text-sm text-slate-500 hover:text-slate-700 underline"
-              >
-                Ingresar con correo
-              </button>
+              {directory !== null && (
+                <button
+                  type="button"
+                  onClick={() => setManual(true)}
+                  className="w-full text-center text-sm text-slate-500 hover:text-slate-700 underline"
+                >
+                  Ingresar con correo
+                </button>
+              )}
             </div>
           ) : (
             <form
@@ -99,6 +101,7 @@ function LoginForm() {
                   setManual(false)
                   setPassword('')
                   setError(null)
+                  setShowPassword(false)
                 }}
                 className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700"
               >

@@ -1,17 +1,12 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { useOperatorCountdown } from '@/hooks/use-operator-countdown'
 import { createClient } from '@/lib/supabase/client'
-import {
-  setLoginAt,
-  clearLoginAt,
-  getLoginAt,
-  formatRemaining,
-} from '@/lib/session-timeout'
+import { clearLoginAt, getLoginAt, formatRemaining } from '@/lib/session-timeout'
 
 /**
  * Cierra la sesión de los operadores 1 h después del login (timeout absoluto) y
@@ -24,26 +19,30 @@ export function OperatorSessionGuard() {
   const { active, isWarning, isExpired, remainingMs } = useOperatorCountdown()
   const signingOut = useRef(false)
 
-  // Ancla/limpia el login_at según el rol.
+  const doSignOut = useCallback(async () => {
+    if (signingOut.current) return
+    signingOut.current = true
+    await createClient().auth.signOut()
+    clearLoginAt()
+    router.replace('/login')
+  }, [router])
+
+  // Validez del ancla según el rol. NO re-ancla (eso reiniciaría el corte
+  // absoluto en cada recarga, porque currentRole arranca en null y se resuelve
+  // async). El login real ya setea login_at; aquí solo validamos/limpiamos.
   useEffect(() => {
     if (role === 'operator') {
-      if (getLoginAt() === null) setLoginAt() // edge: localStorage borrado a mitad de sesión
-    } else {
-      clearLoginAt() // coordinador o sin sesión → no expira
+      if (getLoginAt() === null) doSignOut() // operador sin ancla = sesión inválida
+    } else if (role !== null) {
+      clearLoginAt() // coordinador resuelto: no expira, sin ancla residual
     }
-  }, [role])
+    // role === null (aún sin resolver): no hacer nada, preservar login_at
+  }, [role, doSignOut])
 
   // Corte firme al expirar.
   useEffect(() => {
-    if (!active || !isExpired || signingOut.current) return
-    signingOut.current = true
-    ;(async () => {
-      await createClient().auth.signOut()
-      clearLoginAt()
-      router.replace('/login')
-      router.refresh()
-    })()
-  }, [active, isExpired, router])
+    if (active && isExpired) doSignOut()
+  }, [active, isExpired, doSignOut])
 
   if (!active || !isWarning) return null
 
