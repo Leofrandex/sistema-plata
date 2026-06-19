@@ -153,6 +153,13 @@ export type Database = {
             foreignKeyName: "container_locations_operator_id_fkey"
             columns: ["operator_id"]
             isOneToOne: false
+            referencedRelation: "login_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "container_locations_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -233,7 +240,21 @@ export type Database = {
             foreignKeyName: "container_receptions_operator_id_fkey"
             columns: ["operator_id"]
             isOneToOne: false
+            referencedRelation: "login_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "container_receptions_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "container_receptions_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "login_directory"
             referencedColumns: ["id"]
           },
           {
@@ -291,6 +312,13 @@ export type Database = {
             foreignKeyName: "containers_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "login_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "containers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -343,6 +371,13 @@ export type Database = {
             foreignKeyName: "external_transfers_operator_id_fkey"
             columns: ["operator_id"]
             isOneToOne: false
+            referencedRelation: "login_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_transfers_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -386,6 +421,13 @@ export type Database = {
           url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "photos_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "login_directory"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "photos_uploaded_by_fkey"
             columns: ["uploaded_by"]
@@ -504,9 +546,9 @@ export type Database = {
           slot: Database["public"]["Enums"]["route_slot"] | null
           started_at: string
           status: Database["public"]["Enums"]["route_event_status"]
+          void_reason: string | null
           voided_at: string | null
           voided_by: string | null
-          void_reason: string | null
         }
         Insert: {
           area?: string
@@ -521,9 +563,9 @@ export type Database = {
           slot?: Database["public"]["Enums"]["route_slot"] | null
           started_at: string
           status?: Database["public"]["Enums"]["route_event_status"]
+          void_reason?: string | null
           voided_at?: string | null
           voided_by?: string | null
-          void_reason?: string | null
         }
         Update: {
           area?: string
@@ -538,9 +580,9 @@ export type Database = {
           slot?: Database["public"]["Enums"]["route_slot"] | null
           started_at?: string
           status?: Database["public"]["Enums"]["route_event_status"]
+          void_reason?: string | null
           voided_at?: string | null
           voided_by?: string | null
-          void_reason?: string | null
         }
         Relationships: [
           {
@@ -560,6 +602,27 @@ export type Database = {
           {
             foreignKeyName: "route_events_operator_id_fkey"
             columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "login_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_events_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_events_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "login_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_events_voided_by_fkey"
+            columns: ["voided_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -604,6 +667,13 @@ export type Database = {
             columns: ["container_id"]
             isOneToOne: false
             referencedRelation: "v_containers_pending_weighing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "storage_events_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "login_directory"
             referencedColumns: ["id"]
           },
           {
@@ -659,6 +729,13 @@ export type Database = {
             foreignKeyName: "treatment_runs_operator_id_fkey"
             columns: ["operator_id"]
             isOneToOne: false
+            referencedRelation: "login_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treatment_runs_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -674,9 +751,9 @@ export type Database = {
           operator_id: string
           started_at: string
           status: Database["public"]["Enums"]["weighing_session_status"]
+          void_reason: string | null
           voided_at: string | null
           voided_by: string | null
-          void_reason: string | null
         }
         Insert: {
           client_id: string
@@ -687,9 +764,9 @@ export type Database = {
           operator_id: string
           started_at: string
           status?: Database["public"]["Enums"]["weighing_session_status"]
+          void_reason?: string | null
           voided_at?: string | null
           voided_by?: string | null
-          void_reason?: string | null
         }
         Update: {
           client_id?: string
@@ -700,9 +777,9 @@ export type Database = {
           operator_id?: string
           started_at?: string
           status?: Database["public"]["Enums"]["weighing_session_status"]
+          void_reason?: string | null
           voided_at?: string | null
           voided_by?: string | null
-          void_reason?: string | null
         }
         Relationships: [
           {
@@ -715,6 +792,27 @@ export type Database = {
           {
             foreignKeyName: "weighing_sessions_operator_id_fkey"
             columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "login_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weighing_sessions_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weighing_sessions_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "login_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weighing_sessions_voided_by_fkey"
+            columns: ["voided_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -767,7 +865,21 @@ export type Database = {
             foreignKeyName: "container_receptions_operator_id_fkey"
             columns: ["operator_id"]
             isOneToOne: false
+            referencedRelation: "login_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "container_receptions_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "container_receptions_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "login_directory"
             referencedColumns: ["id"]
           },
           {
@@ -786,8 +898,18 @@ export type Database = {
           },
         ]
       }
+      login_directory: {
+        Row: {
+          email: string | null
+          id: string | null
+          name: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
+        }
+        Relationships: []
+      }
       v_containers_pending_weighing: {
         Row: {
+          created_by: string | null
           id: string | null
           is_metallic_dedicated: boolean | null
           is_yaris_container: boolean | null
@@ -798,6 +920,7 @@ export type Database = {
           tare_weight_kg: number | null
         }
         Insert: {
+          created_by?: string | null
           id?: string | null
           is_metallic_dedicated?: boolean | null
           is_yaris_container?: boolean | null
@@ -808,6 +931,7 @@ export type Database = {
           tare_weight_kg?: number | null
         }
         Update: {
+          created_by?: string | null
           id?: string | null
           is_metallic_dedicated?: boolean | null
           is_yaris_container?: boolean | null
@@ -817,7 +941,22 @@ export type Database = {
           status?: Database["public"]["Enums"]["container_status"] | null
           tare_weight_kg?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "containers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "login_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "containers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
