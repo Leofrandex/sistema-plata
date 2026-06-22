@@ -22,7 +22,7 @@ updated: 2026-05-21
 **Fase:** Preparación lanzamiento PTDP — ajustes post-piloto; lanzamiento oficial 2026-06-01
 **Última reunión:** 2026-05-18 (Francesca + Karolyne + Marely + Sebastián) — ver `logs/2026-05-18-reunion-ptdp-demo-piloto.md`
 **Hito crítico:** lanzamiento oficial lunes 2026-06-01
-**Última actualización del vault:** 2026-06-19
+**Última actualización del vault:** 2026-06-22
 
 | Área | Estado | Archivo |
 |------|--------|---------|
@@ -48,6 +48,7 @@ updated: 2026-05-21
 | Historial editable (recorridos+pesajes) + rediseño 4 estados dashboard | 🟢 Completado (E2E manual pendiente; migración sin aplicar) | `logs/2026-06-17-historial-editable-y-rediseno-estados-dashboard.md` |
 | Login por tarjetas + auto-logout de operador (1h) | 🟢 Completado (roster + E2E manual pendientes) | `logs/2026-06-19-login-tarjetas-auto-logout-operador.md` |
 | Offline: outbox de campo (local-first, datos + fotos) | 🟢 Completado (E2E manual en modo avión pendiente) | `logs/2026-06-19-offline-outbox-campo.md` |
+| Recolor 4 estados + historial 2 líneas + tab tachos (filtros/fase/tiempo) + fotos reporte | 🟢 Completado (E2E manual pendiente) | `logs/2026-06-22-colores-historial-tachos-reportes.md` |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completo · ⚠️ Tiene incoherencias
 
@@ -106,6 +107,7 @@ updated: 2026-05-21
 - `logs/2026-06-17-historial-editable-y-rediseno-estados-dashboard.md`
 - `logs/2026-06-19-login-tarjetas-auto-logout-operador.md`
 - `logs/2026-06-19-offline-outbox-campo.md`
+- `logs/2026-06-22-colores-historial-tachos-reportes.md`
 
 ---
 
@@ -114,6 +116,20 @@ updated: 2026-05-21
 *(Vacío)*
 
 ## Notas del último procesamiento
+
+**2026-06-22** — Lote de UI post-lanzamiento (4 cambios, rama
+`feat/colores-estados-historial-tachos-reportes`). (1) Recolor de los 4 estados en
+`BUCKET_DEFINITIONS` (verde=En planta, naranja=En cliente, gris=Pendiente por pesar,
+rojo=Pendiente por tratar) — fuente única que alimenta pie del dashboard y badge del tab de
+Tachos. (2) Historial de recorridos: limpios (verde) y sucios (rojo) en líneas separadas con
+contador por tarjeta. (3) Tab de Tachos: filtros Empresa+Fase, la columna de fase muestra los
+**4 estados del dashboard** (no las 6 fases internas, que quedan solo en el detalle del tacho),
+y "Ubicación" → "Tiempo en fase" (`computeCirculationStatus`+`formatDuration`, refresco 60s);
+empresa del tacho vía `deriveContainerCompanyId`. (4) Reportes: se excluyen las firmas (por
+`signature_photo_id`) y cada pesaje se renderiza en columna (peso arriba / tacho abajo, 4 por
+bloque, vía `WeighingPair`). Sin migraciones. `jest` 138/138, `next build` OK. Ejecutado con
+subagent-driven-development (7 tareas, review por tarea + review final opus = listo para merge).
+Pendiente: E2E manual. Log: `logs/2026-06-22-colores-historial-tachos-reportes.md`.
 
 **2026-06-17** — Historial editable de recorridos y pesajes + rediseño de los 4 estados del
 dashboard. Apartado "Historial" como pestaña dentro de `/register/route` y `/register/weighing`:
