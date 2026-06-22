@@ -65,12 +65,18 @@ Plan: `docs/superpowers/plans/2026-06-19-login-tarjetas-auto-logout-operador.md`
 - Vista `login_directory` aplicada al piloto y verificada (2 coordinadores, 7 operadores; `demo@`
   excluido). Tipos regenerados en `src/lib/supabase/database.types.ts`.
 
+## Roster (aplicado 2026-06-19)
+
+Vía SQL admin sobre el piloto (mismo patrón del ADR de roles, tokens en `''`):
+- **Altas (operadores):** Juan Pérez (`juan.perez@`), Ovidio Montalvo (`ovidio.montalvo@`),
+  Luis Soto (`luis.soto@`). Contraseñas temporales entregadas a Sebastián por separado (no se
+  versionan).
+- **Baja:** Miguel Rangel (`miguel.rangel@`) — sin registros operativos asociados, borrado de
+  `auth.users` (profile cae por cascade).
+- Verificado en `login_directory`: 2 coordinadores + 9 operadores; `demo@` excluido.
+
 ## Pendiente
 
-- **Roster (Task 8 del plan, DIFERIDO):** crear como operadores a Juan Pérez, Ovidio Montalvo y
-  Luis Soto; eliminar a Miguel Rangel. Requiere correos+contraseñas del usuario; se hace por SQL
-  admin sobre el piloto (mismo patrón del ADR de roles). Tras hacerlo, las 3 tarjetas nuevas
-  aparecen y Miguel deja de aparecer.
 - **E2E manual:** smoke del login por tarjeta/correo y de la expiración real a la hora (se puede
   forzar bajando `SESSION_DURATION_MS` temporalmente).
 - Minor (UX, no bloqueantes): el botón "Ingresar con correo" se ve mientras carga el directorio;
