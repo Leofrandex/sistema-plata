@@ -31,7 +31,8 @@ export async function applyOp(db: DB, op: OutboxOp): Promise<void> {
 
   const table = TABLE_FOR_TYPE[op.type]
   if (!table) throw new Error(`applyOp: tipo no soportado ${op.type}`)
-  const { error } = await db.from(table).upsert(op.payload, { onConflict: 'id' })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (db.from as any)(table).upsert(op.payload, { onConflict: 'id' })
   if (error) throw new Error(`${table} upsert: ${error.message}`)
 }
 
@@ -39,7 +40,8 @@ async function applyRouteContainers(db: DB, op: OutboxOp): Promise<void> {
   const table = op.payload.table as string
   const rows = op.payload.rows as Record<string, unknown>[]
   if (rows.length === 0) return
-  const { error } = await db.from(table).upsert(rows, { onConflict: 'route_event_id,container_id' })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (db.from as any)(table).upsert(rows, { onConflict: 'route_event_id,container_id' })
   if (error) throw new Error(`${table} upsert: ${error.message}`)
 }
 
@@ -115,6 +117,7 @@ async function applyUploadPhoto(db: DB, op: OutboxOp): Promise<void> {
     id: p.photo_id, storage_path: path, event_type: p.event_type, event_id: p.event_id,
     label: p.label, uploaded_by: p.uploaded_by, taken_at: p.taken_at, role: p.role,
   }
-  const { error } = await db.from('photos').upsert(row, { onConflict: 'id' })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (db.from as any)('photos').upsert(row, { onConflict: 'id' })
   if (error) throw new Error(`photos upsert: ${error.message}`)
 }
