@@ -26,6 +26,42 @@ Permitir, desde la app, **consultar el historial** de recorridos y de pesajes ya
 
 > La **empresa del pesaje** NO es editable aquí: se corrige en el recorrido, que es su origen canónico (la empresa se hereda del recorrido al pesar; ver `decisions/2026-06-10-empresa-por-registro.md`).
 
+## Rediseño de los 4 estados del dashboard (gráfico "Tachos en circulación")
+
+Junto con el historial se redefine la semántica de los 4 buckets, pasando a un modelo **basado en línea de tiempo donde gana el último evento del tacho**. Cierra el ciclo completo:
+
+**En planta (limpio)** → _recorrido entrega limpio_ → **En cliente** → _recorrido recoge sucio_ → **Pendiente por pesar** → _pesaje_ → **Pendiente por tratar** → _tratamiento_ → **En planta** otra vez.
+
+| Bucket (key interno) | Label | Color | Condición (último evento vigente del tacho) |
+|---|---|---|---|
+| `en_planta` | **En planta** | `#94A3B8` (slate) | Limpio físicamente en planta: **recién dado de alta** (sin eventos) o **tratamiento/traslado completado**, aún sin entregar a cliente |
+| `en_cliente` | **En cliente** | `#10B981` (emerald) | Último evento de recorrido = **entregado limpio** (`containers_clean_delivered`), sin recogida sucia posterior |
+| `pendiente_pesar` | **Pendiente por pesar** | `#F59E0B` (amber) | **Recogido sucio** (`containers_dirty_received`) sin recepción vigente posterior |
+| `pendiente_tratar` | **Pendiente por tratar** | `#2A27E9` (accent) | **Pesado** (recepción vigente), esperando tratamiento |
+
+Cambios respecto al modelo anterior:
+- "En cliente" deja de derivarse de `container_locations` (`client_site`) y pasa a derivarse de **`containers_clean_delivered`** del recorrido más reciente.
+- "En planta" ya **no** significa "pesado": ahora es el estado de tacho limpio disponible en planta (absorbe el viejo "Sin registro"). El bucket `sin_registro` desaparece.
+- El viejo "En planta" (pesado/cámara fría) se renombra a **"Pendiente por tratar"**.
+
+### Derivación por línea de tiempo
+
+Para cada tacho `active` y no-Yaris, se determina el bucket comparando el **timestamp del evento vigente más reciente** entre:
+- `clean_delivered`: `started_at` del recorrido más reciente que lo entregó limpio (no anulado).
+- `dirty_received`: `started_at` del recorrido más reciente que lo recogió sucio (no anulado).
+- `reception`: `arrived_at` de la recepción vigente (no anulada) más reciente.
+- `treatment`/`transfer`: `completed_at`/`transferred_at` más reciente.
+
+Mapeo del evento ganador → bucket:
+- `clean_delivered` es el más reciente → `en_cliente`.
+- `dirty_received` es el más reciente → `pendiente_pesar`.
+- `reception` es el más reciente → `pendiente_tratar`.
+- `treatment`/`transfer` completado es el más reciente, o **no hay ningún evento** → `en_planta`.
+
+> Nota de consistencia: "Pendiente por pesar" debe seguir coincidiendo con `getPendingWeighingContainerIds` (cola del pesador). En el modelo de línea de tiempo, un tacho está pendiente de pesar exactamente cuando su último evento es `dirty_received` (sin recepción vigente posterior), que es la misma condición.
+
+Se implementa en una función nueva y testeable `computeCirculationBucket(...)` en `src/lib/data/dashboard-metrics.ts`, que reemplaza el `switch` sobre `computeContainerPhase` dentro de `computeCirculationBreakdown`. `computeContainerPhase` se conserva para otros usos (inventario de tachos), filtrando recorridos anulados.
+
 ## Arquitectura
 
 Sigue el patrón de capas existente: **queries (Supabase) → acciones de store (write-through + refresco local) → componentes**.
@@ -61,7 +97,7 @@ Filtrar registros anulados en **toda** la derivación, para que anular reordene 
 - `getPendingWeighingContainerIds` y `computeCirculationBreakdown` (`src/lib/data/containers.ts`, `src/lib/data/dashboard-metrics.ts`): al construir los IDs de recorrido de un tacho, **ignorar `route_events` con `voided_at != null`** (hoy solo se ignoran las recepciones anuladas). Helper afectado: `getRouteEventIdsForContainer` / `getRouteEventIdsAnyDirection`.
 - Reportes (`src/lib/data/reports.ts`): excluir recorridos y recepciones anulados.
 
-Efectos esperados: anular un **recorrido** saca al tacho de "Pendiente por pesar"; anular un **pesaje** devuelve el tacho de "En planta" a "Pendiente por pesar".
+Efectos esperados: anular un **recorrido** de recogida sucia saca al tacho de "Pendiente por pesar"; anular un **recorrido** de entrega limpia lo saca de "En cliente"; anular un **pesaje** devuelve el tacho de "Pendiente por tratar" a "Pendiente por pesar".
 
 ### 4. Acciones de store (`src/lib/store.ts`)
 

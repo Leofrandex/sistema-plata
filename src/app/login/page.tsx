@@ -1,39 +1,62 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, ChevronLeft } from 'lucide-react'
 import { APP_NAME } from '@/lib/constants'
 import { createClient } from '@/lib/supabase/client'
+import { getLoginDirectory, type LoginDirectoryEntry } from '@/lib/supabase/queries'
+import { setLoginAt } from '@/lib/session-timeout'
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/)
+  return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || '?'
+}
 
 function LoginForm() {
   const router = useRouter()
   const params = useSearchParams()
   const nextPath = params.get('next') || '/dashboard'
 
+  const [directory, setDirectory] = useState<LoginDirectoryEntry[] | null>(null)
+  const [selected, setSelected] = useState<LoginDirectoryEntry | null>(null)
+  const [manual, setManual] = useState(false) // fallback de correo
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  useEffect(() => {
+    getLoginDirectory(createClient())
+      .then(setDirectory)
+      .catch(() => setDirectory([])) // si falla, caemos al fallback de correo
+  }, [])
+
+  async function signIn(loginEmail: string) {
     setLoading(true)
     setError(null)
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await supabase.auth.signInWithPassword({
+      email: loginEmail,
+      password,
+    })
     if (error) {
       setError(traducir(error.message))
       setLoading(false)
       return
     }
+    setLoginAt() // ancla del auto-logout (el guard lo ignora para coordinadores)
     router.push(nextPath)
     router.refresh()
   }
+
+  const operators = directory?.filter((u) => u.role === 'operator') ?? []
+  const coordinators = directory?.filter((u) => u.role === 'coordinator') ?? []
+  const showCards = !manual && selected === null
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
@@ -43,56 +66,141 @@ function LoginForm() {
           <p className="text-sm text-slate-500 mt-1">Trazabilidad de Desechos Clínicos</p>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">
-                Correo electrónico
-              </label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="operador@hospiwaste.com"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium">
-                Contraseña
-              </label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pr-10"
-                />
+          {showCards ? (
+            <div className="space-y-5">
+              {directory === null ? (
+                <p className="text-sm text-slate-500 text-center py-4">Cargando usuarios…</p>
+              ) : (
+                <>
+                  <UserGroup title="Operadores" users={operators} onPick={setSelected} />
+                  <UserGroup title="Coordinadores" users={coordinators} onPick={setSelected} />
+                </>
+              )}
+              {directory !== null && (
                 <button
                   type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                  className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-600"
+                  onClick={() => setManual(true)}
+                  className="w-full text-center text-sm text-slate-500 hover:text-slate-700 underline"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  Ingresar con correo
                 </button>
-              </div>
+              )}
             </div>
-            {error && (
-              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
-                {error}
-              </p>
-            )}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Ingresando...' : 'Ingresar'}
-            </Button>
-          </form>
+          ) : (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                signIn(selected ? selected.email : email)
+              }}
+              className="space-y-4"
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setSelected(null)
+                  setManual(false)
+                  setPassword('')
+                  setError(null)
+                  setShowPassword(false)
+                }}
+                className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700"
+              >
+                <ChevronLeft className="h-4 w-4" /> Cambiar usuario
+              </button>
+
+              {selected ? (
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold">
+                    {initials(selected.name)}
+                  </span>
+                  <span className="font-medium">{selected.name}</span>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <label htmlFor="email" className="text-sm font-medium">
+                    Correo electrónico
+                  </label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="operador@hospiwaste.com"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-sm font-medium">
+                  Contraseña
+                </label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-600"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {error && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                  {error}
+                </p>
+              )}
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Ingresando...' : 'Ingresar'}
+              </Button>
+            </form>
+          )}
         </CardContent>
       </Card>
+    </div>
+  )
+}
+
+function UserGroup({
+  title,
+  users,
+  onPick,
+}: {
+  title: string
+  users: LoginDirectoryEntry[]
+  onPick: (u: LoginDirectoryEntry) => void
+}) {
+  if (users.length === 0) return null
+  return (
+    <div className="space-y-2">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">{title}</h2>
+      <div className="grid grid-cols-2 gap-2">
+        {users.map((u) => (
+          <button
+            key={u.id}
+            type="button"
+            onClick={() => onPick(u)}
+            className="flex flex-col items-center gap-1.5 rounded-lg border border-slate-200 bg-white p-3 text-center hover:border-primary hover:bg-primary/5 active:bg-primary/10 transition-colors"
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold">
+              {initials(u.name)}
+            </span>
+            <span className="text-sm font-medium leading-tight">{u.name}</span>
+          </button>
+        ))}
+      </div>
     </div>
   )
 }

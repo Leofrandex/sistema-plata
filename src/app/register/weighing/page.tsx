@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Play, StopCircle, AlertCircle, X } from 'lucide-react'
+import { Play, StopCircle, AlertCircle, X, History } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -24,9 +25,11 @@ import {
   type ActiveSession,
 } from '@/lib/active-session'
 import { getPendingWeighingContainerIds, getContainerCurrentCompanyId, formatTachoNumber, getMetallicContainers } from '@/lib/data/containers'
-import { uploadEventPhotos } from '@/lib/data/photos'
+import { enqueueEventPhotos } from '@/lib/data/photos'
+import { submitWeighingSession, submitReception, submitTreatmentRun, submitStorageEvent, submitContainerLocation, receptionOpId } from '@/lib/data/field-writes'
 import { createClient } from '@/lib/supabase/client'
 import * as q from '@/lib/supabase/queries'
+import { ConfirmVoidDialog } from '@/components/ui/confirm-void-dialog'
 
 export default function WeighingPage() {
   const router = useRouter()
@@ -134,47 +137,20 @@ export default function WeighingPage() {
   }
 
   async function handleStart() {
-    // El botón ya está bloqueado hasta que currentProfileId esté hidratado
-    // (ver StartSessionButton); este guard es defensivo.
     if (!currentProfileId || !client) return
     const now = new Date().toISOString()
-    // Crear sesión en Supabase y usar el id que retorna
-    let createdId: string
-    try {
-      const supabase = createClient()
-      const row = await q.createWeighingSession(supabase, {
-        client_id: client.id,
-        date: today,
-        started_at: now,
-        operator_id: currentProfileId,
-        status: 'in_progress',
-      })
-      createdId = row.id
-    } catch (err) {
-      console.error('[pesaje] crear sesión falló:', err)
-      return
-    }
+    const createdId = crypto.randomUUID()
+    await submitWeighingSession({
+      id: createdId, client_id: client.id, date: today,
+      started_at: now, operator_id: currentProfileId,
+    })
     addWeighingSession({
-      id: createdId,
-      client_id: client.id,
-      date: today,
-      started_at: now,
-      ended_at: null,
-      operator_id: currentProfileId,
-      status: 'in_progress',
-      reception_ids: [],
+      id: createdId, client_id: client.id, date: today, started_at: now,
+      ended_at: null, operator_id: currentProfileId, status: 'in_progress', reception_ids: [],
     })
     const newSession: ActiveSession = {
-      key: weighingSessionKey(today),
-      type: 'weighing',
-      started_at: now,
-      context: {
-        type: 'weighing',
-        client_id: client.id,
-        date: today,
-        operator_id: currentProfileId,
-        weighing_session_id: createdId,
-      },
+      key: weighingSessionKey(today), type: 'weighing', started_at: now,
+      context: { type: 'weighing', client_id: client.id, date: today, operator_id: currentProfileId, weighing_session_id: createdId },
     }
     await startSession(newSession)
     setActiveSession(newSession)
@@ -196,75 +172,39 @@ export default function WeighingPage() {
     }
   }
 
-  /**
-   * Sube las fotos de una recepción a Storage, las registra en `public.photos`
-   * y las refleja en el store con su URL firmada para mostrarse al instante.
-   * Devuelve los IDs reales (de la BD) de las fotos subidas con éxito.
-   */
   async function persistWeighingPhotos(
-    receptionId: string,
-    label: string,
-    takenAt: string,
-    dataUrls: (string | null | undefined)[]
+    receptionId: string, label: string, takenAt: string, dataUrls: (string | null | undefined)[],
   ): Promise<string[]> {
-    const supabase = createClient()
-    const uploaded = await uploadEventPhotos(supabase, {
-      dataUrls,
-      eventType: 'weighing',
-      eventId: receptionId,
-      label,
-      uploadedBy: currentProfileId,
-      takenAt,
+    const enqueued = await enqueueEventPhotos({
+      dataUrls, eventType: 'weighing', eventId: receptionId, label,
+      uploadedBy: currentProfileId, takenAt, parentOpId: receptionOpId(receptionId),
     })
-    uploaded.forEach(addPhoto)
-    return uploaded.map((p) => p.id)
+    enqueued.forEach(addPhoto)
+    return enqueued.map((p) => p.id)
   }
 
   async function handleCreateReception(currentSessionId: string, gross: number) {
     if (!session || !currentProfileId) return
     const now = new Date().toISOString()
     const label = buildPhotoLabel()
+    const receptionId = crypto.randomUUID()
 
-    // 1) Insertar reception en Supabase para obtener el id real
-    let receptionId: string
-    try {
-      const supabase = createClient()
-      const row = await q.createReception(supabase, {
-        container_id: formState.container_id,
-        weighing_session_id: currentSessionId,
-        arrived_at: now,
-        gross_weight_kg: gross,
-        operator_id: currentProfileId,
-        observations: formState.observations,
-        company_id: inheritedCompanyId,
-        waste_type: formState.waste_type,
-        treat_immediately: formState.treat_immediately,
-      })
-      receptionId = row.id
-    } catch (err) {
-      console.error('[pesaje] crear reception falló:', err)
-      return
-    }
+    await submitReception({
+      id: receptionId, container_id: formState.container_id, weighing_session_id: currentSessionId,
+      arrived_at: now, gross_weight_kg: gross, operator_id: currentProfileId,
+      observations: formState.observations, company_id: inheritedCompanyId,
+      waste_type: formState.waste_type, treat_immediately: formState.treat_immediately,
+    })
 
-    // 2) Subir fotos a Storage + registrar en public.photos
     const photoIds = await persistWeighingPhotos(receptionId, label, now, [
-      formState.photo_container,
-      formState.photo_scale,
+      formState.photo_container, formState.photo_scale,
     ])
 
-    // 3) Actualizar store
     addReception({
-      id: receptionId,
-      container_id: formState.container_id,
-      weighing_session_id: currentSessionId,
-      arrived_at: now,
-      gross_weight_kg: gross,
-      operator_id: currentProfileId,
-      photo_ids: photoIds,
-      observations: formState.observations,
-      company_id: inheritedCompanyId,
-      waste_type: formState.waste_type,
-      treat_immediately: formState.treat_immediately,
+      id: receptionId, container_id: formState.container_id, weighing_session_id: currentSessionId,
+      arrived_at: now, gross_weight_kg: gross, operator_id: currentProfileId, photo_ids: photoIds,
+      observations: formState.observations, company_id: inheritedCompanyId,
+      waste_type: formState.waste_type, treat_immediately: formState.treat_immediately,
     })
     updateWeighingSession(currentSessionId, {
       reception_ids: [...session.reception_ids, receptionId],
@@ -385,71 +325,36 @@ export default function WeighingPage() {
     const ctx = activeSession.context
     const now = new Date().toISOString()
 
-    // 1. Cerrar la sesión en Supabase y luego en store
-    try {
-      const supabase = createClient()
-      await q.updateWeighingSession(supabase, ctx.weighing_session_id, {
-        status: 'completed',
-        ended_at: now,
-      })
-    } catch (err) {
-      console.error('[pesaje] cerrar sesión falló:', err)
-      return
-    }
-    updateWeighingSession(ctx.weighing_session_id, {
-      status: 'completed',
-      ended_at: now,
+    // Cerrar sesión: actualización optimista en store + re-encolar el estado completed
+    // (mismo op_id que el create → sobrescribe la op pendiente o hace upsert idempotente).
+    updateWeighingSession(ctx.weighing_session_id, { status: 'completed', ended_at: now })
+    await submitWeighingSession({
+      id: ctx.weighing_session_id, client_id: ctx.client_id, date: ctx.date,
+      started_at: activeSession.started_at, operator_id: ctx.operator_id,
+      status: 'completed', ended_at: now,
     })
 
-    // 2. Crear TreatmentRun (inmediato) o StorageEvent + ContainerLocation por reception.
-    //    Todo se persiste a Supabase primero y se refleja en el store con el id real.
-    const supabaseEvents = createClient()
+    // Derivados por reception: TreatmentRun (inmediato) o StorageEvent + ContainerLocation.
     for (const r of sessionReceptions) {
       if (r.treat_immediately && r.waste_type === 'infectious') {
-        try {
-          const tr = await q.createTreatmentRun(supabaseEvents, {
-            container_id: r.container_id,
-            started_at: now,
-            completed_at: now,
-            operator_id: currentProfileId,
-          })
-          addTreatmentRun({ id: tr.id, container_id: r.container_id, started_at: now, completed_at: now, operator_id: currentProfileId })
-          const loc = await q.createContainerLocation(supabaseEvents, {
-            container_id: r.container_id, reported_at: now, operator_id: currentProfileId,
-            location_type: 'treatment', client_id: null, floor: null, area: null, notes: 'Tratado al finalizar pesaje',
-          })
-          addLocation({
-            id: loc.id, container_id: r.container_id, reported_at: now, operator_id: currentProfileId,
-            location_type: 'treatment', client_id: null, floor: null, area: null, notes: 'Tratado al finalizar pesaje',
-          })
-        } catch (err) {
-          console.error('[pesaje] tratamiento inmediato falló:', err)
-        }
+        const trId = crypto.randomUUID()
+        await submitTreatmentRun({ id: trId, container_id: r.container_id, started_at: now, completed_at: now, operator_id: currentProfileId })
+        addTreatmentRun({ id: trId, container_id: r.container_id, started_at: now, completed_at: now, operator_id: currentProfileId })
+        const locId = crypto.randomUUID()
+        await submitContainerLocation({ id: locId, container_id: r.container_id, reported_at: now, operator_id: currentProfileId, location_type: 'treatment', client_id: null, floor: null, area: null, notes: 'Tratado al finalizar pesaje' })
+        addLocation({ id: locId, container_id: r.container_id, reported_at: now, operator_id: currentProfileId, location_type: 'treatment', client_id: null, floor: null, area: null, notes: 'Tratado al finalizar pesaje' })
       } else {
-        try {
-          const st = await q.createStorageEvent(supabaseEvents, {
-            container_id: r.container_id, entry_at: now, exit_at: null, operator_id: currentProfileId,
-          })
-          addStorageEvent({ id: st.id, container_id: r.container_id, entry_at: now, exit_at: null, operator_id: currentProfileId, photo_ids: [] })
-          const loc = await q.createContainerLocation(supabaseEvents, {
-            container_id: r.container_id, reported_at: now, operator_id: currentProfileId,
-            location_type: 'cold_storage', client_id: null, floor: null, area: null, notes: 'Cámara fría (auto tras pesaje)',
-          })
-          addLocation({
-            id: loc.id, container_id: r.container_id, reported_at: now, operator_id: currentProfileId,
-            location_type: 'cold_storage', client_id: null, floor: null, area: null, notes: 'Cámara fría (auto tras pesaje)',
-          })
-        } catch (err) {
-          console.error('[pesaje] pase a cámara fría falló:', err)
-        }
+        const stId = crypto.randomUUID()
+        await submitStorageEvent({ id: stId, container_id: r.container_id, entry_at: now, operator_id: currentProfileId })
+        addStorageEvent({ id: stId, container_id: r.container_id, entry_at: now, exit_at: null, operator_id: currentProfileId, photo_ids: [] })
+        const locId = crypto.randomUUID()
+        await submitContainerLocation({ id: locId, container_id: r.container_id, reported_at: now, operator_id: currentProfileId, location_type: 'cold_storage', client_id: null, floor: null, area: null, notes: 'Cámara fría (auto tras pesaje)' })
+        addLocation({ id: locId, container_id: r.container_id, reported_at: now, operator_id: currentProfileId, location_type: 'cold_storage', client_id: null, floor: null, area: null, notes: 'Cámara fría (auto tras pesaje)' })
       }
     }
 
-    // 3. Borrar la ActiveSession
     await endSession(activeSession.key)
     setActiveSession(null)
-
-    // 4. Volver a dashboard
     router.push('/dashboard')
   }
 
@@ -457,149 +362,157 @@ export default function WeighingPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-20">
-      <header>
-        <h1 className="text-2xl font-bold text-foreground">Pesaje</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Inicia la sesión de pesaje para registrar varios tachos de forma continua.
-          Cada registro se puede editar desde la lista lateral hasta finalizar.
-        </p>
-      </header>
-
-      {/* Banner de estado */}
-      {isRunning ? (
-        <Card className="bg-accent/5 border-accent/30">
-          <CardContent className="pt-4 flex items-center justify-between gap-4">
+          <header className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-accent">
-                Sesión de pesaje en curso
+              <h1 className="text-2xl font-bold text-foreground">Pesaje</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Inicia la sesión de pesaje para registrar varios tachos de forma continua.
+                Cada registro se puede editar desde la lista lateral hasta finalizar.
               </p>
-              <p className="text-3xl font-bold tabular-nums text-foreground mt-1">
-                {formatElapsed(elapsed)}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {sessionReceptions.length} tacho{sessionReceptions.length !== 1 ? 's' : ''} registrado{sessionReceptions.length !== 1 ? 's' : ''}
-              </p>
-              {pendingList.length > 0 && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  Pendientes por pesar ({pendingNotSkipped.length}):{' '}
-                  {pendingList.map((id) => (
-                    <span key={id} className={cn('font-mono mr-1', skippedIds.has(id) && 'line-through opacity-60')}>
-                      {formatTachoNumber(id)}
-                      {!skippedIds.has(id) && (
-                        <button type="button" onClick={() => markAbsent(id)} className="ml-0.5 text-[10px] underline">ausente</button>
-                      )}
-                    </span>
-                  ))}
-                </p>
-              )}
             </div>
-            <div className="flex gap-2 shrink-0 flex-wrap justify-end">
-              <Button
-                variant="outline"
-                onClick={() => setConfirmingCancel(true)}
-                className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-              >
-                <X className="h-4 w-4" />
-                Cancelar
-              </Button>
-              <Button
-                onClick={() => setConfirmingFinish(true)}
-                disabled={sessionReceptions.length === 0 || pendingNotSkipped.length > 0}
-                className="gap-2"
-              >
-                <StopCircle className="h-4 w-4" />
-                Finalizar pesaje
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardContent className="pt-4 flex items-center justify-between gap-4">
-            <p className="text-sm text-muted-foreground">
-              El formulario está bloqueado. Inicia el pesaje para empezar el cronómetro y registrar tachos.
-            </p>
-            <StartSessionButton
-              sessionReady={!!currentProfileId}
-              onStart={handleStart}
-              icon={<Play className="h-4 w-4" />}
+            <Link
+              href="/register/weighing/history"
+              className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-accent/40 hover:text-foreground"
             >
-              Iniciar pesaje
-            </StartSessionButton>
-          </CardContent>
-        </Card>
-      )}
+              <History className="h-4 w-4" />
+              Historial
+            </Link>
+          </header>
 
-      {/* Banner de modo edición */}
-      {isEditing && (
-        <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-2.5 text-sm text-amber-800">
-          Editando tacho <strong className="font-mono">{formState.container_id}</strong>.
-          Los cambios se guardan en la sesión actual.
-        </div>
-      )}
+          {/* Banner de estado */}
+          {isRunning ? (
+            <Card className="bg-accent/5 border-accent/30">
+              <CardContent className="pt-4 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-accent">
+                    Sesión de pesaje en curso
+                  </p>
+                  <p className="text-3xl font-bold tabular-nums text-foreground mt-1">
+                    {formatElapsed(elapsed)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {sessionReceptions.length} tacho{sessionReceptions.length !== 1 ? 's' : ''} registrado{sessionReceptions.length !== 1 ? 's' : ''}
+                  </p>
+                  {pendingList.length > 0 && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Pendientes por pesar ({pendingNotSkipped.length}):{' '}
+                      {pendingList.map((id) => (
+                        <span key={id} className={cn('font-mono mr-1', skippedIds.has(id) && 'line-through opacity-60')}>
+                          {formatTachoNumber(id)}
+                          {!skippedIds.has(id) && (
+                            <button type="button" onClick={() => markAbsent(id)} className="ml-0.5 text-[10px] underline">ausente</button>
+                          )}
+                        </span>
+                      ))}
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2 shrink-0 flex-wrap justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => setConfirmingCancel(true)}
+                    className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                  >
+                    <X className="h-4 w-4" />
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={() => setConfirmingFinish(true)}
+                    disabled={sessionReceptions.length === 0 || pendingNotSkipped.length > 0}
+                    className="gap-2"
+                  >
+                    <StopCircle className="h-4 w-4" />
+                    Finalizar pesaje
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="pt-4 flex items-center justify-between gap-4">
+                <p className="text-sm text-muted-foreground">
+                  El formulario está bloqueado. Inicia el pesaje para empezar el cronómetro y registrar tachos.
+                </p>
+                <StartSessionButton
+                  sessionReady={!!currentProfileId}
+                  onStart={handleStart}
+                  icon={<Play className="h-4 w-4" />}
+                >
+                  Iniciar pesaje
+                </StartSessionButton>
+              </CardContent>
+            </Card>
+          )}
 
-      {/* Formulario */}
-      <WeighingForm
-        state={formState}
-        onChange={updateForm}
-        availableContainers={availableContainers}
-        yarisContainers={yarisContainers}
-        metallicContainers={metallicContainers}
-        allContainers={containers}
-        inheritedCompanyName={inheritedCompanyName}
-        locked={!isRunning}
-        mode={isEditing ? 'edit' : 'create'}
-        onSubmit={handleSubmitForm}
-        onCancelEdit={handleCancelEdit}
-        onDelete={() => setConfirmingVoid(true)}
-      />
+          {/* Banner de modo edición */}
+          {isEditing && (
+            <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-2.5 text-sm text-amber-800">
+              Editando tacho <strong className="font-mono">{formState.container_id}</strong>.
+              Los cambios se guardan en la sesión actual.
+            </div>
+          )}
 
-      {/* Drawer lateral */}
-      <WeighingSessionDrawer
-        receptions={sessionReceptions}
-        containers={containers}
-        selectedReceptionId={editingReceptionId}
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
-        onSelectReception={handleSelectForEdit}
-      />
+          {/* Formulario */}
+          <WeighingForm
+            state={formState}
+            onChange={updateForm}
+            availableContainers={availableContainers}
+            yarisContainers={yarisContainers}
+            metallicContainers={metallicContainers}
+            allContainers={containers}
+            inheritedCompanyName={inheritedCompanyName}
+            locked={!isRunning}
+            mode={isEditing ? 'edit' : 'create'}
+            onSubmit={handleSubmitForm}
+            onCancelEdit={handleCancelEdit}
+            onDelete={() => setConfirmingVoid(true)}
+          />
 
-      {/* Dialog de confirmación de finalización */}
-      {confirmingFinish && (
-        <ConfirmFinishDialog
-          count={sessionReceptions.length}
-          elapsed={elapsed}
-          onCancel={() => setConfirmingFinish(false)}
-          onConfirm={async () => {
-            setConfirmingFinish(false)
-            await handleFinish()
-          }}
-        />
-      )}
+          {/* Drawer lateral */}
+          <WeighingSessionDrawer
+            receptions={sessionReceptions}
+            containers={containers}
+            selectedReceptionId={editingReceptionId}
+            open={drawerOpen}
+            onOpenChange={setDrawerOpen}
+            onSelectReception={handleSelectForEdit}
+          />
 
-      {/* Dialog de confirmación de cancelación (destructiva) */}
-      {confirmingCancel && (
-        <ConfirmCancelDialog
-          count={sessionReceptions.length}
-          onCancel={() => setConfirmingCancel(false)}
-          onConfirm={async () => {
-            setConfirmingCancel(false)
-            await handleCancel()
-          }}
-        />
-      )}
+          {/* Dialog de confirmación de finalización */}
+          {confirmingFinish && (
+            <ConfirmFinishDialog
+              count={sessionReceptions.length}
+              elapsed={elapsed}
+              onCancel={() => setConfirmingFinish(false)}
+              onConfirm={async () => {
+                setConfirmingFinish(false)
+                await handleFinish()
+              }}
+            />
+          )}
 
-      {/* Dialog de "Deshacer pesaje" (anulación lógica con motivo obligatorio) */}
-      {confirmingVoid && (
-        <ConfirmVoidDialog
-          containerId={formState.container_id}
-          onCancel={() => setConfirmingVoid(false)}
-          onConfirm={async (reason) => {
-            setConfirmingVoid(false)
-            await handleVoidEditing(reason)
-          }}
-        />
-      )}
+          {/* Dialog de confirmación de cancelación (destructiva) */}
+          {confirmingCancel && (
+            <ConfirmCancelDialog
+              count={sessionReceptions.length}
+              onCancel={() => setConfirmingCancel(false)}
+              onConfirm={async () => {
+                setConfirmingCancel(false)
+                await handleCancel()
+              }}
+            />
+          )}
+
+          {/* Dialog de "Deshacer pesaje" (anulación lógica con motivo obligatorio) */}
+          {confirmingVoid && (
+            <ConfirmVoidDialog
+              title="¿Deshacer el pesaje?"
+              description={<>El tacho <strong className="font-mono">{formState.container_id}</strong> volverá a quedar disponible para pesar. El registro no se borra: queda anulado con motivo para trazabilidad.</>}
+              confirmLabel="Deshacer pesaje"
+              onCancel={() => setConfirmingVoid(false)}
+              onConfirm={async (reason) => { setConfirmingVoid(false); await handleVoidEditing(reason) }}
+            />
+          )}
     </div>
   )
 }
@@ -690,64 +603,3 @@ function ConfirmFinishDialog({ count, elapsed, onCancel, onConfirm }: DialogProp
   )
 }
 
-interface VoidDialogProps {
-  containerId: string
-  onCancel: () => void
-  onConfirm: (reason: string) => void
-}
-
-function ConfirmVoidDialog({ containerId, onCancel, onConfirm }: VoidDialogProps) {
-  const [reason, setReason] = useState('')
-  const trimmed = reason.trim()
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4"
-      onClick={onCancel}
-    >
-      <div
-        className="bg-card rounded-xl ring-1 ring-red-200 p-6 max-w-sm w-full space-y-4 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-700">
-            <AlertCircle className="h-5 w-5" />
-          </div>
-          <div className="space-y-1">
-            <h2 className="text-base font-semibold text-foreground">¿Deshacer el pesaje?</h2>
-            <p className="text-sm text-muted-foreground">
-              El tacho <strong className="font-mono">{containerId}</strong> volverá a quedar
-              disponible para pesar. El registro no se borra: queda anulado con motivo
-              para trazabilidad.
-            </p>
-          </div>
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="void-reason" className="text-sm font-medium text-foreground">
-            Motivo <span className="text-red-600">*</span>
-          </label>
-          <textarea
-            id="void-reason"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            rows={3}
-            autoFocus
-            placeholder="Ej.: peso mal tecleado, tacho equivocado…"
-            className="w-full rounded-lg border border-foreground/15 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-400/40"
-          />
-        </div>
-        <div className="flex gap-3 justify-end">
-          <Button variant="outline" onClick={onCancel}>Cancelar</Button>
-          <Button
-            onClick={() => onConfirm(trimmed)}
-            disabled={trimmed.length === 0}
-            className="bg-red-600 hover:bg-red-700 text-white"
-          >
-            Deshacer pesaje
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
-}

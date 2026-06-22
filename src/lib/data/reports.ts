@@ -125,7 +125,7 @@ export function buildPhotographicReportData(
   const routeBelongs = (e: RouteEvent): boolean => e.company_id === companyId
 
   const routeEvents = store.routeEvents.filter(
-    (r) => r.kind === 'anden' && withinRange(r.started_at, start, end) && routeBelongs(r),
+    (r) => !r.voided_at && r.kind === 'anden' && withinRange(r.started_at, start, end) && routeBelongs(r),
   )
   const receptions = store.receptions.filter(
     (r) => !r.voided_at && withinRange(r.arrived_at, start, end) && recBelongs(r),

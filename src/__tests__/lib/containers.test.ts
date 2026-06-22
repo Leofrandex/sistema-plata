@@ -137,6 +137,14 @@ describe('getRouteEventIdsForContainer', () => {
   it('returns empty array when no route includes the container', () => {
     expect(getRouteEventIdsForContainer([], 'I-001')).toEqual([])
   })
+
+  it('ignora recorridos anulados (voided_at)', () => {
+    const events: RouteEvent[] = [
+      { ...baseRoute, id: 'route-1', containers_dirty_received: ['I-001'], containers_clean_delivered: [] },
+      { ...baseRoute, id: 'route-2', containers_dirty_received: ['I-001'], containers_clean_delivered: [], voided_at: '2026-05-18T00:00:00Z', voided_by: 'op', void_reason: 'error' },
+    ]
+    expect(getRouteEventIdsForContainer(events, 'I-001')).toEqual(['route-1'])
+  })
 })
 
 describe('getContainerCurrentCompanyId', () => {
@@ -262,6 +270,13 @@ describe('getPendingWeighingContainerIds', () => {
     const containers = [c('001'), c('Y1', { is_yaris_container: true, tare_weight_kg: 0 })]
     const result = getPendingWeighingContainerIds(containers, [routeWith('001', 'Y1')], [])
     expect(result).toEqual(['001'])
+  })
+
+  it('un recorrido anulado devuelve el tacho fuera de pendientes', () => {
+    const containers = [c('001')]
+    const voidedRoute = { ...routeWith('001'), voided_at: '2026-06-03T10:00:00Z' } as RouteEvent
+    const result = getPendingWeighingContainerIds(containers, [voidedRoute], [])
+    expect(result).toEqual([])
   })
 })
 

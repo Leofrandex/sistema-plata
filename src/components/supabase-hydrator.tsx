@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import * as q from '@/lib/supabase/queries'
 import { useStore } from '@/lib/store'
+import { mergeById, pendingRecordIds } from '@/lib/data/hydrate-merge'
 import type {
   Container,
   WeighingSession,
@@ -124,6 +125,9 @@ export function SupabaseHydrator() {
           operator_id: s.operator_id,
           status: s.status,
           reception_ids: receptionIdsBySession.get(s.id) ?? [],
+          voided_at: s.voided_at ?? null,
+          voided_by: s.voided_by ?? null,
+          void_reason: s.void_reason ?? null,
         }))
 
         const receptions: ContainerReception[] = receptionsRaw.map((r) => ({
@@ -137,16 +141,18 @@ export function SupabaseHydrator() {
         const locations: ContainerLocation[] = locationsRaw.map(rowToLocation)
         const users = profilesRaw.map((p) => ({ id: p.id, name: p.name }))
 
+        const pend = await pendingRecordIds()
+        const prev = useStore.getState()
         useStore.getState().hydrate({
           containers,
-          weighingSessions,
-          receptions,
-          routeEvents,
+          weighingSessions: mergeById(weighingSessions, prev.weighingSessions, pend),
+          receptions: mergeById(receptions, prev.receptions, pend),
+          routeEvents: mergeById(routeEvents, prev.routeEvents, pend),
           photos,
-          storageEvents,
-          treatmentRuns,
+          storageEvents: mergeById(storageEvents, prev.storageEvents, pend),
+          treatmentRuns: mergeById(treatmentRuns, prev.treatmentRuns, pend),
           externalTransfers,
-          locations,
+          locations: mergeById(locations, prev.locations, pend),
           users,
         })
         // Éxito: marcamos la conexión como online.
@@ -217,6 +223,9 @@ function rowToReception(r: q.ReceptionRow): ContainerReception {
     company_id: r.company_id ?? null,
     waste_type: r.waste_type,
     treat_immediately: r.treat_immediately,
+    voided_at: r.voided_at ?? null,
+    voided_by: r.voided_by ?? null,
+    void_reason: r.void_reason ?? null,
   }
 }
 
@@ -249,6 +258,9 @@ export function mapRouteEvents(
     photo_ids: [], // el hydrator los rellena desde photoIdsByEvent
     dirty_photo_ids: [],
     clean_photo_ids: [],
+    voided_at: e.voided_at ?? null,
+    voided_by: e.voided_by ?? null,
+    void_reason: e.void_reason ?? null,
   }))
 }
 

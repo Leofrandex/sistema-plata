@@ -9,31 +9,26 @@ import type {
   StorageEvent,
   TreatmentRun,
 } from '@/lib/types'
-import { computeContainerPhase, computeNetWeight, getRouteEventIdsForContainer } from './containers'
+import { computeNetWeight } from './containers'
 
 // ─── Circulación de tachos ────────────────────────────────────────────────
 
 export type CirculationBucket =
-  | 'en_planta'        // weighing, cold_storage, treatment, transfer
-  | 'en_cliente'       // clean (entregado al cliente, listo para sucio)
-  | 'en_transito'      // route (recorrido en curso o entre planta y cliente)
-  | 'sin_registro'     // sin eventos — recién registrado o "perdido"
+  | 'en_planta'        // limpio físicamente en planta (recién dado de alta o tratado), sin entregar
+  | 'en_cliente'       // entregado limpio en recorrido, esperando recogida sucia
+  | 'pendiente_pesar'  // recogido sucio, sin recepción vigente
+  | 'pendiente_tratar' // pesado, esperando tratamiento
 
 export interface CirculationBreakdown {
   total: number
-  buckets: Array<{
-    key: CirculationBucket
-    label: string
-    count: number
-    color: string
-  }>
+  buckets: Array<{ key: CirculationBucket; label: string; count: number; color: string }>
 }
 
 const BUCKET_DEFINITIONS: Array<{ key: CirculationBucket; label: string; color: string }> = [
-  { key: 'en_planta',    label: 'En planta',         color: '#2A27E9' }, // accent
-  { key: 'en_cliente',   label: 'En cliente',        color: '#10B981' }, // emerald
-  { key: 'en_transito',  label: 'Pendiente por pesar', color: '#F59E0B' }, // amber
-  { key: 'sin_registro', label: 'Sin registro',      color: '#94A3B8' }, // slate
+  { key: 'en_planta',        label: 'En planta',           color: '#94A3B8' }, // slate
+  { key: 'en_cliente',       label: 'En cliente',          color: '#10B981' }, // emerald
+  { key: 'pendiente_pesar',  label: 'Pendiente por pesar', color: '#F59E0B' }, // amber
+  { key: 'pendiente_tratar', label: 'Pendiente por tratar', color: '#2A27E9' }, // accent
 ]
 
 interface CirculationStoreSlice {
@@ -46,61 +41,70 @@ interface CirculationStoreSlice {
   locations: ContainerLocation[]
 }
 
-export function computeCirculationBreakdown(store: CirculationStoreSlice): CirculationBreakdown {
-  const counts: Record<CirculationBucket, number> = {
-    en_planta: 0,
-    en_cliente: 0,
-    en_transito: 0,
-    sin_registro: 0,
+interface CirculationTimelineSlice {
+  routeEvents: RouteEvent[]
+  receptions: ContainerReception[]
+  treatmentRuns: TreatmentRun[]
+  externalTransfers: ExternalTransfer[]
+}
+
+/**
+ * Clasifica un tacho en uno de los 4 buckets de circulación según su evento
+ * VIGENTE más reciente (modelo de línea de tiempo). Recorridos y recepciones
+ * anulados (voided_at) se ignoran. Spec 2026-06-17.
+ */
+export function computeCirculationBucket(
+  container: Container,
+  store: CirculationTimelineSlice,
+): CirculationBucket {
+  const t = (iso: string | null | undefined): number => (iso ? new Date(iso).getTime() : -Infinity)
+
+  let cleanDelivered = -Infinity
+  let dirtyReceived = -Infinity
+  for (const r of store.routeEvents) {
+    if (r.voided_at) continue
+    const ts = t(r.started_at)
+    if (r.containers_clean_delivered.includes(container.id) && ts > cleanDelivered) cleanDelivered = ts
+    if (r.containers_dirty_received.includes(container.id) && ts > dirtyReceived) dirtyReceived = ts
   }
 
+  let reception = -Infinity
+  for (const r of store.receptions) {
+    if (r.voided_at) continue
+    if (r.container_id !== container.id) continue
+    const ts = t(r.arrived_at)
+    if (ts > reception) reception = ts
+  }
+
+  let closed = -Infinity // tratamiento o traslado completado
+  for (const tr of store.treatmentRuns) {
+    if (tr.container_id === container.id && tr.completed_at) closed = Math.max(closed, t(tr.completed_at))
+  }
+  for (const tf of store.externalTransfers) {
+    if (tf.container_id === container.id && tf.transferred_at) closed = Math.max(closed, t(tf.transferred_at))
+  }
+
+  const latest = Math.max(cleanDelivered, dirtyReceived, reception, closed)
+  if (latest === -Infinity) return 'en_planta'
+  if (latest === closed) return 'en_planta'
+  if (latest === reception) return 'pendiente_tratar'
+  if (latest === dirtyReceived) return 'pendiente_pesar'
+  return 'en_cliente'
+}
+
+export function computeCirculationBreakdown(store: CirculationStoreSlice): CirculationBreakdown {
+  const counts: Record<CirculationBucket, number> = {
+    en_planta: 0, en_cliente: 0, pendiente_pesar: 0, pendiente_tratar: 0,
+  }
   const activeContainers = store.containers.filter(
     (c) => c.status === 'active' && !c.is_yaris_container,
   )
-
   for (const container of activeContainers) {
-    const routeIds = getRouteEventIdsForContainer(store.routeEvents, container.id)
-    const reception = [...store.receptions]
-      .filter((r) => r.container_id === container.id && !r.voided_at)
-      .sort((a, b) => new Date(b.arrived_at).getTime() - new Date(a.arrived_at).getTime())[0] ?? null
-    const storage = [...store.storageEvents]
-      .filter((s) => s.container_id === container.id)
-      .sort((a, b) => new Date(b.entry_at).getTime() - new Date(a.entry_at).getTime())[0] ?? null
-    const treatment = store.treatmentRuns.find((t) => t.container_id === container.id && !t.completed_at)
-      ?? store.externalTransfers.find((t) => t.container_id === container.id && !t.transferred_at)
-      ?? null
-
-    const phase = computeContainerPhase(routeIds, reception, storage, treatment)
-
-    switch (phase) {
-      case 'weighing':
-      case 'cold_storage':
-      case 'treatment':
-      case 'transfer':
-        counts.en_planta += 1
-        break
-      case 'route':
-        counts.en_transito += 1
-        break
-      case 'clean':
-        // Buscar última ubicación: si client_site → en_cliente; sino → sin_registro
-        {
-          const lastLoc = [...store.locations]
-            .filter((l) => l.container_id === container.id)
-            .sort((a, b) => new Date(b.reported_at).getTime() - new Date(a.reported_at).getTime())[0]
-          if (lastLoc?.location_type === 'client_site') counts.en_cliente += 1
-          else counts.sin_registro += 1
-        }
-        break
-    }
+    counts[computeCirculationBucket(container, store)] += 1
   }
-
   return {
     total: activeContainers.length,
-    buckets: BUCKET_DEFINITIONS.map((def) => ({
-      ...def,
-      count: counts[def.key],
-    })),
+    buckets: BUCKET_DEFINITIONS.map((def) => ({ ...def, count: counts[def.key] })),
   }
 }
 

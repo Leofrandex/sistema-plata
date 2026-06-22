@@ -84,7 +84,7 @@ export function getRouteEventIdsForContainer(
   containerId: string
 ): string[] {
   return routeEvents
-    .filter((r) => r.containers_dirty_received.includes(containerId))
+    .filter((r) => !r.voided_at && r.containers_dirty_received.includes(containerId))
     .map((r) => r.id)
 }
 
@@ -96,8 +96,9 @@ export function getRouteEventIdsAnyDirection(
 ): string[] {
   return routeEvents
     .filter((r) =>
-      r.containers_dirty_received.includes(containerId) ||
-      r.containers_clean_delivered.includes(containerId),
+      !r.voided_at &&
+      (r.containers_dirty_received.includes(containerId) ||
+        r.containers_clean_delivered.includes(containerId)),
     )
     .map((r) => r.id)
 }

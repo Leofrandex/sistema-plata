@@ -15,9 +15,9 @@ export function SyncIndicator() {
       }`}
     >
       {isOnline ? (
-        <><RefreshCw className="h-4 w-4 animate-spin" />{pendingCount} evento{pendingCount !== 1 ? 's' : ''} sincronizando...</>
+        <><RefreshCw className="h-4 w-4 animate-spin" />{pendingCount} pendiente{pendingCount !== 1 ? 's' : ''} · sincronizando…</>
       ) : (
-        <><WifiOff className="h-4 w-4" />Sin conexión · {pendingCount} pendiente{pendingCount !== 1 ? 's' : ''}</>
+        <><WifiOff className="h-4 w-4" />Sin conexión · {pendingCount} en cola</>
       )}
     </div>
   )

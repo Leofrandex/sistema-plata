@@ -68,6 +68,22 @@ export async function deleteRouteEvent(db: DB, id: string): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
+export async function voidRouteEvent(
+  db: DB,
+  id: string,
+  voidedBy: string,
+  reason: string
+): Promise<RouteEventRow> {
+  return unwrap(
+    await db
+      .from('route_events')
+      .update({ voided_at: new Date().toISOString(), voided_by: voidedBy, void_reason: reason })
+      .eq('id', id)
+      .select()
+      .single()
+  )
+}
+
 // ─── containers asociados al recorrido (join tables) ────────────────────────
 
 export async function listContainersDirtyForRoute(

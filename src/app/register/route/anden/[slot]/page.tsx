@@ -12,7 +12,8 @@ import { StartSessionButton } from '@/components/register/start-session-button'
 import { useStore } from '@/lib/store'
 import { createClient } from '@/lib/supabase/client'
 import * as q from '@/lib/supabase/queries'
-import { uploadEventPhotos } from '@/lib/data/photos'
+import { uploadEventPhotos, enqueueEventPhotos } from '@/lib/data/photos'
+import { submitRouteEvent, routeEventOpId } from '@/lib/data/field-writes'
 import { getSlotAndenEvents, computeSlotStatus } from '@/lib/data/route-sessions'
 import { getRouteSlotDefinition } from '@/lib/constants'
 import { useElapsed, formatElapsed } from '@/hooks/use-elapsed'
@@ -167,85 +168,37 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   async function handleCreateAnden() {
     if (!currentProfileId || !client) return
     const now = new Date().toISOString()
-    const supabase = createClient()
-    // La empresa es propiedad de ESTE registro (no de la sesión ni del tacho).
     const recordCompanyId = formState.companyId
+    const routeEventId = crypto.randomUUID()
 
-    // 1) Crear el route_event (in_progress) del andén
-    let routeEventId: string
-    try {
-      const row = await q.createRouteEvent(supabase, {
-        client_id: client.id,
-        company_id: recordCompanyId || null,
-        kind: 'anden',
-        slot: slotId,
-        date: today,
-        started_at: now,
-        operator_id: currentProfileId,
-        status: 'in_progress',
-        area: formState.area,
-      })
-      routeEventId = row.id
-    } catch (err) {
-      console.error('[recorrido andén] crear andén falló:', err)
-      alert('No se pudo guardar el andén. Revisá tu conexión e intentá de nuevo.')
-      return
-    }
+    await submitRouteEvent(
+      {
+        id: routeEventId, client_id: client.id, company_id: recordCompanyId || null,
+        kind: 'anden', slot: slotId, date: today, started_at: now,
+        operator_id: currentProfileId, status: 'in_progress', area: formState.area,
+      },
+      formState.dirtyReceivedIds,
+      formState.cleanDeliveredIds,
+    )
 
-    // 2) Asociar tachos
-    try {
-      await q.setRouteContainersDirty(supabase, routeEventId, formState.dirtyReceivedIds)
-      await q.setRouteContainersClean(supabase, routeEventId, formState.cleanDeliveredIds)
-    } catch (err) {
-      console.error('[recorrido andén] asociar tachos falló:', err)
-    }
-
-    // 3) Subir fotos AHORA por categoría (evita pérdida al editar luego)
-    let dirtyIds: string[] = []
-    let cleanIds: string[] = []
-    let signatureId: string | null = null
     const label = buildLabel()
-    try {
-      const upDirty = await uploadEventPhotos(supabase, {
-        dataUrls: formState.dirtyPhotos, eventType: 'route', eventId: routeEventId,
-        label, uploadedBy: currentProfileId, takenAt: now, role: 'dirty',
-      })
-      const upClean = await uploadEventPhotos(supabase, {
-        dataUrls: formState.cleanPhotos, eventType: 'route', eventId: routeEventId,
-        label, uploadedBy: currentProfileId, takenAt: now, role: 'clean',
-      })
-      const upSignature = await uploadEventPhotos(supabase, {
-        dataUrls: formState.signature ? [formState.signature] : [], eventType: 'route', eventId: routeEventId,
-        label, uploadedBy: currentProfileId, takenAt: now, role: 'signature',
-      })
-      ;[...upDirty, ...upClean, ...upSignature].forEach(addPhoto)
-      dirtyIds = upDirty.map((p) => p.id)
-      cleanIds = upClean.map((p) => p.id)
-      signatureId = upSignature[0]?.id ?? null
-    } catch (err) {
-      console.error('[recorrido andén] subir fotos falló:', err)
-      alert('El andén se guardó, pero algunas fotos no se subieron por la conexión.')
-    }
+    const parentOpId = routeEventOpId(routeEventId)
+    const upDirty = await enqueueEventPhotos({ dataUrls: formState.dirtyPhotos, eventType: 'route', eventId: routeEventId, label, uploadedBy: currentProfileId, takenAt: now, role: 'dirty', parentOpId })
+    const upClean = await enqueueEventPhotos({ dataUrls: formState.cleanPhotos, eventType: 'route', eventId: routeEventId, label, uploadedBy: currentProfileId, takenAt: now, role: 'clean', parentOpId })
+    const upSig = await enqueueEventPhotos({ dataUrls: formState.signature ? [formState.signature] : [], eventType: 'route', eventId: routeEventId, label, uploadedBy: currentProfileId, takenAt: now, role: 'signature', parentOpId })
+    ;[...upDirty, ...upClean, ...upSig].forEach(addPhoto)
+    const dirtyIds = upDirty.map((p) => p.id)
+    const cleanIds = upClean.map((p) => p.id)
+    const signatureId = upSig[0]?.id ?? null
 
-    // 4) Reflejar en el store
     addRouteEvent({
-      id: routeEventId,
-      client_id: client.id,
-      company_id: recordCompanyId || null,
-      kind: 'anden',
-      slot: slotId,
-      date: today,
-      started_at: now,
-      ended_at: null,
-      operator_id: currentProfileId,
-      status: 'in_progress',
+      id: routeEventId, client_id: client.id, company_id: recordCompanyId || null,
+      kind: 'anden', slot: slotId, date: today, started_at: now, ended_at: null,
+      operator_id: currentProfileId, status: 'in_progress',
       containers_dirty_received: formState.dirtyReceivedIds,
       containers_clean_delivered: formState.cleanDeliveredIds,
-      area: formState.area,
-      dirty_photo_ids: dirtyIds,
-      clean_photo_ids: cleanIds,
-      photo_ids: [...dirtyIds, ...cleanIds],
-      signature_photo_id: signatureId,
+      area: formState.area, dirty_photo_ids: dirtyIds, clean_photo_ids: cleanIds,
+      photo_ids: [...dirtyIds, ...cleanIds], signature_photo_id: signatureId,
     })
 
     resetForm()
@@ -392,22 +345,19 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   async function handleFinish() {
     if (!activeSession) return
     const now = new Date().toISOString()
-    const supabase = createClient()
     // Marcar todos los andenes in_progress del horario como completed.
-    try {
-      await Promise.all(
-        sessionAndenes.map((a) =>
-          q.updateRouteEvent(supabase, a.id, { status: 'completed', ended_at: now }),
-        ),
+    // Re-encolar con el mismo op_id → sobrescribe la op pendiente (idempotente offline).
+    for (const a of sessionAndenes) {
+      await submitRouteEvent(
+        {
+          id: a.id, client_id: a.client_id, company_id: a.company_id ?? null,
+          kind: 'anden', slot: a.slot, date: a.date, started_at: a.started_at,
+          ended_at: now, operator_id: a.operator_id, status: 'completed', area: a.area,
+        },
+        a.containers_dirty_received, a.containers_clean_delivered,
       )
-    } catch (err) {
-      console.error('[recorrido andén] finalizar falló:', err)
-      alert('No se pudo finalizar el recorrido. Revisá tu conexión e intentá de nuevo.')
-      return
+      updateRouteEvent(a.id, { status: 'completed', ended_at: now })
     }
-    sessionAndenes.forEach((a) =>
-      updateRouteEvent(a.id, { status: 'completed', ended_at: now }),
-    )
     await endSession(activeSession.key)
     setActiveSession(null)
     resetForm()

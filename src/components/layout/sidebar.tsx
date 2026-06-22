@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { APP_NAME } from '@/lib/constants'
 import { useStore } from '@/lib/store'
 import { useState } from 'react'
+import { clearLoginAt } from '@/lib/session-timeout'
 
 const REGISTER_LINKS = [
   { href: '/register/route', label: 'Recorrido' },
@@ -137,7 +138,7 @@ export function Sidebar() {
         )}
 
         <div className="mt-auto pt-4 border-t border-white/10">
-          <form action="/auth/signout" method="post">
+          <form action="/auth/signout" method="post" onSubmit={() => clearLoginAt()}>
             <button
               type="submit"
               className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-white/70 hover:bg-white/10 hover:text-white transition-colors"

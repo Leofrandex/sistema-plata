@@ -196,6 +196,72 @@ describe('buildPhotographicReportData (por empresa)', () => {
     expect(data.days).toEqual([])
   })
 
+  it('excluye route_events y receptions anulados (voided_at) del reporte', () => {
+    // Partimos del ionStore y añadimos:
+    //  - Un route event ANULADO (voided_at set) con sus propias fotos de ruta
+    //  - Una reception ANULADA (voided_at set) con sus propias fotos de pesaje
+    // Solo los no-anulados deben aparecer en el reporte.
+    const voidedRoute = {
+      id: 'route-ion-voided',
+      client_id: 'client-1',
+      company_id: 'company-ion',
+      kind: 'anden' as const,
+      slot: '14:30' as const,
+      date: '2026-05-17',
+      started_at: '2026-05-17T14:30:00-05:00',
+      ended_at: '2026-05-17T15:30:00-05:00',
+      operator_id: 'user-1',
+      status: 'completed' as const,
+      containers_dirty_received: ['A-901'],
+      containers_clean_delivered: [],
+      area: 'Laboratorio',
+      photo_ids: ['photo-ion-void-r1'],
+      voided_at: '2026-06-01T10:00:00Z',
+    }
+    const voidedReception = {
+      id: 'reception-ion-voided',
+      container_id: 'A-902',
+      weighing_session_id: null,
+      arrived_at: '2026-05-17T15:30:00-05:00',
+      gross_weight_kg: 50.0,
+      operator_id: 'user-1',
+      photo_ids: ['photo-ion-void-w1'],
+      observations: '',
+      company_id: 'company-ion',
+      voided_at: '2026-06-01T10:00:00Z',
+    }
+
+    const storeWithVoided: ReportStoreSlice = {
+      ...ionStore,
+      routeEvents: [...ionStore.routeEvents, voidedRoute],
+      receptions: [...ionStore.receptions, voidedReception],
+      photos: [
+        ...ionStore.photos,
+        { id: 'photo-ion-void-r1', url: 'https://placehold.co/400x300?text=VOID-R', event_type: 'route' as const, event_id: 'route-ion-voided', taken_at: '2026-05-17T14:30:00-05:00', label: 'VOID-R' },
+        { id: 'photo-ion-void-w1', url: 'https://placehold.co/400x300?text=VOID-W', event_type: 'weighing' as const, event_id: 'reception-ion-voided', taken_at: '2026-05-17T15:30:00-05:00', label: 'VOID-W' },
+      ],
+    }
+
+    const data = buildPhotographicReportData('company-ion', storeWithVoided, range)!
+
+    // El route event anulado NO debe incrementar el conteo (2 rutas válidas, no 3)
+    expect(data.meta.routeEventCount).toBe(2)
+    // La reception anulada NO debe incrementar el conteo (2 recepciones válidas, no 3)
+    expect(data.meta.weighingReceptionCount).toBe(2)
+
+    // Las fotos del route event anulado NO deben aparecer en el reporte
+    const allPhotoIds = data.days
+      .flatMap((d) => d.groups)
+      .flatMap((g) => g.photos)
+      .map((e) => e.photo.id)
+    expect(allPhotoIds).not.toContain('photo-ion-void-r1')
+    expect(allPhotoIds).not.toContain('photo-ion-void-w1')
+
+    // Los no-anulados siguen presentes
+    expect(data.meta.routePhotoCount).toBe(5)   // r1: 3, r2: 2
+    expect(data.meta.weighingPhotoCount).toBe(4) // reception-ion-1 (2) + reception-ion-2 (2)
+  })
+
   it('empresa registrada en reception sobreescribe empresa-dueña del tacho', () => {
     // Container A-050 es de Airkem, pero la reception tiene company_id='company-ion'
     // → el reporte de ION debe contar esa reception; el de Airkem NO.

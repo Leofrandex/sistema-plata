@@ -125,6 +125,12 @@ export interface RouteEvent {
   clean_photo_ids?: string[]
   // Firma dibujada del recorrido (foto con role='signature'). Una por registro.
   signature_photo_id?: string | null
+  /** Anulación lógica del recorrido (historial editable). Si no es null, el
+   *  recorrido se considera revertido: deja de contar en derivación de estado y
+   *  reportes. Nunca se borra físicamente (trazabilidad). */
+  voided_at?: string | null
+  voided_by?: string | null
+  void_reason?: string | null
 }
 
 // Sesión de pesaje. Agrupa N receptions creadas en el mismo "turno" de pesaje.
@@ -137,6 +143,11 @@ export interface WeighingSession {
   operator_id: string
   status: WeighingSessionStatus
   reception_ids: string[]
+  /** Anulación lógica de la sesión de pesaje (historial editable). Anula en
+   *  cascada sus recepciones. Nunca se borra físicamente (trazabilidad). */
+  voided_at?: string | null
+  voided_by?: string | null
+  void_reason?: string | null
 }
 
 export interface ContainerReception {

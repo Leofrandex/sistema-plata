@@ -1,4 +1,4 @@
-import { openDB } from 'idb'
+import { getDB } from './idb'
 import type { RouteKind, RouteSlot } from './types'
 
 /**
@@ -15,8 +15,6 @@ import type { RouteKind, RouteSlot } from './types'
  * - Solo puede existir una entrada por key. Si ya hay una activa se devuelve.
  */
 
-const DB_NAME = 'hospiwaste-offline'
-const DB_VERSION = 2 // bumped para crear nuevo store
 const STORE_NAME = 'active_sessions'
 
 export type SessionType = 'route' | 'weighing'
@@ -50,24 +48,6 @@ export interface ActiveSession {
   type: SessionType
   started_at: string // ISO datetime
   context: SessionContext
-}
-
-let dbPromise: ReturnType<typeof openDB> | null = null
-
-function getDB() {
-  if (!dbPromise) {
-    dbPromise = openDB(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        if (!db.objectStoreNames.contains('queue')) {
-          db.createObjectStore('queue', { keyPath: 'id', autoIncrement: true })
-        }
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME, { keyPath: 'key' })
-        }
-      },
-    })
-  }
-  return dbPromise
 }
 
 export function routeAndenSessionKey(date: string, slot: RouteSlot): string {
