@@ -1,5 +1,5 @@
 import type { DB } from './supabase/queries/_helpers'
-import { getPhotoBlob, type OutboxOp, type OutboxOpType } from './offline-queue'
+import { getPhotoBlob, type OutboxOp, type OutboxOpType, listOps, removeOp, bumpAttempts, removePhotoBlob } from './offline-queue'
 
 /** Mapa de ops de tabla simple → nombre de tabla. Su payload es la fila completa
  *  (con id de cliente). Se upserta con onConflict 'id'. */
@@ -41,6 +41,58 @@ async function applyRouteContainers(db: DB, op: OutboxOp): Promise<void> {
   if (rows.length === 0) return
   const { error } = await db.from(table).upsert(rows, { onConflict: 'route_event_id,container_id' })
   if (error) throw new Error(`${table} upsert: ${error.message}`)
+}
+
+export interface DrainResult { synced: number; remaining: number; stuck: number }
+
+/**
+ * Drena el outbox respetando dependencias. Una op solo corre cuando todas sus
+ * deps ya salieron de la cola. Error de red → detiene (reintentar luego, sin
+ * contar intento). Error no-red → cuenta intento y sigue con las demás (no
+ * bloquea independientes). Reintento indefinido: las atascadas quedan en cola.
+ */
+export async function drainOutbox(db: DB): Promise<DrainResult> {
+  let synced = 0
+  let stuck = 0
+  const stuckIds = new Set<string>() // ops que fallaron (no-red) en esta sesión
+
+  // Iteramos por rondas: en cada ronda aplicamos las ops "listas" (deps fuera de
+  // la cola) que no estén marcadas como atascadas en esta pasada. Paramos cuando
+  // una ronda no logra progreso o cae la red.
+  for (;;) {
+    const ops = await listOps()
+    const pendingIds = new Set(ops.map((o) => o.op_id))
+    // Ops listas: deps ya fuera de la cola, y la op misma no atascada en esta sesión
+    const ready = ops.filter(
+      (o) => !stuckIds.has(o.op_id) && o.deps.every((d) => !pendingIds.has(d)),
+    )
+    if (ready.length === 0) break
+
+    let progressed = false
+    let networkDown = false
+
+    for (const op of ready) {
+      try {
+        await applyOp(db, op)
+        await removeOp(op.op_id)
+        if (op.type === 'upload_photo') {
+          await removePhotoBlob((op.payload as { photo_id: string }).photo_id)
+        }
+        synced++
+        progressed = true
+      } catch (err) {
+        if (isNetworkError(err)) { networkDown = true; break }
+        await bumpAttempts(op.op_id) // no-red: reintento indefinido, no bloquea
+        stuckIds.add(op.op_id)
+        stuck++
+      }
+    }
+
+    if (networkDown || !progressed) break
+  }
+
+  const remaining = (await listOps()).length
+  return { synced, remaining, stuck }
 }
 
 async function applyUploadPhoto(db: DB, op: OutboxOp): Promise<void> {
