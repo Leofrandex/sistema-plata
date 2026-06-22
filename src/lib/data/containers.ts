@@ -173,3 +173,34 @@ export function getContainerCurrentCompanyId(
 
   return open[0]?.company_id ?? null
 }
+
+/**
+ * Empresa "actual" de un tacho: la del registro NO anulado más reciente que lo
+ * referencia (recepción por arrived_at, recorrido por started_at), considerando
+ * solo registros con company_id. Devuelve null si ninguno aplica.
+ * La empresa es del registro, no del tacho (decisions/2026-06-10-empresa-por-registro).
+ */
+export function deriveContainerCompanyId(
+  containerId: string,
+  routeEvents: RouteEvent[],
+  receptions: ContainerReception[],
+): string | null {
+  let bestTs = -Infinity
+  let bestCompany: string | null = null
+
+  for (const r of receptions) {
+    if (r.voided_at) continue
+    if (r.container_id !== containerId) continue
+    if (!r.company_id) continue
+    const ts = new Date(r.arrived_at).getTime()
+    if (ts > bestTs) { bestTs = ts; bestCompany = r.company_id }
+  }
+  for (const e of routeEvents) {
+    if (e.voided_at) continue
+    if (!e.company_id) continue
+    if (!e.containers_dirty_received.includes(containerId) && !e.containers_clean_delivered.includes(containerId)) continue
+    const ts = new Date(e.started_at).getTime()
+    if (ts > bestTs) { bestTs = ts; bestCompany = e.company_id }
+  }
+  return bestCompany
+}
