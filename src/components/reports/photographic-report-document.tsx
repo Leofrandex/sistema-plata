@@ -3,9 +3,10 @@ import {
 } from '@react-pdf/renderer'
 import { APP_NAME } from '@/lib/constants'
 import { chunk } from '@/lib/data/reports'
-import type { PhotographicReportData, ReportDay, ReportPhotoEntry } from '@/lib/data/reports'
+import type { PhotographicReportData, ReportDay, ReportPhotoEntry, WeighingPair } from '@/lib/data/reports'
 
-const PHOTOS_PER_CUADRO = 8 // 4 columnas × 2 filas
+const PHOTOS_PER_CUADRO = 8 // 4 columnas × 2 filas (recorrido)
+const PAIRS_PER_CUADRO = 4  // 4 pesajes por bloque (peso arriba / tacho abajo)
 const CUADROS_PER_PAGE = 4 // 2 × 2
 
 const styles = StyleSheet.create({
@@ -148,17 +149,26 @@ const styles = StyleSheet.create({
 
 interface Cuadro {
   label: string
-  photos: ReportPhotoEntry[]
+  stage: 'route' | 'weighing'
+  photos?: ReportPhotoEntry[]
+  pairs?: WeighingPair[]
 }
 
-/** Convierte los grupos de un día en cuadros de hasta 8 fotos (overflow → (cont.)). */
+/** Convierte los grupos de un día en cuadros (recorrido: 8 fotos; pesaje: 4 pares). */
 function buildCuadros(day: ReportDay): Cuadro[] {
   const cuadros: Cuadro[] = []
   for (const group of day.groups) {
-    const parts = chunk(group.photos, PHOTOS_PER_CUADRO)
-    parts.forEach((photos, i) => {
-      cuadros.push({ label: i === 0 ? group.label : `${group.label} (cont.)`, photos })
-    })
+    if (group.stage === 'weighing' && group.pairs) {
+      const parts = chunk(group.pairs, PAIRS_PER_CUADRO)
+      parts.forEach((pairs, i) => {
+        cuadros.push({ label: i === 0 ? group.label : `${group.label} (cont.)`, stage: 'weighing', pairs })
+      })
+    } else {
+      const parts = chunk(group.photos, PHOTOS_PER_CUADRO)
+      parts.forEach((photos, i) => {
+        cuadros.push({ label: i === 0 ? group.label : `${group.label} (cont.)`, stage: 'route', photos })
+      })
+    }
   }
   return cuadros
 }
@@ -210,14 +220,27 @@ function CuadroView({ cuadro }: { cuadro: Cuadro }) {
     <View style={styles.cuadro} wrap={false}>
       <Text style={styles.cuadroHeader}>{cuadro.label}</Text>
       <View style={styles.photoGrid}>
-        {cuadro.photos.map((entry) => (
-          <View key={entry.photo.id} style={styles.photoCell}>
-            <View style={styles.photoBox}>
-              {/* eslint-disable-next-line jsx-a11y/alt-text */}
-              <Image src={entry.photo.url} style={styles.photo} />
-            </View>
-          </View>
-        ))}
+        {cuadro.stage === 'weighing'
+          ? (cuadro.pairs ?? []).map((pair, i) => (
+              <View key={`${pair.container_id}-${i}`} style={styles.photoCell}>
+                <View style={[styles.photoBox, { marginBottom: 2 }]}>
+                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                  {pair.scale && <Image src={pair.scale.url} style={styles.photo} />}
+                </View>
+                <View style={styles.photoBox}>
+                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                  {pair.tacho && <Image src={pair.tacho.url} style={styles.photo} />}
+                </View>
+              </View>
+            ))
+          : (cuadro.photos ?? []).map((entry) => (
+              <View key={entry.photo.id} style={styles.photoCell}>
+                <View style={styles.photoBox}>
+                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                  <Image src={entry.photo.url} style={styles.photo} />
+                </View>
+              </View>
+            ))}
       </View>
       <View style={styles.comentario}>
         <Text style={styles.comentarioLabel}>Comentario:</Text>
