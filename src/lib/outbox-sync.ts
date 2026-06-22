@@ -1,5 +1,8 @@
 import type { DB } from './supabase/queries/_helpers'
+import type { Database } from './supabase/database.types'
 import { getPhotoBlob, type OutboxOp, type OutboxOpType, listOps, removeOp, bumpAttempts, removePhotoBlob } from './offline-queue'
+
+type OutboxTable = keyof Database['public']['Tables']
 
 /** Mapa de ops de tabla simple → nombre de tabla. Su payload es la fila completa
  *  (con id de cliente). Se upserta con onConflict 'id'. */
@@ -18,7 +21,7 @@ const BUCKET = 'photos'
 export function isNetworkError(err: unknown): boolean {
   if (err instanceof TypeError) return true // fetch lanza TypeError sin red
   const msg = err instanceof Error ? err.message : String(err)
-  return /failed to fetch|network|fetch failed|load failed/i.test(msg)
+  return /failed to fetch|fetch failed|load failed|networkerror/i.test(msg)
 }
 
 /**
@@ -31,8 +34,7 @@ export async function applyOp(db: DB, op: OutboxOp): Promise<void> {
 
   const table = TABLE_FOR_TYPE[op.type]
   if (!table) throw new Error(`applyOp: tipo no soportado ${op.type}`)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (db.from as any)(table).upsert(op.payload, { onConflict: 'id' })
+  const { error } = await db.from(table as OutboxTable).upsert(op.payload as never, { onConflict: 'id' })
   if (error) throw new Error(`${table} upsert: ${error.message}`)
 }
 
@@ -40,8 +42,7 @@ async function applyRouteContainers(db: DB, op: OutboxOp): Promise<void> {
   const table = op.payload.table as string
   const rows = op.payload.rows as Record<string, unknown>[]
   if (rows.length === 0) return
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (db.from as any)(table).upsert(rows, { onConflict: 'route_event_id,container_id' })
+  const { error } = await db.from(table as OutboxTable).upsert(rows as never, { onConflict: 'route_event_id,container_id' })
   if (error) throw new Error(`${table} upsert: ${error.message}`)
 }
 
@@ -117,7 +118,6 @@ async function applyUploadPhoto(db: DB, op: OutboxOp): Promise<void> {
     id: p.photo_id, storage_path: path, event_type: p.event_type, event_id: p.event_id,
     label: p.label, uploaded_by: p.uploaded_by, taken_at: p.taken_at, role: p.role,
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (db.from as any)('photos').upsert(row, { onConflict: 'id' })
+  const { error } = await db.from('photos').upsert(row as never, { onConflict: 'id' })
   if (error) throw new Error(`photos upsert: ${error.message}`)
 }

@@ -79,4 +79,7 @@ describe('isNetworkError', () => {
     expect(isNetworkError(new TypeError('Failed to fetch'))).toBe(true)
     expect(isNetworkError(new Error('duplicate key value'))).toBe(false)
   })
+  it('NO clasifica como red un rechazo de servidor que contenga la palabra network', () => {
+    expect(isNetworkError(new Error('network policy violation'))).toBe(false)
+  })
 })

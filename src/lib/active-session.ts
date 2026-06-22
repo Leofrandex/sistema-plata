@@ -50,7 +50,6 @@ export interface ActiveSession {
   context: SessionContext
 }
 
-
 export function routeAndenSessionKey(date: string, slot: RouteSlot): string {
   return `route:anden:${date}:${slot}`
 }
