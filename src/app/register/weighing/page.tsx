@@ -25,7 +25,8 @@ import {
   type ActiveSession,
 } from '@/lib/active-session'
 import { getPendingWeighingContainerIds, getContainerCurrentCompanyId, formatTachoNumber, getMetallicContainers } from '@/lib/data/containers'
-import { uploadEventPhotos } from '@/lib/data/photos'
+import { enqueueEventPhotos } from '@/lib/data/photos'
+import { submitWeighingSession, submitReception, submitTreatmentRun, submitStorageEvent, submitContainerLocation, receptionOpId } from '@/lib/data/field-writes'
 import { createClient } from '@/lib/supabase/client'
 import * as q from '@/lib/supabase/queries'
 import { ConfirmVoidDialog } from '@/components/ui/confirm-void-dialog'
@@ -136,47 +137,20 @@ export default function WeighingPage() {
   }
 
   async function handleStart() {
-    // El botón ya está bloqueado hasta que currentProfileId esté hidratado
-    // (ver StartSessionButton); este guard es defensivo.
     if (!currentProfileId || !client) return
     const now = new Date().toISOString()
-    // Crear sesión en Supabase y usar el id que retorna
-    let createdId: string
-    try {
-      const supabase = createClient()
-      const row = await q.createWeighingSession(supabase, {
-        client_id: client.id,
-        date: today,
-        started_at: now,
-        operator_id: currentProfileId,
-        status: 'in_progress',
-      })
-      createdId = row.id
-    } catch (err) {
-      console.error('[pesaje] crear sesión falló:', err)
-      return
-    }
+    const createdId = crypto.randomUUID()
+    await submitWeighingSession({
+      id: createdId, client_id: client.id, date: today,
+      started_at: now, operator_id: currentProfileId,
+    })
     addWeighingSession({
-      id: createdId,
-      client_id: client.id,
-      date: today,
-      started_at: now,
-      ended_at: null,
-      operator_id: currentProfileId,
-      status: 'in_progress',
-      reception_ids: [],
+      id: createdId, client_id: client.id, date: today, started_at: now,
+      ended_at: null, operator_id: currentProfileId, status: 'in_progress', reception_ids: [],
     })
     const newSession: ActiveSession = {
-      key: weighingSessionKey(today),
-      type: 'weighing',
-      started_at: now,
-      context: {
-        type: 'weighing',
-        client_id: client.id,
-        date: today,
-        operator_id: currentProfileId,
-        weighing_session_id: createdId,
-      },
+      key: weighingSessionKey(today), type: 'weighing', started_at: now,
+      context: { type: 'weighing', client_id: client.id, date: today, operator_id: currentProfileId, weighing_session_id: createdId },
     }
     await startSession(newSession)
     setActiveSession(newSession)
@@ -198,75 +172,39 @@ export default function WeighingPage() {
     }
   }
 
-  /**
-   * Sube las fotos de una recepción a Storage, las registra en `public.photos`
-   * y las refleja en el store con su URL firmada para mostrarse al instante.
-   * Devuelve los IDs reales (de la BD) de las fotos subidas con éxito.
-   */
   async function persistWeighingPhotos(
-    receptionId: string,
-    label: string,
-    takenAt: string,
-    dataUrls: (string | null | undefined)[]
+    receptionId: string, label: string, takenAt: string, dataUrls: (string | null | undefined)[],
   ): Promise<string[]> {
-    const supabase = createClient()
-    const uploaded = await uploadEventPhotos(supabase, {
-      dataUrls,
-      eventType: 'weighing',
-      eventId: receptionId,
-      label,
-      uploadedBy: currentProfileId,
-      takenAt,
+    const enqueued = await enqueueEventPhotos({
+      dataUrls, eventType: 'weighing', eventId: receptionId, label,
+      uploadedBy: currentProfileId, takenAt, parentOpId: receptionOpId(receptionId),
     })
-    uploaded.forEach(addPhoto)
-    return uploaded.map((p) => p.id)
+    enqueued.forEach(addPhoto)
+    return enqueued.map((p) => p.id)
   }
 
   async function handleCreateReception(currentSessionId: string, gross: number) {
     if (!session || !currentProfileId) return
     const now = new Date().toISOString()
     const label = buildPhotoLabel()
+    const receptionId = crypto.randomUUID()
 
-    // 1) Insertar reception en Supabase para obtener el id real
-    let receptionId: string
-    try {
-      const supabase = createClient()
-      const row = await q.createReception(supabase, {
-        container_id: formState.container_id,
-        weighing_session_id: currentSessionId,
-        arrived_at: now,
-        gross_weight_kg: gross,
-        operator_id: currentProfileId,
-        observations: formState.observations,
-        company_id: inheritedCompanyId,
-        waste_type: formState.waste_type,
-        treat_immediately: formState.treat_immediately,
-      })
-      receptionId = row.id
-    } catch (err) {
-      console.error('[pesaje] crear reception falló:', err)
-      return
-    }
+    await submitReception({
+      id: receptionId, container_id: formState.container_id, weighing_session_id: currentSessionId,
+      arrived_at: now, gross_weight_kg: gross, operator_id: currentProfileId,
+      observations: formState.observations, company_id: inheritedCompanyId,
+      waste_type: formState.waste_type, treat_immediately: formState.treat_immediately,
+    })
 
-    // 2) Subir fotos a Storage + registrar en public.photos
     const photoIds = await persistWeighingPhotos(receptionId, label, now, [
-      formState.photo_container,
-      formState.photo_scale,
+      formState.photo_container, formState.photo_scale,
     ])
 
-    // 3) Actualizar store
     addReception({
-      id: receptionId,
-      container_id: formState.container_id,
-      weighing_session_id: currentSessionId,
-      arrived_at: now,
-      gross_weight_kg: gross,
-      operator_id: currentProfileId,
-      photo_ids: photoIds,
-      observations: formState.observations,
-      company_id: inheritedCompanyId,
-      waste_type: formState.waste_type,
-      treat_immediately: formState.treat_immediately,
+      id: receptionId, container_id: formState.container_id, weighing_session_id: currentSessionId,
+      arrived_at: now, gross_weight_kg: gross, operator_id: currentProfileId, photo_ids: photoIds,
+      observations: formState.observations, company_id: inheritedCompanyId,
+      waste_type: formState.waste_type, treat_immediately: formState.treat_immediately,
     })
     updateWeighingSession(currentSessionId, {
       reception_ids: [...session.reception_ids, receptionId],
@@ -387,71 +325,37 @@ export default function WeighingPage() {
     const ctx = activeSession.context
     const now = new Date().toISOString()
 
-    // 1. Cerrar la sesión en Supabase y luego en store
+    // Cerrar sesión: optimista en store + intento online best-effort (si la
+    // sesión aún está en cola, el upsert de creación ya la llevará como in_progress;
+    // el cierre se reintenta al reabrir/hidratar). No bloquea.
+    updateWeighingSession(ctx.weighing_session_id, { status: 'completed', ended_at: now })
     try {
-      const supabase = createClient()
-      await q.updateWeighingSession(supabase, ctx.weighing_session_id, {
-        status: 'completed',
-        ended_at: now,
-      })
+      await q.updateWeighingSession(createClient(), ctx.weighing_session_id, { status: 'completed', ended_at: now })
     } catch (err) {
-      console.error('[pesaje] cerrar sesión falló:', err)
-      return
+      console.error('[pesaje] cerrar sesión (online) falló, sigue local:', err)
     }
-    updateWeighingSession(ctx.weighing_session_id, {
-      status: 'completed',
-      ended_at: now,
-    })
 
-    // 2. Crear TreatmentRun (inmediato) o StorageEvent + ContainerLocation por reception.
-    //    Todo se persiste a Supabase primero y se refleja en el store con el id real.
-    const supabaseEvents = createClient()
+    // Derivados por reception: TreatmentRun (inmediato) o StorageEvent + ContainerLocation.
     for (const r of sessionReceptions) {
       if (r.treat_immediately && r.waste_type === 'infectious') {
-        try {
-          const tr = await q.createTreatmentRun(supabaseEvents, {
-            container_id: r.container_id,
-            started_at: now,
-            completed_at: now,
-            operator_id: currentProfileId,
-          })
-          addTreatmentRun({ id: tr.id, container_id: r.container_id, started_at: now, completed_at: now, operator_id: currentProfileId })
-          const loc = await q.createContainerLocation(supabaseEvents, {
-            container_id: r.container_id, reported_at: now, operator_id: currentProfileId,
-            location_type: 'treatment', client_id: null, floor: null, area: null, notes: 'Tratado al finalizar pesaje',
-          })
-          addLocation({
-            id: loc.id, container_id: r.container_id, reported_at: now, operator_id: currentProfileId,
-            location_type: 'treatment', client_id: null, floor: null, area: null, notes: 'Tratado al finalizar pesaje',
-          })
-        } catch (err) {
-          console.error('[pesaje] tratamiento inmediato falló:', err)
-        }
+        const trId = crypto.randomUUID()
+        await submitTreatmentRun({ id: trId, container_id: r.container_id, started_at: now, completed_at: now, operator_id: currentProfileId })
+        addTreatmentRun({ id: trId, container_id: r.container_id, started_at: now, completed_at: now, operator_id: currentProfileId })
+        const locId = crypto.randomUUID()
+        await submitContainerLocation({ id: locId, container_id: r.container_id, reported_at: now, operator_id: currentProfileId, location_type: 'treatment', client_id: null, floor: null, area: null, notes: 'Tratado al finalizar pesaje' })
+        addLocation({ id: locId, container_id: r.container_id, reported_at: now, operator_id: currentProfileId, location_type: 'treatment', client_id: null, floor: null, area: null, notes: 'Tratado al finalizar pesaje' })
       } else {
-        try {
-          const st = await q.createStorageEvent(supabaseEvents, {
-            container_id: r.container_id, entry_at: now, exit_at: null, operator_id: currentProfileId,
-          })
-          addStorageEvent({ id: st.id, container_id: r.container_id, entry_at: now, exit_at: null, operator_id: currentProfileId, photo_ids: [] })
-          const loc = await q.createContainerLocation(supabaseEvents, {
-            container_id: r.container_id, reported_at: now, operator_id: currentProfileId,
-            location_type: 'cold_storage', client_id: null, floor: null, area: null, notes: 'Cámara fría (auto tras pesaje)',
-          })
-          addLocation({
-            id: loc.id, container_id: r.container_id, reported_at: now, operator_id: currentProfileId,
-            location_type: 'cold_storage', client_id: null, floor: null, area: null, notes: 'Cámara fría (auto tras pesaje)',
-          })
-        } catch (err) {
-          console.error('[pesaje] pase a cámara fría falló:', err)
-        }
+        const stId = crypto.randomUUID()
+        await submitStorageEvent({ id: stId, container_id: r.container_id, entry_at: now, operator_id: currentProfileId })
+        addStorageEvent({ id: stId, container_id: r.container_id, entry_at: now, exit_at: null, operator_id: currentProfileId, photo_ids: [] })
+        const locId = crypto.randomUUID()
+        await submitContainerLocation({ id: locId, container_id: r.container_id, reported_at: now, operator_id: currentProfileId, location_type: 'cold_storage', client_id: null, floor: null, area: null, notes: 'Cámara fría (auto tras pesaje)' })
+        addLocation({ id: locId, container_id: r.container_id, reported_at: now, operator_id: currentProfileId, location_type: 'cold_storage', client_id: null, floor: null, area: null, notes: 'Cámara fría (auto tras pesaje)' })
       }
     }
 
-    // 3. Borrar la ActiveSession
     await endSession(activeSession.key)
     setActiveSession(null)
-
-    // 4. Volver a dashboard
     router.push('/dashboard')
   }
 
