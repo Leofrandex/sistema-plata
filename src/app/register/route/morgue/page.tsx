@@ -12,7 +12,8 @@ import { StartSessionButton } from '@/components/register/start-session-button'
 import { useStore } from '@/lib/store'
 import { createClient } from '@/lib/supabase/client'
 import * as q from '@/lib/supabase/queries'
-import { uploadEventPhotos } from '@/lib/data/photos'
+import { enqueueEventPhotos } from '@/lib/data/photos'
+import { submitRouteEvent, routeEventOpId } from '@/lib/data/field-writes'
 import { useElapsed, formatElapsed } from '@/hooks/use-elapsed'
 import {
   startSession,
@@ -22,7 +23,6 @@ import {
   todayLocal,
   type ActiveSession,
 } from '@/lib/active-session'
-import type { RouteEvent } from '@/lib/types'
 
 export default function RegisterMorgueRoutePage() {
   const router = useRouter()
@@ -97,65 +97,32 @@ export default function RegisterMorgueRoutePage() {
   }
 
   async function handleStart() {
-    // El botón ya está bloqueado hasta que currentProfileId esté hidratado
-    // (ver StartSessionButton); este guard es defensivo.
     if (!currentProfileId || !client) return
     if (!companyId) { alert('Seleccioná la empresa del recorrido antes de iniciar.'); return }
     const now = new Date().toISOString()
+    const routeEventId = crypto.randomUUID()
 
-    // Crear el recorrido en Supabase y usar el id (uuid) que retorna.
-    let routeEventId: string
-    try {
-      const supabase = createClient()
-      const row = await q.createRouteEvent(supabase, {
-        client_id: client.id,
-        company_id: companyId || null,
-        kind: 'morgue',
-        slot: null,
-        date: today,
-        started_at: now,
-        operator_id: currentProfileId,
-        status: 'in_progress',
-      })
-      routeEventId = row.id
-    } catch (err) {
-      console.error('[recorrido morgue] crear recorrido falló:', err)
-      return
-    }
+    await submitRouteEvent(
+      {
+        id: routeEventId, client_id: client.id, company_id: companyId || null,
+        kind: 'morgue', slot: null, date: today, started_at: now,
+        operator_id: currentProfileId, status: 'in_progress', area: formState.area,
+      },
+      [], [],
+    )
 
     addRouteEvent({
-      id: routeEventId,
-      client_id: client.id,
-      company_id: companyId || null,
-      kind: 'morgue',
-      slot: null,
-      date: today,
-      started_at: now,
-      ended_at: null,
-      operator_id: currentProfileId,
-      status: 'in_progress',
+      id: routeEventId, client_id: client.id, company_id: companyId || null,
+      kind: 'morgue', slot: null, date: today, started_at: now, ended_at: null,
+      operator_id: currentProfileId, status: 'in_progress',
       containers_dirty_received: formState.dirtyReceivedIds,
       containers_clean_delivered: formState.cleanDeliveredIds,
-      area: formState.area,
-      photo_ids: [],
-      dirty_photo_ids: [],
-      clean_photo_ids: [],
+      area: formState.area, photo_ids: [], dirty_photo_ids: [], clean_photo_ids: [],
       signature_photo_id: null,
     })
     const session: ActiveSession = {
-      key: routeMorgueSessionKey(today, now),
-      type: 'route',
-      started_at: now,
-      context: {
-        type: 'route',
-        client_id: client.id,
-        company_id: companyId,
-        kind: 'morgue',
-        slot: null,
-        date: today,
-        operator_id: currentProfileId,
-        route_event_id: routeEventId,
-      },
+      key: routeMorgueSessionKey(today, now), type: 'route', started_at: now,
+      context: { type: 'route', client_id: client.id, company_id: companyId, kind: 'morgue', slot: null, date: today, operator_id: currentProfileId, route_event_id: routeEventId },
     }
     await startSession(session)
     setActiveSession(session)
@@ -183,67 +150,39 @@ export default function RegisterMorgueRoutePage() {
     if (!activeSession || activeSession.context.type !== 'route') return
     const now = new Date().toISOString()
     const routeEventId = activeSession.context.route_event_id
-
-    const supabase = createClient()
+    const ctx = activeSession.context
     const label = `PTDP Morgue ${client?.name ?? ''} ${new Date().toLocaleDateString('es-PA')} ${new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })}`
 
-    // 1. PRIMERO lo crítico: cerrar el recorrido + sincronizar tachos (rápido).
-    try {
-      await q.updateRouteEvent(supabase, routeEventId, {
-        status: 'completed',
-        ended_at: now,
-        area: formState.area,
-      })
-      await q.setRouteContainersDirty(supabase, routeEventId, formState.dirtyReceivedIds)
-      await q.setRouteContainersClean(supabase, routeEventId, formState.cleanDeliveredIds)
-    } catch (err) {
-      console.error('[recorrido morgue] cerrar recorrido falló:', err)
-      alert('No se pudo finalizar el recorrido. Revisá tu conexión e intentá de nuevo.')
-      return
-    }
+    // Re-encolar el evento como completed + tachos (idempotente por op_id/id).
+    await submitRouteEvent(
+      {
+        id: routeEventId, client_id: ctx.client_id, company_id: ctx.company_id ?? null,
+        kind: 'morgue', slot: null, date: today, started_at: activeSession.started_at,
+        ended_at: now, operator_id: ctx.operator_id, status: 'completed', area: formState.area,
+      },
+      formState.dirtyReceivedIds, formState.cleanDeliveredIds,
+    )
 
-    // 2. DESPUÉS las fotos (lento). El recorrido ya quedó cerrado.
-    let dirtyIds: string[] = []
-    let cleanIds: string[] = []
-    let signatureId: string | null = null
-    try {
-      const upDirty = await uploadEventPhotos(supabase, {
-        dataUrls: formState.dirtyPhotos, eventType: 'route', eventId: routeEventId,
-        label, uploadedBy: currentProfileId, takenAt: now, role: 'dirty',
-      })
-      const upClean = await uploadEventPhotos(supabase, {
-        dataUrls: formState.cleanPhotos, eventType: 'route', eventId: routeEventId,
-        label, uploadedBy: currentProfileId, takenAt: now, role: 'clean',
-      })
-      const upSignature = await uploadEventPhotos(supabase, {
-        dataUrls: formState.signature ? [formState.signature] : [], eventType: 'route', eventId: routeEventId,
-        label, uploadedBy: currentProfileId, takenAt: now, role: 'signature',
-      })
-      ;[...upDirty, ...upClean, ...upSignature].forEach(addPhoto)
-      dirtyIds = upDirty.map((p) => p.id)
-      cleanIds = upClean.map((p) => p.id)
-      signatureId = upSignature[0]?.id ?? null
-    } catch (err) {
-      console.error('[recorrido morgue] subir fotos falló (recorrido ya cerrado):', err)
-      alert('El recorrido se finalizó, pero algunas fotos no se subieron por la conexión.')
-    }
+    const parentOpId = routeEventOpId(routeEventId)
+    const upDirty = await enqueueEventPhotos({ dataUrls: formState.dirtyPhotos, eventType: 'route', eventId: routeEventId, label, uploadedBy: currentProfileId, takenAt: now, role: 'dirty', parentOpId })
+    const upClean = await enqueueEventPhotos({ dataUrls: formState.cleanPhotos, eventType: 'route', eventId: routeEventId, label, uploadedBy: currentProfileId, takenAt: now, role: 'clean', parentOpId })
+    const upSig = await enqueueEventPhotos({ dataUrls: formState.signature ? [formState.signature] : [], eventType: 'route', eventId: routeEventId, label, uploadedBy: currentProfileId, takenAt: now, role: 'signature', parentOpId })
+    ;[...upDirty, ...upClean, ...upSig].forEach(addPhoto)
+    const dirtyIds = upDirty.map((p) => p.id)
+    const cleanIds = upClean.map((p) => p.id)
+    const signatureId = upSig[0]?.id ?? null
 
-    const patch: Partial<RouteEvent> = {
-      status: 'completed',
-      ended_at: now,
-      dirty_photo_ids: dirtyIds,
-      clean_photo_ids: cleanIds,
-      photo_ids: [...dirtyIds, ...cleanIds],
-      signature_photo_id: signatureId,
+    updateRouteEvent(routeEventId, {
+      status: 'completed', ended_at: now, area: formState.area,
       containers_dirty_received: formState.dirtyReceivedIds,
       containers_clean_delivered: formState.cleanDeliveredIds,
-      area: formState.area,
-    }
-    updateRouteEvent(routeEventId, patch)
+      dirty_photo_ids: dirtyIds, clean_photo_ids: cleanIds,
+      photo_ids: [...dirtyIds, ...cleanIds], signature_photo_id: signatureId,
+    })
 
     await endSession(activeSession.key)
     setActiveSession(null)
-
+    setFormState({ companyId: '', dirtyReceivedIds: [], cleanDeliveredIds: [], area: '', dirtyPhotos: [], cleanPhotos: [], signature: null })
     router.push('/register/route')
   }
 
