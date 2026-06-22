@@ -25,11 +25,23 @@ export interface CirculationBreakdown {
 }
 
 const BUCKET_DEFINITIONS: Array<{ key: CirculationBucket; label: string; color: string }> = [
-  { key: 'en_planta',        label: 'En planta',           color: '#94A3B8' }, // slate
-  { key: 'en_cliente',       label: 'En cliente',          color: '#10B981' }, // emerald
-  { key: 'pendiente_pesar',  label: 'Pendiente por pesar', color: '#F59E0B' }, // amber
-  { key: 'pendiente_tratar', label: 'Pendiente por tratar', color: '#2A27E9' }, // accent
+  { key: 'en_planta',        label: 'En planta',           color: '#16A34A' }, // verde
+  { key: 'en_cliente',       label: 'En cliente',          color: '#F97316' }, // naranja
+  { key: 'pendiente_pesar',  label: 'Pendiente por pesar', color: '#94A3B8' }, // gris
+  { key: 'pendiente_tratar', label: 'Pendiente por tratar', color: '#DC2626' }, // rojo
 ]
+
+const BUCKET_BY_KEY = new Map(BUCKET_DEFINITIONS.map((d) => [d.key, d]))
+
+/** Color hex del estado de circulación (mismo que usa el dashboard). */
+export function circulationColor(bucket: CirculationBucket): string {
+  return BUCKET_BY_KEY.get(bucket)!.color
+}
+
+/** Label en español del estado de circulación. */
+export function circulationLabel(bucket: CirculationBucket): string {
+  return BUCKET_BY_KEY.get(bucket)!.label
+}
 
 interface CirculationStoreSlice {
   containers: Container[]

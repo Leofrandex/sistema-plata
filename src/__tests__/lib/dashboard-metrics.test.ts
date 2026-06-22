@@ -3,6 +3,8 @@ import {
   computeCirculationBucket,
   computeDailyKg,
   computeMonthlyKgByCompany,
+  circulationColor,
+  circulationLabel,
 } from '@/lib/data/dashboard-metrics'
 import type { Container, RouteEvent, ContainerReception, TreatmentRun, ExternalTransfer } from '@/lib/types'
 import {
@@ -209,5 +211,18 @@ describe('computeCirculationBucket (línea de tiempo)', () => {
     const receptions = [rec({ arrived_at: '2026-06-12T10:00:00Z' })]
     const treatmentRuns: TreatmentRun[] = [{ id: 't', container_id: '001', started_at: '2026-06-12T12:00:00Z', completed_at: '2026-06-12T12:00:00Z', operator_id: 'op' }]
     expect(computeCirculationBucket(cont, { ...base, routeEvents, receptions, treatmentRuns })).toBe('en_planta')
+  })
+})
+
+describe('circulationColor / circulationLabel', () => {
+  it('devuelve los colores nuevos por estado', () => {
+    expect(circulationColor('en_planta')).toBe('#16A34A')
+    expect(circulationColor('en_cliente')).toBe('#F97316')
+    expect(circulationColor('pendiente_pesar')).toBe('#94A3B8')
+    expect(circulationColor('pendiente_tratar')).toBe('#DC2626')
+  })
+  it('devuelve el label en español por estado', () => {
+    expect(circulationLabel('en_planta')).toBe('En planta')
+    expect(circulationLabel('pendiente_tratar')).toBe('Pendiente por tratar')
   })
 })
