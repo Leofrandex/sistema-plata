@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import * as q from '@/lib/supabase/queries'
 import { useStore } from '@/lib/store'
+import { mergeById, pendingRecordIds } from '@/lib/data/hydrate-merge'
 import type {
   Container,
   WeighingSession,
@@ -140,16 +141,18 @@ export function SupabaseHydrator() {
         const locations: ContainerLocation[] = locationsRaw.map(rowToLocation)
         const users = profilesRaw.map((p) => ({ id: p.id, name: p.name }))
 
+        const pend = await pendingRecordIds()
+        const prev = useStore.getState()
         useStore.getState().hydrate({
           containers,
-          weighingSessions,
-          receptions,
-          routeEvents,
+          weighingSessions: mergeById(weighingSessions, prev.weighingSessions, pend),
+          receptions: mergeById(receptions, prev.receptions, pend),
+          routeEvents: mergeById(routeEvents, prev.routeEvents, pend),
           photos,
-          storageEvents,
-          treatmentRuns,
+          storageEvents: mergeById(storageEvents, prev.storageEvents, pend),
+          treatmentRuns: mergeById(treatmentRuns, prev.treatmentRuns, pend),
           externalTransfers,
-          locations,
+          locations: mergeById(locations, prev.locations, pend),
           users,
         })
         // Éxito: marcamos la conexión como online.
