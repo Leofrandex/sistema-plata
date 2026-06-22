@@ -298,4 +298,35 @@ describe('buildPhotographicReportData (por empresa)', () => {
     const airkemReport = buildPhotographicReportData('company-airkem', isoStore, isoRange)!
     expect(airkemReport.meta.weighingReceptionCount).toBe(0)
   })
+
+  it('pares de pesaje: scale = photo_ids[1], tacho = photo_ids[0]', () => {
+    const data = buildPhotographicReportData('company-ion', ionStore, range)!
+    const wGroup = data.days[0].groups.find((g) => g.stage === 'weighing' && g.pairs)!
+    expect(wGroup.pairs).toBeDefined()
+    // reception-ion-1: photo_ids ['photo-ion-w1-1' (tacho), 'photo-ion-w1-2' (peso)]
+    expect(wGroup.pairs![0].tacho!.id).toBe('photo-ion-w1-1')
+    expect(wGroup.pairs![0].scale!.id).toBe('photo-ion-w1-2')
+    // El conteo de fotos de pesaje no cambia
+    expect(data.meta.weighingPhotoCount).toBe(4)
+  })
+
+  it('excluye la foto de firma del recorrido (signature_photo_id)', () => {
+    const withSig: ReportStoreSlice = {
+      ...ionStore,
+      routeEvents: ionStore.routeEvents.map((e) =>
+        e.id === 'route-ion-1'
+          ? { ...e, photo_ids: [...e.photo_ids, 'photo-ion-sig'], signature_photo_id: 'photo-ion-sig' }
+          : e,
+      ),
+      photos: [
+        ...ionStore.photos,
+        { id: 'photo-ion-sig', url: 'https://placehold.co/400x300?text=SIG', event_type: 'route' as const, event_id: 'route-ion-1', taken_at: '2026-05-17T07:45:00-05:00', label: 'Firma' },
+      ],
+    }
+    const data = buildPhotographicReportData('company-ion', withSig, range)!
+    const allPhotoIds = data.days.flatMap((d) => d.groups).flatMap((g) => g.photos).map((e) => e.photo.id)
+    expect(allPhotoIds).not.toContain('photo-ion-sig')
+    // sigue contando solo las 5 fotos de ruta reales (no la firma)
+    expect(data.meta.routePhotoCount).toBe(5)
+  })
 })

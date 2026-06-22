@@ -19,11 +19,20 @@ export interface ReportPhotoEntry {
   comment: string
 }
 
+/** Par peso/tacho de un pesaje, para render columnar en el reporte. */
+export interface WeighingPair {
+  container_id: string
+  container: Container | null
+  scale: Photo | null   // foto del peso/balanza (photo_ids[1])
+  tacho: Photo | null   // foto del tacho (photo_ids[0])
+}
+
 /** Grupo de fotos con una etiqueta (se renderiza como un "cuadro" o varios si >8). */
 export interface ReportPhotoGroup {
   label: string
   stage: 'route' | 'weighing'
   photos: ReportPhotoEntry[]
+  pairs?: WeighingPair[]   // solo en grupos de pesaje
 }
 
 /** Un día del reporte. Cada día arranca en página nueva. */
@@ -191,6 +200,7 @@ export function buildPhotographicReportData(
       const dirtyOfCompany = ev.containers_dirty_received.filter((cid) => containerIds.has(cid))
       const cleanOfCompany = ev.containers_clean_delivered.filter((cid) => containerIds.has(cid))
       for (const photoId of ev.photo_ids) {
+        if (photoId === ev.signature_photo_id) continue
         const photo = photoMap.get(photoId)
         if (!photo) continue
         out.push({
@@ -205,26 +215,22 @@ export function buildPhotographicReportData(
     return out.sort(byTakenAt)
   }
 
-  function weighingPhotoEntries(recs: ContainerReception[]): ReportPhotoEntry[] {
-    const out: ReportPhotoEntry[] = []
+  function weighingGroupContent(recs: ContainerReception[]): { pairs: WeighingPair[]; photos: ReportPhotoEntry[] } {
     const sorted = [...recs].sort(
       (a, b) => new Date(a.arrived_at).getTime() - new Date(b.arrived_at).getTime(),
     )
+    const pairs: WeighingPair[] = []
+    const photos: ReportPhotoEntry[] = []
     for (const rec of sorted) {
       const container = containerMap.get(rec.container_id) ?? null
-      for (const photoId of rec.photo_ids) {
-        const photo = photoMap.get(photoId)
-        if (!photo) continue
-        out.push({
-          photo,
-          container_id: rec.container_id,
-          container,
-          taken_at: photo.taken_at,
-          comment: '',
-        })
-      }
+      const tacho = rec.photo_ids[0] ? photoMap.get(rec.photo_ids[0]) ?? null : null
+      const scale = rec.photo_ids[1] ? photoMap.get(rec.photo_ids[1]) ?? null : null
+      if (!tacho && !scale) continue
+      pairs.push({ container_id: rec.container_id, container, scale, tacho })
+      if (scale) photos.push({ photo: scale, container_id: rec.container_id, container, taken_at: scale.taken_at, comment: '' })
+      if (tacho) photos.push({ photo: tacho, container_id: rec.container_id, container, taken_at: tacho.taken_at, comment: '' })
     }
-    return out
+    return { pairs, photos }
   }
 
   // Construir mapa día → grupos
@@ -252,10 +258,12 @@ export function buildPhotographicReportData(
       stage: 'route',
       photos: routePhotoEntries(events),
     })
+    const rutaWeighing = weighingGroupContent(receptionsByRuta.get(key) ?? [])
     pushGroup(date, {
       label: `Pesaje — ${def.ordinal} ruta`,
       stage: 'weighing',
-      photos: weighingPhotoEntries(receptionsByRuta.get(key) ?? []),
+      photos: rutaWeighing.photos,
+      pairs: rutaWeighing.pairs,
     })
   }
 
@@ -268,10 +276,12 @@ export function buildPhotographicReportData(
     orphanByDate.set(d, arr)
   }
   for (const [date, recs] of orphanByDate) {
+    const orphanWeighing = weighingGroupContent(recs)
     pushGroup(date, {
       label: 'Pesaje',
       stage: 'weighing',
-      photos: weighingPhotoEntries(recs),
+      photos: orphanWeighing.photos,
+      pairs: orphanWeighing.pairs,
     })
   }
 
