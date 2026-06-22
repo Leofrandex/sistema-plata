@@ -345,11 +345,17 @@ export default function RegisterRouteSlotPage({ params }: Props) {
   async function handleFinish() {
     if (!activeSession) return
     const now = new Date().toISOString()
-    const supabase = createClient()
     // Marcar todos los andenes in_progress del horario como completed.
+    // Re-encolar con el mismo op_id → sobrescribe la op pendiente (idempotente offline).
     for (const a of sessionAndenes) {
-      try { await q.updateRouteEvent(supabase, a.id, { status: 'completed', ended_at: now }) }
-      catch (err) { console.error('[recorrido andén] finalizar (online) falló, sigue local:', err) }
+      await submitRouteEvent(
+        {
+          id: a.id, client_id: a.client_id, company_id: a.company_id ?? null,
+          kind: 'anden', slot: a.slot, date: a.date, started_at: a.started_at,
+          ended_at: now, operator_id: a.operator_id, status: 'completed', area: a.area,
+        },
+        a.containers_dirty_received, a.containers_clean_delivered,
+      )
       updateRouteEvent(a.id, { status: 'completed', ended_at: now })
     }
     await endSession(activeSession.key)

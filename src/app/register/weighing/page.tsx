@@ -325,15 +325,14 @@ export default function WeighingPage() {
     const ctx = activeSession.context
     const now = new Date().toISOString()
 
-    // Cerrar sesión: optimista en store + intento online best-effort (si la
-    // sesión aún está en cola, el upsert de creación ya la llevará como in_progress;
-    // el cierre se reintenta al reabrir/hidratar). No bloquea.
+    // Cerrar sesión: actualización optimista en store + re-encolar el estado completed
+    // (mismo op_id que el create → sobrescribe la op pendiente o hace upsert idempotente).
     updateWeighingSession(ctx.weighing_session_id, { status: 'completed', ended_at: now })
-    try {
-      await q.updateWeighingSession(createClient(), ctx.weighing_session_id, { status: 'completed', ended_at: now })
-    } catch (err) {
-      console.error('[pesaje] cerrar sesión (online) falló, sigue local:', err)
-    }
+    await submitWeighingSession({
+      id: ctx.weighing_session_id, client_id: ctx.client_id, date: ctx.date,
+      started_at: activeSession.started_at, operator_id: ctx.operator_id,
+      status: 'completed', ended_at: now,
+    })
 
     // Derivados por reception: TreatmentRun (inmediato) o StorageEvent + ContainerLocation.
     for (const r of sessionReceptions) {

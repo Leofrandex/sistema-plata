@@ -14,11 +14,13 @@ export function notifyOutboxChanged(): void {
 
 export async function submitWeighingSession(input: {
   id: string; client_id: string; date: string; started_at: string; operator_id: string
+  status?: 'in_progress' | 'completed'; ended_at?: string | null
 }): Promise<void> {
+  const { status = 'in_progress', ended_at = null, ...rest } = input
   await enqueueOp({
     op_id: weighingSessionOpId(input.id),
     type: 'create_weighing_session',
-    payload: { ...input, status: 'in_progress', ended_at: null } satisfies TablesInsert<'weighing_sessions'>,
+    payload: { ...rest, status, ended_at } satisfies TablesInsert<'weighing_sessions'>,
     deps: [],
   })
   notifyOutboxChanged()
