@@ -47,6 +47,7 @@ updated: 2026-05-21
 | Fix: área del andén no persistía al crear + recorrido "activo" fantasma | 🟢 Completado | `logs/2026-06-16-fix-area-anden-y-activo-fantasma.md` |
 | Historial editable (recorridos+pesajes) + rediseño 4 estados dashboard | 🟢 Completado (E2E manual pendiente; migración sin aplicar) | `logs/2026-06-17-historial-editable-y-rediseno-estados-dashboard.md` |
 | Login por tarjetas + auto-logout de operador (1h) | 🟢 Completado (roster + E2E manual pendientes) | `logs/2026-06-19-login-tarjetas-auto-logout-operador.md` |
+| Offline: outbox de campo (local-first, datos + fotos) | 🟢 Completado (E2E manual en modo avión pendiente) | `logs/2026-06-19-offline-outbox-campo.md` |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completo · ⚠️ Tiene incoherencias
 
@@ -104,6 +105,7 @@ updated: 2026-05-21
 - `logs/2026-06-16-fix-area-anden-y-activo-fantasma.md`
 - `logs/2026-06-17-historial-editable-y-rediseno-estados-dashboard.md`
 - `logs/2026-06-19-login-tarjetas-auto-logout-operador.md`
+- `logs/2026-06-19-offline-outbox-campo.md`
 
 ---
 
