@@ -54,6 +54,7 @@ vault/secrets/
 /public/sw.js.map
 /public/workbox-*.js
 /public/workbox-*.js.map
+/public/fallback-*.js
 
 # demo report artifacts (contienen fotos reales del piloto) + fuentes sueltas de logos
 /demo-report-page*.png
