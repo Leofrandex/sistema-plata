@@ -78,6 +78,9 @@ updated: 2026-05-21
 - `decisions/2026-06-01-roles-acceso.md` — roles coordinador/operador; control en UI + middleware + RLS
 - `decisions/2026-06-01-ids-tachos-supabase-vs-mock.md` — ⚠️ IDs en Supabase son numéricos sin prefijo (`020`), no `A-020`; el prefijo es solo del mock
 
+### Credenciales (sensible)
+- `credenciales/2026-06-23-passwords-temporales.md` — ⚠️ contraseñas temporales en texto plano (operadores nuevos); revierte el criterio de no versionar
+
 ### Logs de cambios
 - `logs/2026-05-03-branding-system.md`
 - `logs/2026-05-05-dashboard-containers-polish.md`

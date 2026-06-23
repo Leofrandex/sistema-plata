@@ -1,7 +1,7 @@
 'use client'
 
-import { use, useMemo } from 'react'
-import { notFound } from 'next/navigation'
+import { useMemo, Suspense } from 'react'
+import { useSearchParams, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -21,18 +21,16 @@ const WASTE_TYPE_LABELS: Record<string, string> = {
   morgue: 'Morgue',
 }
 
-interface Props {
-  params: Promise<{ id: string }>
-}
+function ContainerDetailInner() {
+  const searchParams = useSearchParams()
+  const id = searchParams.get('id')
 
-export default function ContainerDetailPage({ params }: Props) {
-  const { id } = use(params)
   const {
     containers, clients, companies, routeEvents, receptions,
     storageEvents, treatmentRuns, externalTransfers, locations, photos,
   } = useStore()
 
-  const container = containers.find((c) => c.id === id)
+  const container = id ? containers.find((c) => c.id === id) : undefined
   if (!container) notFound()
 
   const routeIds = getRouteEventIdsForContainer(routeEvents, container.id)
@@ -176,5 +174,14 @@ export default function ContainerDetailPage({ params }: Props) {
         <PhasePhotoGallery photos={containerPhotos} />
       </div>
     </div>
+  )
+}
+
+// useSearchParams must be wrapped in Suspense for static export compatibility.
+export default function ContainerDetailPage() {
+  return (
+    <Suspense>
+      <ContainerDetailInner />
+    </Suspense>
   )
 }

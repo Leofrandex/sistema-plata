@@ -19,7 +19,7 @@ export function SuccessScreen({ title, containerId, onRegisterAnother }: Props) 
       <p className="text-slate-500">Tacho {formatTachoNumber(containerId)} registrado correctamente.</p>
       <div className="flex flex-col gap-2 w-full max-w-xs">
         <Button onClick={onRegisterAnother}>Registrar otro tacho</Button>
-        <Link href={`/containers/${containerId}`}>
+        <Link href={`/containers/detail?id=${containerId}`}>
           <Button variant="outline" className="w-full">Ver tacho</Button>
         </Link>
         <Link href="/dashboard">

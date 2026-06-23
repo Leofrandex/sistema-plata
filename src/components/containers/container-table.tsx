@@ -44,7 +44,7 @@ export function ContainerTable({ rows, now }: Props) {
         </thead>
         <tbody className="divide-y">
           {rows.map((c) => {
-            const href = `/containers/${c.id}`
+            const href = `/containers/detail?id=${c.id}`
             const tiempo = c.sinceMs == null ? '—' : formatDuration(Math.max(0, now - c.sinceMs))
             return (
               <tr
