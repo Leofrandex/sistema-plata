@@ -9,6 +9,7 @@ import { SWCleanup } from '@/components/layout/sw-cleanup'
 import { ConnectionBanner } from '@/components/layout/connection-banner'
 import { SupabaseHydrator } from '@/components/supabase-hydrator'
 import { OperatorSessionGuard } from '@/components/layout/operator-session-guard'
+import { ErudaLoader } from '@/components/debug/eruda-loader'
 import { APP_NAME, APP_DESCRIPTION, APP_TAGLINE } from '@/lib/constants'
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
           <MobileBottomNav />
         </div>
+        <ErudaLoader />
       </body>
     </html>
   )
