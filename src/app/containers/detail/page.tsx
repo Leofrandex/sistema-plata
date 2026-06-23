@@ -180,7 +180,7 @@ function ContainerDetailInner() {
 // useSearchParams must be wrapped in Suspense for static export compatibility.
 export default function ContainerDetailPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Cargando…</div>}>
       <ContainerDetailInner />
     </Suspense>
   )
