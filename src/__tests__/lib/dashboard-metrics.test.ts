@@ -1,8 +1,12 @@
 import {
   computeCirculationBreakdown,
   computeCirculationBucket,
+  computeCirculationStatus,
+  formatDuration,
   computeDailyKg,
   computeMonthlyKgByCompany,
+  circulationColor,
+  circulationLabel,
 } from '@/lib/data/dashboard-metrics'
 import type { Container, RouteEvent, ContainerReception, TreatmentRun, ExternalTransfer } from '@/lib/types'
 import {
@@ -209,5 +213,55 @@ describe('computeCirculationBucket (línea de tiempo)', () => {
     const receptions = [rec({ arrived_at: '2026-06-12T10:00:00Z' })]
     const treatmentRuns: TreatmentRun[] = [{ id: 't', container_id: '001', started_at: '2026-06-12T12:00:00Z', completed_at: '2026-06-12T12:00:00Z', operator_id: 'op' }]
     expect(computeCirculationBucket(cont, { ...base, routeEvents, receptions, treatmentRuns })).toBe('en_planta')
+  })
+})
+
+describe('computeCirculationStatus', () => {
+  const cont: Container = {
+    id: '001', size_liters: 240, tare_weight_kg: 14, status: 'active',
+    registered_at: '2026-01-01T00:00:00Z',
+  }
+  const base = { routeEvents: [] as RouteEvent[], receptions: [] as ContainerReception[], treatmentRuns: [] as TreatmentRun[], externalTransfers: [] as ExternalTransfer[] }
+
+  it('sin eventos → en_planta y sinceMs null', () => {
+    expect(computeCirculationStatus(cont, base)).toEqual({ bucket: 'en_planta', sinceMs: null })
+  })
+
+  it('pesado → pendiente_tratar y sinceMs = arrived_at de la recepción', () => {
+    const receptions: ContainerReception[] = [{
+      id: 'rec', container_id: '001', weighing_session_id: 's', arrived_at: '2026-06-11T09:00:00Z',
+      gross_weight_kg: 40, operator_id: 'op', photo_ids: [], observations: '',
+    }]
+    const res = computeCirculationStatus(cont, { ...base, receptions })
+    expect(res.bucket).toBe('pendiente_tratar')
+    expect(res.sinceMs).toBe(new Date('2026-06-11T09:00:00Z').getTime())
+  })
+})
+
+describe('formatDuration', () => {
+  it('días y horas', () => {
+    expect(formatDuration((3 * 24 + 4) * 3600_000)).toBe('3d 4h')
+  })
+  it('horas y minutos', () => {
+    expect(formatDuration((5 * 3600 + 20 * 60) * 1000)).toBe('5h 20m')
+  })
+  it('solo minutos', () => {
+    expect(formatDuration(12 * 60_000)).toBe('12m')
+  })
+  it('segundos → 0m', () => {
+    expect(formatDuration(30_000)).toBe('0m')
+  })
+})
+
+describe('circulationColor / circulationLabel', () => {
+  it('devuelve los colores nuevos por estado', () => {
+    expect(circulationColor('en_planta')).toBe('#16A34A')
+    expect(circulationColor('en_cliente')).toBe('#F97316')
+    expect(circulationColor('pendiente_pesar')).toBe('#94A3B8')
+    expect(circulationColor('pendiente_tratar')).toBe('#DC2626')
+  })
+  it('devuelve el label en español por estado', () => {
+    expect(circulationLabel('en_planta')).toBe('En planta')
+    expect(circulationLabel('pendiente_tratar')).toBe('Pendiente por tratar')
   })
 })

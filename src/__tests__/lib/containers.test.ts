@@ -6,6 +6,7 @@ import {
   getContainerCurrentCompanyId,
   getMetallicContainers,
   getPendingWeighingContainerIds,
+  deriveContainerCompanyId,
 } from '@/lib/data/containers'
 import type {
   Container,
@@ -277,6 +278,35 @@ describe('getPendingWeighingContainerIds', () => {
     const voidedRoute = { ...routeWith('001'), voided_at: '2026-06-03T10:00:00Z' } as RouteEvent
     const result = getPendingWeighingContainerIds(containers, [voidedRoute], [])
     expect(result).toEqual([])
+  })
+})
+
+describe('deriveContainerCompanyId', () => {
+  const route = (over: Partial<RouteEvent>): RouteEvent => ({
+    id: 'r', client_id: 'cl', company_id: 'company-ion', kind: 'anden', slot: '06:30',
+    date: '2026-06-10', started_at: '2026-06-10T06:30:00Z', ended_at: null,
+    operator_id: 'op', status: 'completed',
+    containers_dirty_received: [], containers_clean_delivered: [], area: '', photo_ids: [], ...over,
+  })
+  const rec = (over: Partial<ContainerReception>): ContainerReception => ({
+    id: 'rec', container_id: '001', weighing_session_id: 's', arrived_at: '2026-06-11T09:00:00Z',
+    gross_weight_kg: 40, operator_id: 'op', photo_ids: [], observations: '', ...over,
+  })
+
+  it('sin registros → null', () => {
+    expect(deriveContainerCompanyId('001', [], [])).toBeNull()
+  })
+
+  it('gana el registro más reciente con company_id', () => {
+    const routes = [route({ id: 'r1', started_at: '2026-06-10T06:30:00Z', company_id: 'company-airkem', containers_dirty_received: ['001'] })]
+    const recs = [rec({ id: 'rec1', arrived_at: '2026-06-12T09:00:00Z', company_id: 'company-ion' })]
+    expect(deriveContainerCompanyId('001', routes, recs)).toBe('company-ion')
+  })
+
+  it('ignora registros anulados y sin company_id', () => {
+    const routes = [route({ id: 'r1', started_at: '2026-06-13T06:30:00Z', company_id: 'company-airkem', containers_clean_delivered: ['001'] })]
+    const recs = [rec({ id: 'rec1', arrived_at: '2026-06-14T09:00:00Z', company_id: 'company-ion', voided_at: '2026-06-15T00:00:00Z' })]
+    expect(deriveContainerCompanyId('001', routes, recs)).toBe('company-airkem')
   })
 })
 

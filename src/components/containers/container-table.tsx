@@ -2,29 +2,28 @@
 
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Badge } from '@/components/ui/badge'
-import type { ContainerWithPhase, ContainerPhase } from '@/lib/types'
+import { circulationColor, circulationLabel, formatDuration } from '@/lib/data/dashboard-metrics'
+import type { CirculationBucket } from '@/lib/data/dashboard-metrics'
+import type { ContainerSize } from '@/lib/types'
 import { formatTachoNumber } from '@/lib/data/containers'
 
-const PHASE_LABELS: Record<ContainerPhase, string> = {
-  route: 'Recorrido',
-  weighing: 'Pesaje',
-  cold_storage: 'Cámara fría',
-  treatment: 'Tratamiento',
-  transfer: 'Traslado',
-  clean: 'Limpio',
+export interface TachoRow {
+  id: string
+  size_liters: ContainerSize
+  bucket: CirculationBucket
+  sinceMs: number | null
+  company_id: string | null
 }
 
 interface Props {
-  containers: ContainerWithPhase[]
-  clients: { id: string; name: string }[]
+  rows: TachoRow[]
+  now: number
 }
 
-export function ContainerTable({ containers, clients }: Props) {
+export function ContainerTable({ rows, now }: Props) {
   const router = useRouter()
-  const clientMap = Object.fromEntries(clients.map((c) => [c.id, c.name]))
 
-  if (containers.length === 0) {
+  if (rows.length === 0) {
     return (
       <div className="rounded-xl bg-card p-12 text-center text-muted-foreground ring-1 ring-foreground/10">
         No se encontraron tachos.
@@ -39,20 +38,14 @@ export function ContainerTable({ containers, clients }: Props) {
           <tr className="border-b text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             <th className="px-4 py-3">Tacho</th>
             <th className="px-4 py-3">Tamaño</th>
-            <th className="px-4 py-3">Fase actual</th>
-            <th className="px-4 py-3">Ubicación actual</th>
+            <th className="px-4 py-3">Fase</th>
+            <th className="px-4 py-3">Tiempo en fase</th>
           </tr>
         </thead>
         <tbody className="divide-y">
-          {containers.map((c) => {
-            const loc = c.current_location
-            const locationText = loc
-              ? loc.location_type === 'client_site'
-                ? `${clientMap[loc.client_id ?? ''] ?? ''} · Piso ${loc.floor} — ${loc.area}`
-                : loc.location_type.replace('_', ' ')
-              : '—'
+          {rows.map((c) => {
             const href = `/containers/${c.id}`
-
+            const tiempo = c.sinceMs == null ? '—' : formatDuration(Math.max(0, now - c.sinceMs))
             return (
               <tr
                 key={c.id}
@@ -81,9 +74,12 @@ export function ContainerTable({ containers, clients }: Props) {
                 </td>
                 <td className="px-4 py-3 text-foreground/80">{c.size_liters} L</td>
                 <td className="px-4 py-3">
-                  <Badge variant="outline">{PHASE_LABELS[c.current_phase]}</Badge>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-block size-2 rounded-full" style={{ backgroundColor: circulationColor(c.bucket) }} />
+                    {circulationLabel(c.bucket)}
+                  </span>
                 </td>
-                <td className="px-4 py-3 max-w-xs truncate text-muted-foreground">{locationText}</td>
+                <td className="px-4 py-3 text-muted-foreground">{tiempo}</td>
               </tr>
             )
           })}

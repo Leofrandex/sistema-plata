@@ -25,11 +25,23 @@ export interface CirculationBreakdown {
 }
 
 const BUCKET_DEFINITIONS: Array<{ key: CirculationBucket; label: string; color: string }> = [
-  { key: 'en_planta',        label: 'En planta',           color: '#94A3B8' }, // slate
-  { key: 'en_cliente',       label: 'En cliente',          color: '#10B981' }, // emerald
-  { key: 'pendiente_pesar',  label: 'Pendiente por pesar', color: '#F59E0B' }, // amber
-  { key: 'pendiente_tratar', label: 'Pendiente por tratar', color: '#2A27E9' }, // accent
+  { key: 'en_planta',        label: 'En planta',           color: '#16A34A' }, // verde
+  { key: 'en_cliente',       label: 'En cliente',          color: '#F97316' }, // naranja
+  { key: 'pendiente_pesar',  label: 'Pendiente por pesar', color: '#94A3B8' }, // gris
+  { key: 'pendiente_tratar', label: 'Pendiente por tratar', color: '#DC2626' }, // rojo
 ]
+
+const BUCKET_BY_KEY = new Map(BUCKET_DEFINITIONS.map((d) => [d.key, d]))
+
+/** Color hex del estado de circulación (mismo que usa el dashboard). */
+export function circulationColor(bucket: CirculationBucket): string {
+  return BUCKET_BY_KEY.get(bucket)!.color
+}
+
+/** Label en español del estado de circulación. */
+export function circulationLabel(bucket: CirculationBucket): string {
+  return BUCKET_BY_KEY.get(bucket)!.label
+}
 
 interface CirculationStoreSlice {
   containers: Container[]
@@ -48,15 +60,20 @@ interface CirculationTimelineSlice {
   externalTransfers: ExternalTransfer[]
 }
 
+export interface CirculationStatus {
+  bucket: CirculationBucket
+  /** epoch ms del evento que dejó el tacho en este estado; null si no hay eventos. */
+  sinceMs: number | null
+}
+
 /**
- * Clasifica un tacho en uno de los 4 buckets de circulación según su evento
- * VIGENTE más reciente (modelo de línea de tiempo). Recorridos y recepciones
- * anulados (voided_at) se ignoran. Spec 2026-06-17.
+ * Clasifica un tacho y devuelve además cuándo entró a ese estado.
+ * Recorridos y recepciones anulados (voided_at) se ignoran. Spec 2026-06-17.
  */
-export function computeCirculationBucket(
+export function computeCirculationStatus(
   container: Container,
   store: CirculationTimelineSlice,
-): CirculationBucket {
+): CirculationStatus {
   const t = (iso: string | null | undefined): number => (iso ? new Date(iso).getTime() : -Infinity)
 
   let cleanDelivered = -Infinity
@@ -85,11 +102,23 @@ export function computeCirculationBucket(
   }
 
   const latest = Math.max(cleanDelivered, dirtyReceived, reception, closed)
-  if (latest === -Infinity) return 'en_planta'
-  if (latest === closed) return 'en_planta'
-  if (latest === reception) return 'pendiente_tratar'
-  if (latest === dirtyReceived) return 'pendiente_pesar'
-  return 'en_cliente'
+  const sinceMs = latest === -Infinity ? null : latest
+  let bucket: CirculationBucket
+  if (latest === -Infinity) bucket = 'en_planta'
+  else if (latest === closed) bucket = 'en_planta'
+  else if (latest === reception) bucket = 'pendiente_tratar'
+  else if (latest === dirtyReceived) bucket = 'pendiente_pesar'
+  else bucket = 'en_cliente'
+
+  return { bucket, sinceMs }
+}
+
+/** Clasificación de circulación (compatibilidad: solo el bucket). */
+export function computeCirculationBucket(
+  container: Container,
+  store: CirculationTimelineSlice,
+): CirculationBucket {
+  return computeCirculationStatus(container, store).bucket
 }
 
 export function computeCirculationBreakdown(store: CirculationStoreSlice): CirculationBreakdown {
@@ -248,4 +277,15 @@ function round2(n: number): number {
 /** Formatea un peso en kg con 2 decimales, ej: "43.70 kg". */
 export function formatKg(value: number): string {
   return `${value.toFixed(2)} kg`
+}
+
+/** Formatea una duración en ms como "Xd Yh" / "Xh Ym" / "Xm". */
+export function formatDuration(ms: number): string {
+  const totalMin = Math.floor(ms / 60_000)
+  const days = Math.floor(totalMin / (60 * 24))
+  const hours = Math.floor((totalMin % (60 * 24)) / 60)
+  const minutes = totalMin % 60
+  if (days >= 1) return `${days}d ${hours}h`
+  if (hours >= 1) return `${hours}h ${minutes}m`
+  return `${minutes}m`
 }

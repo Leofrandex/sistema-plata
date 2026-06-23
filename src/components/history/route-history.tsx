@@ -114,8 +114,11 @@ export function RouteHistory() {
                   {ev.date} · {ev.kind === 'morgue' ? 'Morgue' : ev.slot} · {companyName}
                   {ev.voided_at && <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700">ANULADO</span>}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Sucios: {ev.containers_dirty_received.map(formatTachoNumber).join(', ') || '—'} · Limpios: {ev.containers_clean_delivered.map(formatTachoNumber).join(', ') || '—'}
+                <p className="text-xs mt-1 font-medium text-green-700">
+                  Limpios ({ev.containers_clean_delivered.length}): {ev.containers_clean_delivered.map(formatTachoNumber).join(', ') || '—'}
+                </p>
+                <p className="text-xs font-medium text-red-700">
+                  Sucios ({ev.containers_dirty_received.length}): {ev.containers_dirty_received.map(formatTachoNumber).join(', ') || '—'}
                 </p>
                 {ev.area && <p className="text-xs text-muted-foreground">Área: {ev.area}</p>}
               </div>
