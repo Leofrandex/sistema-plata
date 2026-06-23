@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { signOut } from '@/lib/auth/sign-out'
 import {
   LayoutDashboard,
   Route as RouteIcon,
@@ -59,8 +60,13 @@ const MORE_LINKS: MoreLink[] = [
 
 export function MobileBottomNav() {
   const pathname = usePathname()
+  const router = useRouter()
   const [moreOpen, setMoreOpen] = useState(false)
   const role = useStore((s) => s.currentRole)
+  async function handleSignOut() {
+    await signOut()
+    router.replace('/login')
+  }
 
   if (pathname === '/login' || pathname.startsWith('/auth/')) return null
 
@@ -164,15 +170,14 @@ export function MobileBottomNav() {
               })}
             </ul>
             <div className="border-t border-border mt-1 pt-1">
-              <form action="/auth/signout" method="post">
-                <button
-                  type="submit"
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors"
-                >
-                  <LogOut className="h-4 w-4 text-muted-foreground" />
-                  Cerrar sesión
-                </button>
-              </form>
+              <button
+                type="button"
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors"
+                onClick={handleSignOut}
+              >
+                <LogOut className="h-4 w-4 text-muted-foreground" />
+                Cerrar sesión
+              </button>
             </div>
           </div>
         </div>

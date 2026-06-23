@@ -1,13 +1,13 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { LayoutDashboard, Package, Settings, ChevronDown, ClipboardList, FileText, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_NAME } from '@/lib/constants'
 import { useStore } from '@/lib/store'
 import { useState } from 'react'
-import { clearLoginAt } from '@/lib/session-timeout'
+import { signOut } from '@/lib/auth/sign-out'
 
 const REGISTER_LINKS = [
   { href: '/register/route', label: 'Recorrido' },
@@ -30,9 +30,14 @@ const TOP_NAV = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const role = useStore((s) => s.currentRole)
   const [registerOpen, setRegisterOpen] = useState(pathname.startsWith('/register'))
   const [adminOpen, setAdminOpen] = useState(pathname.startsWith('/admin'))
+  async function handleSignOut() {
+    await signOut()
+    router.replace('/login')
+  }
 
   // No mostrar shell en rutas de auth
   if (pathname === '/login' || pathname.startsWith('/auth/')) return null
@@ -138,15 +143,14 @@ export function Sidebar() {
         )}
 
         <div className="mt-auto pt-4 border-t border-white/10">
-          <form action="/auth/signout" method="post" onSubmit={() => clearLoginAt()}>
-            <button
-              type="submit"
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-white/70 hover:bg-white/10 hover:text-white transition-colors"
-            >
-              <LogOut className="h-4 w-4" />
-              <span>Cerrar sesión</span>
-            </button>
-          </form>
+          <button
+            type="button"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+            onClick={handleSignOut}
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Cerrar sesión</span>
+          </button>
         </div>
       </nav>
     </aside>
