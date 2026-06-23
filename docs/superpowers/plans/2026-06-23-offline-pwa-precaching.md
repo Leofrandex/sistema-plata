@@ -219,7 +219,10 @@ Expected: las 3 líneas en `PASS`, exit 0. (Si `offline` falla, revisar que `fal
 - [ ] **Step 6: Commit**
 
 ```bash
-git add next.config.ts src/app/offline/page.tsx scripts/check-sw.mjs public/sw.js public/workbox-*.js
+# NO commitear los archivos generados del SW (public/sw.js, workbox-*.js,
+# fallback-*.js): están gitignored y Vercel los regenera en cada build;
+# trackearlos acumula archivos con hash viejo.
+git add next.config.ts src/app/offline/page.tsx scripts/check-sw.mjs
 git commit -m "feat(pwa): runtimeCaching + fallback offline para navegación sin red"
 ```
 
