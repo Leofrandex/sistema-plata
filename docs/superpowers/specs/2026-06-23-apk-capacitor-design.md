@@ -79,13 +79,15 @@ reimplementa**; se reusa tal cual dentro del WebView.
 ### 3. Migración de auth a cliente puro *(componente de mayor riesgo)*
 
 **Cliente Supabase:** reemplazar `createBrowserClient` (cookies) por `createClient` de
-`@supabase/supabase-js` con un **storage adapter en memoria** (un objeto JS, no persiste a disco) y
-`autoRefreshToken: true`, `persistSession: true` (sobre el storage en memoria). Reproduce la
-semántica de "cookie de sesión":
+`@supabase/supabase-js` con un **storage adapter sobre `window.sessionStorage`** y
+`autoRefreshToken: true`, `persistSession: true`. `sessionStorage` reproduce *exactamente* la
+semántica de "cookie de sesión" en web y en WebView (sobrevive recargas de página; se borra al
+cerrar la pestaña / destruir el WebView). Un storage puramente en memoria NO sirve: perdería la
+sesión en cada recarga.
 
-- App viva (foreground o segundo plano con proceso retenido) → sesión intacta.
-- App cerrada o matada por el SO (común en teléfonos de gama baja con poca RAM) → el heap se pierde →
-  sin sesión → login al reabrir. Equivale al comportamiento actual.
+- App viva (foreground o segundo plano con proceso retenido) → sesión intacta, incluso si recarga.
+- App cerrada o matada por el SO (común en teléfonos de gama baja con poca RAM) → `sessionStorage` se
+  borra → sin sesión → login al reabrir. Equivale al comportamiento actual.
 
 **Auto-logout 1h:** timer de inactividad reseteado por interacción del usuario; al expirar,
 `supabase.auth.signOut()` + redirección a `/login`. (Reusar/portar la lógica del
