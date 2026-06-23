@@ -1,36 +1,29 @@
 'use client'
 
-import { createBrowserClient } from '@supabase/ssr'
+import { createClient as createSupabaseClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from './database.types'
-import {
-  readDocumentCookies,
-  sessionCookieOptions,
-  writeDocumentCookie,
-} from './cookie-session'
+import { sessionStorageAdapter } from './session-storage'
 
 /**
- * Cliente Supabase para componentes/hooks del browser.
- * Lee la sesión desde cookies vía @supabase/ssr.
- *
- * Provee handlers de cookies propios para guardar la sesión como **cookie de
- * sesión** (sin maxAge/expires): así, al cerrar la app/PWA, la sesión se pierde
- * y se pide login de nuevo. Ver `cookie-session.ts`.
+ * Cliente Supabase de cliente puro (sin servidor/middleware). La sesión vive en
+ * `sessionStorage` y `supabase-js` la refresca sola (`autoRefreshToken`).
+ * Singleton para no crear múltiples GoTrueClient.
  */
-export function createClient() {
-  return createBrowserClient<Database>(
+let client: SupabaseClient<Database> | null = null
+
+export function createClient(): SupabaseClient<Database> {
+  if (client) return client
+  client = createSupabaseClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
-      cookies: {
-        getAll() {
-          return readDocumentCookies()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            writeDocumentCookie(name, value, sessionCookieOptions(value, options))
-          )
-        },
+      auth: {
+        storage: sessionStorageAdapter,
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false,
       },
     }
   )
+  return client
 }
