@@ -10,6 +10,7 @@ import { ConnectionBanner } from '@/components/layout/connection-banner'
 import { SupabaseHydrator } from '@/components/supabase-hydrator'
 import { OperatorSessionGuard } from '@/components/layout/operator-session-guard'
 import { ErudaLoader } from '@/components/debug/eruda-loader'
+import { AuthGuard } from '@/components/layout/auth-guard'
 import { APP_NAME, APP_DESCRIPTION, APP_TAGLINE } from '@/lib/constants'
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -28,20 +29,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <body className={`${plusJakartaSans.variable} font-sans`}>
-        <SWCleanup />
-        <SupabaseHydrator />
-        <OperatorSessionGuard />
-        <div className="flex min-h-screen bg-background">
-          <Sidebar />
-          <div className="flex-1 flex flex-col">
-            <MobileHeader />
-            <ConnectionBanner />
-            <main className="flex-1 p-4 md:p-6 pb-24 md:pb-6">{children}</main>
-            <SyncIndicator />
+        <AuthGuard>
+          <SWCleanup />
+          <SupabaseHydrator />
+          <OperatorSessionGuard />
+          <div className="flex min-h-screen bg-background">
+            <Sidebar />
+            <div className="flex-1 flex flex-col">
+              <MobileHeader />
+              <ConnectionBanner />
+              <main className="flex-1 p-4 md:p-6 pb-24 md:pb-6">{children}</main>
+              <SyncIndicator />
+            </div>
+            <MobileBottomNav />
           </div>
-          <MobileBottomNav />
-        </div>
-        <ErudaLoader />
+          <ErudaLoader />
+        </AuthGuard>
       </body>
     </html>
   )
