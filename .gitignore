@@ -60,3 +60,6 @@ vault/secrets/
 /demo-report-page*.png
 /logo-black.png
 /BrW1JbIM.jpg
+
+# credenciales en texto plano (NUNCA versionar)
+/vault/credenciales/
