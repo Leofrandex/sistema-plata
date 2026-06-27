@@ -8,17 +8,23 @@ import { useEffect } from 'react'
  */
 export function AppLifecycle() {
   useEffect(() => {
-    let cleanup: (() => void) | undefined
+    let cancelled = false
+    let removeListener: (() => void) | undefined
     Promise.all([import('@capacitor/core'), import('@capacitor/app')])
       .then(([{ Capacitor }, { App }]) => {
-        if (!Capacitor.isNativePlatform()) return
-        const handle = App.addListener('appStateChange', ({ isActive }) => {
+        if (cancelled || !Capacitor.isNativePlatform()) return
+        App.addListener('appStateChange', ({ isActive }) => {
           if (isActive) window.dispatchEvent(new Event('hospiwaste:outbox-changed'))
+        }).then((h) => {
+          if (cancelled) h.remove()
+          else removeListener = () => h.remove()
         })
-        cleanup = () => { handle.then((h) => h.remove()) }
       })
       .catch(() => { /* @capacitor no disponible (web): no-op */ })
-    return () => cleanup?.()
+    return () => {
+      cancelled = true
+      removeListener?.()
+    }
   }, [])
   return null
 }
