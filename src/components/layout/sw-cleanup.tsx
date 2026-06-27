@@ -3,25 +3,23 @@
 import { useEffect } from 'react'
 
 /**
- * En desarrollo, desregistra cualquier service worker residual (de una sesión
- * anterior de producción o de una versión previa) y limpia las caches.
+ * Desregistra cualquier service worker residual (de una sesión anterior de
+ * producción o de una versión previa) y limpia las caches en todos los entornos.
  *
- * next-pwa ya está configurado con `disable: process.env.NODE_ENV === 'development'`
- * para no registrar SW nuevos en dev, pero un SW que se registró antes en el
- * mismo origen sigue corriendo hasta que se desregistra explícitamente. Esto
- * causaba que la app sirviera JS viejo y las páginas quedaran cargando hasta
- * forzar refresh con cache limpio.
+ * Cuando next-pwa se desactiva, los clientes que ya tienen un SW registrado en
+ * el mismo origen siguen sirviendo JS cacheado viejo hasta que se desregistra
+ * explícitamente. Esto ocurre tanto en dev como en producción. Ejecutar
+ * unconditionally aquí es seguro: unregister() en un SW inexistente es un no-op.
  */
 export function SWCleanup() {
   useEffect(() => {
-    if (process.env.NODE_ENV !== 'development') return
     if (typeof navigator === 'undefined') return
     if (!('serviceWorker' in navigator)) return
 
     navigator.serviceWorker.getRegistrations().then((regs) => {
       for (const r of regs) {
         // eslint-disable-next-line no-console
-        console.info('[dev] Desregistrando service worker residual:', r.scope)
+        console.info('Desregistrando service worker residual:', r.scope)
         r.unregister()
       }
     }).catch(() => {
