@@ -2,10 +2,10 @@ apply plugin: 'com.android.application'
 
 // Load keystore credentials from a local (non-versioned) properties file.
 // If the file doesn't exist (e.g. during debug builds on CI), signing is simply skipped.
-def keystorePropertiesFile = rootProject.file("../android/keystore.properties")
+def keystorePropertiesFile = rootProject.file("keystore.properties")
 def keystoreProperties = new Properties()
 if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
 }
 
 android {
@@ -25,8 +25,8 @@ android {
         }
     }
     signingConfigs {
-        if (keystorePropertiesFile.exists()) {
-            release {
+        release {
+            if (keystorePropertiesFile.exists()) {
                 storeFile file(keystoreProperties['storeFile'])
                 storePassword keystoreProperties['storePassword']
                 keyAlias keystoreProperties['keyAlias']
