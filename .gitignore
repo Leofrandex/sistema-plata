@@ -63,3 +63,8 @@ vault/secrets/
 
 # credenciales en texto plano (NUNCA versionar)
 /vault/credenciales/
+
+# Android release signing — NUNCA versionar el keystore ni las credenciales reales
+*.keystore
+*.jks
+/android/keystore.properties
