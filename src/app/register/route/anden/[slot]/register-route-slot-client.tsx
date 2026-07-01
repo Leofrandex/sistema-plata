@@ -15,7 +15,7 @@ import * as q from '@/lib/supabase/queries'
 import { uploadEventPhotos, enqueueEventPhotos } from '@/lib/data/photos'
 import { submitRouteEvent, routeEventOpId } from '@/lib/data/field-writes'
 import { getSlotAndenEvents, computeSlotStatus } from '@/lib/data/route-sessions'
-import { getRouteSlotDefinition } from '@/lib/constants'
+import { getRouteSlotDefinition, paramToSlot } from '@/lib/constants'
 import { useElapsed, formatElapsed } from '@/hooks/use-elapsed'
 import {
   startSession,
@@ -25,13 +25,10 @@ import {
   todayLocal,
   type ActiveSession,
 } from '@/lib/active-session'
-import type { RouteSlot } from '@/lib/types'
 
 interface Props {
   params: Promise<{ slot: string }>
 }
-
-const VALID_SLOTS: RouteSlot[] = ['06:30', '10:30', '13:20', '14:30', '18:30', '21:00']
 
 const EMPTY_FORM: RouteFormState = {
   companyId: '',
@@ -45,8 +42,10 @@ const EMPTY_FORM: RouteFormState = {
 
 export default function RegisterRouteSlotClient({ params }: Props) {
   const { slot: rawSlot } = use(params)
-  const slotId = decodeURIComponent(rawSlot) as RouteSlot
-  if (!VALID_SLOTS.includes(slotId)) notFound()
+  const parsedSlot = paramToSlot(rawSlot)
+  if (!parsedSlot) notFound()
+  // Const no-nulo: garantiza el narrowing dentro de los closures (handleStart, etc.).
+  const slotId = parsedSlot
 
   const slot = getRouteSlotDefinition(slotId)
   const router = useRouter()

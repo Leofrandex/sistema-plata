@@ -5,6 +5,7 @@ import { Clock, CheckCircle2, Play } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useElapsed, formatElapsed } from '@/hooks/use-elapsed'
 import type { RouteSlotDefinition } from '@/lib/constants'
+import { slotToParam } from '@/lib/constants'
 
 export type RouteSlotStatus = 'available' | 'in_progress' | 'completed'
 
@@ -25,7 +26,7 @@ const STATUS_LABEL: Record<RouteSlotStatus, string> = {
 
 export function RouteSlotCard({ slot, status, startedAt, completedAt }: Props) {
   const elapsed = useElapsed(status === 'in_progress' ? startedAt ?? null : null)
-  const href = `/register/route/anden/${encodeURIComponent(slot.id)}`
+  const href = `/register/route/anden/${slotToParam(slot.id)}`
   const clickable = status !== 'completed'
 
   const content = (

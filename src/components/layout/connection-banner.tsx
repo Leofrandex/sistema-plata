@@ -25,19 +25,16 @@ export function ConnectionBanner() {
 
   return (
     <div className="sticky top-0 z-40 bg-amber-500 text-amber-950">
-      <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2 text-sm">
-        <WifiOff className="h-4 w-4 shrink-0" />
-        <p className="flex-1 font-medium leading-tight">
-          Sin conexión con el servidor. Los datos pueden no estar actualizados y
-          algunas acciones no funcionarán hasta reconectar.
-        </p>
+      <div className="mx-auto flex max-w-5xl items-center gap-2 px-3 py-1.5 text-xs">
+        <WifiOff className="h-3.5 w-3.5 shrink-0" />
+        <p className="flex-1 truncate font-medium">Sin conexión con el servidor</p>
         <button
           type="button"
           onClick={handleRetry}
           disabled={retrying}
-          className="flex shrink-0 items-center gap-1.5 rounded-md bg-amber-950/10 px-3 py-1.5 font-semibold hover:bg-amber-950/20 disabled:opacity-60"
+          className="flex shrink-0 items-center gap-1 rounded-md bg-amber-950/10 px-2 py-1 font-semibold hover:bg-amber-950/20 disabled:opacity-60"
         >
-          <RefreshCw className={`h-3.5 w-3.5 ${retrying ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-3 w-3 ${retrying ? 'animate-spin' : ''}`} />
           Reintentar
         </button>
       </div>

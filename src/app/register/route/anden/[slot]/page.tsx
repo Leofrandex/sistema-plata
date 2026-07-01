@@ -1,11 +1,10 @@
 import RegisterRouteSlotClient from './register-route-slot-client'
+import { ROUTE_SLOTS, slotToParam } from '@/lib/constants'
 
-// Export estático: enumerar los 6 horarios fijos de la ruta.
-// Los colons (:) se codifican porque Windows no admite ":" en nombres de carpeta.
+// Export estático: enumerar los 6 horarios fijos como token de URL SIN ":".
+// Un ":" en el segmento rompe el ruteo servido por el WebView del APK.
 export function generateStaticParams() {
-  return ['06:30', '10:30', '13:20', '14:30', '18:30', '21:00'].map((slot) => ({
-    slot: encodeURIComponent(slot),
-  }))
+  return ROUTE_SLOTS.map((s) => ({ slot: slotToParam(s.id) }))
 }
 
 interface Props {

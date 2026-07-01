@@ -29,3 +29,19 @@ export function getRouteSlotDefinition(slot: RouteSlot): RouteSlotDefinition {
   if (!def) throw new Error(`Unknown route slot: ${slot}`)
   return def
 }
+
+/**
+ * Conversión slot ↔ segmento de URL. El valor del slot es `HH:MM` (`06:30`) y se
+ * persiste así en la BD, pero los `:` en un segmento de ruta rompen el export
+ * estático servido por el WebView del APK (la carpeta queda como `06%3A30` y el
+ * WebView no la resuelve → cae al root → redirige al dashboard). En la URL se usa
+ * un token sin `:` (`0630`) y se reconvierte al entrar a la página.
+ */
+export function slotToParam(slot: RouteSlot): string {
+  return slot.replace(':', '')
+}
+
+export function paramToSlot(param: string): RouteSlot | null {
+  const candidate = `${param.slice(0, 2)}:${param.slice(2)}`
+  return ROUTE_SLOTS.some((s) => s.id === candidate) ? (candidate as RouteSlot) : null
+}
