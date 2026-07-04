@@ -55,8 +55,12 @@ function fileToDataUrl(file: File): Promise<string> {
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
-    img.onload = () => resolve(img)
-    img.onerror = () => reject(new Error('No se pudo cargar la imagen'))
+    // Timeout duro: si el WebView no puede decodificar la imagen (p. ej. HEIC),
+    // ni onload ni onerror disparan y la promesa colgaría para siempre,
+    // congelando la app. A los 8s abortamos y el caller usa la foto sin sello.
+    const timer = setTimeout(() => reject(new Error('timeout cargando imagen')), 8000)
+    img.onload = () => { clearTimeout(timer); resolve(img) }
+    img.onerror = () => { clearTimeout(timer); reject(new Error('No se pudo cargar la imagen')) }
     img.src = src
   })
 }

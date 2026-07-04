@@ -24,7 +24,7 @@ export function ConnectionBanner() {
   }
 
   return (
-    <div className="sticky top-0 z-40 bg-amber-500 text-amber-950">
+    <div className="bg-amber-500 text-amber-950">
       <div className="mx-auto flex max-w-5xl items-center gap-2 px-3 py-1.5 text-xs">
         <WifiOff className="h-3.5 w-3.5 shrink-0" />
         <p className="flex-1 truncate font-medium">Sin conexión con el servidor</p>

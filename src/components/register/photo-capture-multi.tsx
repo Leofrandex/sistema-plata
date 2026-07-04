@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { Camera, X, Plus, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { watermarkPhoto } from '@/lib/photo-watermark'
+import { isNativeApp, getCameraPhoto } from '@/lib/capture-photo'
 
 interface Props {
   label: string
@@ -22,6 +23,22 @@ interface Props {
 export function PhotoCaptureMulti({ label, required, disabled, photos, onAdd, onRemove }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [processing, setProcessing] = useState(0)
+
+  // En el APK: cámara nativa (solo cámara, JPEG). En web: abre el file input.
+  async function handleAddClick() {
+    if (await isNativeApp()) {
+      const dataUrl = await getCameraPhoto()
+      if (!dataUrl) return
+      setProcessing((n) => n + 1)
+      try {
+        onAdd(await watermarkPhoto(dataUrl, new Date()))
+      } finally {
+        setProcessing((n) => Math.max(0, n - 1))
+      }
+    } else {
+      inputRef.current?.click()
+    }
+  }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? [])
@@ -83,7 +100,7 @@ export function PhotoCaptureMulti({ label, required, disabled, photos, onAdd, on
         {!disabled && (
           <button
             type="button"
-            onClick={() => inputRef.current?.click()}
+            onClick={handleAddClick}
             disabled={processing > 0}
             className="aspect-[4/3] rounded-lg border-2 border-dashed border-slate-300 hover:border-blue-400 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-blue-500 transition-colors disabled:opacity-60 disabled:cursor-wait"
           >

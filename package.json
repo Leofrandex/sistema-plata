@@ -16,6 +16,7 @@
     "@base-ui/react": "^1.4.1",
     "@capacitor/android": "^8.4.1",
     "@capacitor/app": "^8.1.0",
+    "@capacitor/camera": "^8.2.0",
     "@capacitor/core": "^8.4.1",
     "@capacitor/network": "^8.0.1",
     "@react-pdf/renderer": "^4.5.1",
