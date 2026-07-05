@@ -39,14 +39,32 @@ export function SupabaseHydrator() {
     let cancelled = false
 
     async function load() {
+      // ID del operador desde la sesión LOCAL (sin red). Clave para offline:
+      // `getCurrentProfile` usa `auth.getUser()`, que valida contra el servidor y
+      // offline devuelve null → currentProfileId quedaba en null y el guardado de
+      // andén/pesaje se bloqueaba (`if (!currentProfileId) return`). `getSession()`
+      // lee el id del JWT guardado, sin red, así el id existe offline.
+      const { data: sessionData } = await supabase.auth.getSession()
+      const localUserId = sessionData.session?.user.id ?? null
+      if (cancelled) return
+      if (localUserId) useStore.getState().setCurrentProfileId(localUserId)
+
       try {
-        // Profile del usuario actual (puede ser null si no hay sesión)
+        // Profile del usuario actual (puede ser null si no hay sesión o si estamos
+        // offline). Solo pisa id/rol cuando trae algo; offline conserva lo local.
         const profile = await q.getCurrentProfile(supabase)
         if (cancelled) return
-        useStore.getState().setCurrentProfileId(profile?.id ?? null)
-        useStore.getState().setCurrentRole(profile?.role ?? null)
+        if (profile) {
+          useStore.getState().setCurrentProfileId(profile.id)
+          useStore.getState().setCurrentRole(profile.role)
+        } else if (!localUserId) {
+          // Ni sesión local ni profile → realmente no hay sesión.
+          useStore.getState().setCurrentProfileId(null)
+          useStore.getState().setCurrentRole(null)
+        }
 
-        // Sin sesión → no traer datos (el middleware redirige a /login)
+        // Sin profile (offline o sin sesión) → no seguimos con la carga de datos
+        // de red, pero el id local ya quedó seteado para poder registrar offline.
         if (!profile) return
 
         const [
