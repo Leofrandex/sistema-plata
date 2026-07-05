@@ -416,6 +416,16 @@ export default function RegisterRouteSlotClient({ params }: Props) {
     hasSignature
   const canFinish = sessionAndenes.length > 0
 
+  // Requisitos faltantes para habilitar "Guardar andén". Se muestran bajo el
+  // botón para que nunca quede "bloqueado" sin explicación.
+  const missingToSave = [
+    !formState.companyId && 'empresa',
+    formState.dirtyReceivedIds.length + formState.cleanDeliveredIds.length === 0 && 'tachos',
+    !hasDirtyPhoto && 'foto de sucios',
+    !hasCleanPhoto && 'foto de limpios',
+    !hasSignature && 'firma',
+  ].filter(Boolean) as string[]
+
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-20">
       <Header slot={slot} />
@@ -489,24 +499,31 @@ export default function RegisterRouteSlotClient({ params }: Props) {
 
       {/* Acción: guardar andén y agregar otro */}
       {isRunning && (
-        <div className="flex flex-col gap-3 sm:flex-row-reverse">
-          <Button onClick={handleSaveAnden} disabled={!canSaveAnden || saving} size="lg" className="gap-2 sm:flex-1">
-            <Plus className="h-4 w-4" />
-            {saving ? 'Guardando…' : isEditing ? 'Guardar cambios del andén' : 'Guardar andén y agregar otro'}
-          </Button>
-          {isEditing && (
-            <>
-              <Button variant="outline" onClick={resetForm} className="sm:flex-1">
-                Cancelar edición
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => handleDeleteAnden(editingAndenId!)}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 sm:flex-none"
-              >
-                Eliminar andén
-              </Button>
-            </>
+        <div className="space-y-2">
+          <div className="flex flex-col gap-3 sm:flex-row-reverse">
+            <Button onClick={handleSaveAnden} disabled={!canSaveAnden || saving} size="lg" className="gap-2 sm:flex-1">
+              <Plus className="h-4 w-4" />
+              {saving ? 'Guardando…' : isEditing ? 'Guardar cambios del andén' : 'Guardar andén y agregar otro'}
+            </Button>
+            {isEditing && (
+              <>
+                <Button variant="outline" onClick={resetForm} className="sm:flex-1">
+                  Cancelar edición
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => handleDeleteAnden(editingAndenId!)}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 sm:flex-none"
+                >
+                  Eliminar andén
+                </Button>
+              </>
+            )}
+          </div>
+          {!canSaveAnden && !saving && missingToSave.length > 0 && (
+            <p className="text-xs font-medium text-amber-700 text-center sm:text-right">
+              Falta para guardar: {missingToSave.join(', ')}.
+            </p>
           )}
         </div>
       )}
