@@ -6,7 +6,7 @@ tags:
   - supabase
   - performance
   - traceability
-updated: 2026-06-04
+updated: 2026-07-04
 ---
 
 # ADR: Estado de envase derivado de eventos (piloto) — evolución pendiente antes de producción
@@ -40,6 +40,27 @@ Existe el enum `container_phase` (`route, weighing, cold_storage, treatment, tra
 > pasos (inicio/fin). Esto fue la causa raíz del bug 2026-06-03: un filtro buscaba
 > tratamientos con `!completed_at` (en curso), que con este flujo nunca matchea.
 > Ver `logs/2026-06-03-tratamiento-confirmacion-refresco.md`.
+
+> [!warning] INCOHERENCIA DETECTADA — la cola de pesaje NO es consciente del ciclo
+> **Fecha:** 2026-07-04 (detectado en pruebas de campo del APK)
+> **Problema:** `getPendingWeighingContainerIds` excluye un tacho si tiene **cualquier**
+> recepción no anulada, **sin importar la fecha ni el ciclo**. Tanto "recogido sucio"
+> (`getRouteEventIdsForContainer`) como "pesado" se evalúan como pertenencia histórica total.
+> Consecuencia: **un tacho se puede pesar una sola vez en toda su vida**. Apenas tiene una
+> recepción queda excluido para siempre, aunque complete tratamiento + lavado y se recoja sucio
+> de nuevo en un recorrido nuevo. Contradice el ciclo repetitivo de [[ContainerLifecycle]]
+> (recorrido → pesaje → cámara fría → tratamiento → limpio → lavado → **vuelve a circular y se
+> pesa otra vez**).
+> **Por qué no lo tapan los ítems P1/P2 ya hechos:** el "Deshacer pesaje" (anulación) es para
+> *corregir errores*, no para ciclar — anular un pesaje válido perdería el kg histórico. La vista
+> `v_containers_pending_weighing` replica la misma lógica ciega al ciclo. Y la columna
+> `current_phase` (P2) resolvería performance/lectura, no la **regla** de re-habilitación.
+> **Acción requerida:** rediseñar la derivación de "pendiente de pesar" para que sea **consciente
+> del ciclo**: un tacho está pendiente si fue **recogido sucio *después* de su último pesaje no
+> anulado** (comparación por timestamp), o equivalentemente si desde su última recepción pasó por
+> tratamiento/lavado y volvió a recogerse. Falta definir con el negocio la regla exacta (¿basta la
+> nueva recolección sucia, o requiere haber pasado por tratamiento?). Afecta también dashboard y
+> reportes que usan la misma derivación. Tratar como proyecto propio (brainstorm → spec → plan).
 
 ## Decisión
 
