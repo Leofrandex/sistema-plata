@@ -163,11 +163,11 @@ function SignatureOverlay({
   }
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex flex-col bg-foreground/80 p-4">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex flex-col bg-slate-900 p-4">
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-3">
-        <div className="flex items-center justify-between text-primary-foreground">
+        <div className="flex items-center justify-between gap-2 rounded-lg bg-white/10 px-4 py-2.5 text-white">
           <h2 className="text-base font-semibold">Firmá en el recuadro</h2>
-          <Button variant="ghost" size="icon" onClick={onCancel} aria-label="Cerrar" className="text-primary-foreground hover:bg-white/10">
+          <Button variant="ghost" size="icon" onClick={onCancel} aria-label="Cerrar" className="text-white hover:bg-white/10">
             <X className="h-5 w-5" />
           </Button>
         </div>

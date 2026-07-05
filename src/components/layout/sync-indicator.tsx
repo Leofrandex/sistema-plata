@@ -10,7 +10,7 @@ export function SyncIndicator() {
 
   return (
     <div
-      className={`fixed bottom-4 right-4 flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium shadow-lg z-50 ${
+      className={`fixed bottom-20 right-4 md:bottom-6 flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium shadow-lg z-50 ${
         isOnline ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
       }`}
     >
