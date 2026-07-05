@@ -29,11 +29,19 @@ function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
+  const [directoryError, setDirectoryError] = useState(false)
 
   useEffect(() => {
+    let cancelled = false
+    // Timeout: sin red, la consulta de usuarios se colgaría en "Cargando…" para
+    // siempre. A los 8s caemos al fallback de correo con aviso de sin conexión.
+    const timer = setTimeout(() => {
+      if (!cancelled) { setDirectory([]); setDirectoryError(true) }
+    }, 8000)
     getLoginDirectory(createClient())
-      .then(setDirectory)
-      .catch(() => setDirectory([])) // si falla, caemos al fallback de correo
+      .then((d) => { if (!cancelled) { clearTimeout(timer); setDirectory(d); setDirectoryError(false) } })
+      .catch(() => { if (!cancelled) { clearTimeout(timer); setDirectory([]); setDirectoryError(true) } })
+    return () => { cancelled = true; clearTimeout(timer) }
   }, [])
 
   async function signIn(loginEmail: string) {
@@ -70,6 +78,10 @@ function LoginForm() {
             <div className="space-y-5">
               {directory === null ? (
                 <p className="text-sm text-slate-500 text-center py-4">Cargando usuarios…</p>
+              ) : directoryError ? (
+                <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2.5 text-center">
+                  Sin conexión con el servidor. Iniciá sesión con tu correo cuando tengas internet.
+                </p>
               ) : (
                 <>
                   <UserGroup title="Operadores" users={operators} onPick={setSelected} />
@@ -216,5 +228,7 @@ export default function LoginPage() {
 function traducir(msg: string): string {
   if (/invalid login credentials/i.test(msg)) return 'Correo o contraseña incorrectos.'
   if (/email not confirmed/i.test(msg)) return 'Tu correo aún no está confirmado.'
+  if (/fetch|network|failed to fetch|load failed|networkerror/i.test(msg))
+    return 'Sin conexión. Necesitás internet para iniciar sesión.'
   return msg
 }
