@@ -79,9 +79,12 @@ updated: 2026-05-21
 - `decisions/2026-06-01-ids-tachos-supabase-vs-mock.md` — ⚠️ IDs en Supabase son numéricos sin prefijo (`020`), no `A-020`; el prefijo es solo del mock
 
 ### Credenciales (sensible)
+- `credenciales/2026-07-06-credenciales-completas.md` — ⚠️ TODAS las contraseñas (12 usuarios) en texto plano; 9 reseteadas el 2026-07-06 para consolidar
 - `credenciales/2026-06-23-passwords-temporales.md` — ⚠️ contraseñas temporales en texto plano (operadores nuevos); revierte el criterio de no versionar
 
 ### Logs de cambios
+- `logs/2026-07-08-fotos-opcionales-recorrido.md` — fotos ya no bloquean el guardado de recorrido (andén+morgue); regla = empresa+tacho+firma; revierte parte de `f93a8bc`
+- `logs/2026-07-06-reset-datos-piloto.md` — ⚠️ reset total de datos operativos (TRUNCATE 10 tablas, 230 tachos intactos); respaldo en `backups/`
 - `logs/2026-05-03-branding-system.md`
 - `logs/2026-05-05-dashboard-containers-polish.md`
 - `logs/2026-05-12-rename-hospiwaste-cold-storage-auto-transfer-multi.md`

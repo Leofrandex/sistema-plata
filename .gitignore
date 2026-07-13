@@ -64,6 +64,9 @@ vault/secrets/
 # credenciales en texto plano (NUNCA versionar)
 /vault/credenciales/
 
+# respaldos de datos del piloto (dumps JSON pre-reset) — NUNCA versionar
+/backups/
+
 # Android release signing — NUNCA versionar el keystore ni las credenciales reales
 *.keystore
 *.jks
