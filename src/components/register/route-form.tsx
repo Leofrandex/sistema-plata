@@ -41,6 +41,11 @@ interface Props {
   /** Muestra el selector de empresa dentro del formulario (andén multi-registro).
    *  Morgue lo desactiva: elige empresa al iniciar (un solo registro). */
   showCompanySelector?: boolean
+  /** Marca las fotos como obligatorias (asterisco). Por defecto true para no
+   *  cambiar el comportamiento histórico; los flujos donde las fotos ya no
+   *  bloquean el guardado las pasan en false. */
+  dirtyPhotoRequired?: boolean
+  cleanPhotoRequired?: boolean
   /** Fotos ya subidas que se conservan (modo edición), por categoría. */
   existingDirtyPhotos?: { id: string; url: string }[]
   existingCleanPhotos?: { id: string; url: string }[]
@@ -53,6 +58,7 @@ interface Props {
 
 export function RouteForm({
   state, onChange, containers, companies, locked, showCompanySelector = false,
+  dirtyPhotoRequired = true, cleanPhotoRequired = true,
   existingDirtyPhotos, existingCleanPhotos, onRemoveExistingDirty, onRemoveExistingClean,
   existingSignature, onRemoveExistingSignature,
 }: Props) {
@@ -242,7 +248,7 @@ export function RouteForm({
         />
         <PhotoCaptureMulti
           label="Foto de tachos sucios"
-          required
+          required={dirtyPhotoRequired}
           disabled={locked}
           photos={state.dirtyPhotos}
           onAdd={(url) => onChange({ dirtyPhotos: [...state.dirtyPhotos, url] })}
@@ -260,7 +266,7 @@ export function RouteForm({
         />
         <PhotoCaptureMulti
           label="Foto de tachos limpios"
-          required
+          required={cleanPhotoRequired}
           disabled={locked}
           photos={state.cleanPhotos}
           onAdd={(url) => onChange({ cleanPhotos: [...state.cleanPhotos, url] })}

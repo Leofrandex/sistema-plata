@@ -404,15 +404,12 @@ export default function RegisterRouteSlotClient({ params }: Props) {
     )
   }
 
-  const hasDirtyPhoto = formState.dirtyPhotos.length > 0 || existingDirty.length > 0
-  const hasCleanPhoto = formState.cleanPhotos.length > 0 || existingClean.length > 0
   const hasSignature = !!formState.signature || !!existingSignature
+  // Las fotos ya no bloquean el guardado: basta empresa + al menos un tacho + firma.
   const canSaveAnden =
     isRunning &&
     !!formState.companyId &&
     (formState.dirtyReceivedIds.length + formState.cleanDeliveredIds.length > 0) &&
-    hasDirtyPhoto &&
-    hasCleanPhoto &&
     hasSignature
   const canFinish = sessionAndenes.length > 0
 
@@ -421,8 +418,6 @@ export default function RegisterRouteSlotClient({ params }: Props) {
   const missingToSave = [
     !formState.companyId && 'empresa',
     formState.dirtyReceivedIds.length + formState.cleanDeliveredIds.length === 0 && 'tachos',
-    !hasDirtyPhoto && 'foto de sucios',
-    !hasCleanPhoto && 'foto de limpios',
     !hasSignature && 'firma',
   ].filter(Boolean) as string[]
 
@@ -488,6 +483,8 @@ export default function RegisterRouteSlotClient({ params }: Props) {
         containers={containers}
         companies={clientCompanies}
         showCompanySelector
+        dirtyPhotoRequired={false}
+        cleanPhotoRequired={false}
         locked={!isRunning}
         existingDirtyPhotos={existingDirty}
         existingCleanPhotos={existingClean}

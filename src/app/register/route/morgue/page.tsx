@@ -189,8 +189,8 @@ export default function RegisterMorgueRoutePage() {
 
   const isRunning = !!activeSession
   const totalContainers = formState.dirtyReceivedIds.length + formState.cleanDeliveredIds.length
-  // Morgue recoge sucios: exige al menos una foto de sucios. Limpios opcional.
-  const canFinish = totalContainers > 0 && formState.dirtyPhotos.length > 0 && !!formState.signature
+  // Las fotos ya no bloquean: basta al menos un tacho + firma.
+  const canFinish = totalContainers > 0 && !!formState.signature
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -267,6 +267,8 @@ export default function RegisterMorgueRoutePage() {
         onChange={updateForm}
         containers={containers}
         companies={companies}
+        dirtyPhotoRequired={false}
+        cleanPhotoRequired={false}
         locked={!isRunning}
       />
 
