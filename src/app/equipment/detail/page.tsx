@@ -10,6 +10,8 @@ import { createClient } from '@/lib/supabase/client'
 import * as q from '@/lib/supabase/queries'
 import { useStore } from '@/lib/store'
 import { EquipmentForm, type EquipmentFormValues } from '@/components/equipment/equipment-form'
+import { MaintenanceForm } from '@/components/equipment/maintenance-form'
+import { MaintenanceHistory } from '@/components/equipment/maintenance-history'
 
 function EquipmentDetailInner() {
   const searchParams = useSearchParams()
@@ -22,6 +24,7 @@ function EquipmentDetailInner() {
   const [error, setError] = useState<string | null>(null)
   const [confirmDeactivate, setConfirmDeactivate] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
+  const [showMaintenanceForm, setShowMaintenanceForm] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -114,7 +117,31 @@ function EquipmentDetailInner() {
             </CardContent>
           </Card>
 
-          {/* TASK-8: historial de mantenimientos */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-base">Mantenimientos</CardTitle>
+              {!showMaintenanceForm && (
+                <Button size="sm" onClick={() => setShowMaintenanceForm(true)}>Registrar mantenimiento</Button>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {showMaintenanceForm && (
+                <div className="rounded-lg border bg-slate-50 p-4">
+                  <MaintenanceForm
+                    equipmentId={equipment.id}
+                    equipmentName={equipment.name}
+                    onSaved={() => { setShowMaintenanceForm(false); setReloadKey((k) => k + 1) }}
+                    onCancel={() => setShowMaintenanceForm(false)}
+                  />
+                </div>
+              )}
+              <MaintenanceHistory
+                equipmentId={equipment.id}
+                reloadKey={reloadKey}
+                onChanged={() => setReloadKey((k) => k + 1)}
+              />
+            </CardContent>
+          </Card>
 
           <div className="pt-2 border-t">
             {confirmDeactivate ? (
