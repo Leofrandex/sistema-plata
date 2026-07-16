@@ -22,7 +22,7 @@ updated: 2026-05-21
 **Fase:** Preparación lanzamiento PTDP — ajustes post-piloto; lanzamiento oficial 2026-06-01
 **Última reunión:** 2026-05-18 (Francesca + Karolyne + Marely + Sebastián) — ver `logs/2026-05-18-reunion-ptdp-demo-piloto.md`
 **Hito crítico:** lanzamiento oficial lunes 2026-06-01
-**Última actualización del vault:** 2026-06-22
+**Última actualización del vault:** 2026-07-16
 
 | Área | Estado | Archivo |
 |------|--------|---------|
@@ -49,6 +49,7 @@ updated: 2026-05-21
 | Login por tarjetas + auto-logout de operador (1h) | 🟢 Completado (roster + E2E manual pendientes) | `logs/2026-06-19-login-tarjetas-auto-logout-operador.md` |
 | Offline: outbox de campo (local-first, datos + fotos) | 🟢 Completado (E2E manual en modo avión pendiente) | `logs/2026-06-19-offline-outbox-campo.md` |
 | Recolor 4 estados + historial 2 líneas + tab tachos (filtros/fase/tiempo) + fotos reporte | 🟢 Completado (E2E manual pendiente) | `logs/2026-06-22-colores-historial-tachos-reportes.md` |
+| Tab Equipos: mantenimiento preventivo (semáforo + historial + fotos) | 🟢 Completado (E2E manual pendiente) | `logs/2026-07-16-equipos-mantenimiento-preventivo.md` |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completo · ⚠️ Tiene incoherencias
 
@@ -83,6 +84,7 @@ updated: 2026-05-21
 - `credenciales/2026-06-23-passwords-temporales.md` — ⚠️ contraseñas temporales en texto plano (operadores nuevos); revierte el criterio de no versionar
 
 ### Logs de cambios
+- `logs/2026-07-16-equipos-mantenimiento-preventivo.md` — tab Equipos (solo coordinador): semáforo de mantenimiento preventivo, historial con fotos, seed de 60 equipos del Excel
 - `logs/2026-07-08-fotos-opcionales-recorrido.md` — fotos ya no bloquean el guardado de recorrido (andén+morgue); regla = empresa+tacho+firma; revierte parte de `f93a8bc`
 - `logs/2026-07-06-reset-datos-piloto.md` — ⚠️ reset total de datos operativos (TRUNCATE 10 tablas, 230 tachos intactos); respaldo en `backups/`
 - `logs/2026-05-03-branding-system.md`
@@ -122,6 +124,12 @@ updated: 2026-05-21
 *(Vacío)*
 
 ## Notas del último procesamiento
+
+**2026-07-16** — Excel de base instalada `BASE INSTALADA PTDP HOSPIMED ST SOFTWARE.xlsx`
+procesado: seed de 60 equipos (`scripts/seed-equipment-supabase.py`) + módulo nuevo
+**Equipos** (mantenimiento preventivo, solo coordinador). Archivo movido a
+`inbox/procesado/`. Módulo: [[EquipmentMaintenance]]. Log:
+`logs/2026-07-16-equipos-mantenimiento-preventivo.md`.
 
 **2026-06-22** — Lote de UI post-lanzamiento (4 cambios, rama
 `feat/colores-estados-historial-tachos-reportes`). (1) Recolor de los 4 estados en
