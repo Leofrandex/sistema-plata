@@ -73,7 +73,7 @@ export default function EquipmentPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-800">Equipos</h1>
-        <Link href="/equipment/detail" className={cn(buttonVariants({ variant: 'default' }), 'gap-2')}>
+        <Link href="/equipment/detail" className={cn(buttonVariants({ variant: 'default' }), 'gap-2 hover:bg-primary/80')}>
           <Plus className="h-4 w-4" />Nuevo equipo
         </Link>
       </div>
