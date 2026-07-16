@@ -24,6 +24,7 @@ export type PhotoEventType =
   | 'storage'
   | 'treatment'
   | 'other'
+  | 'maintenance'
 
 // Phase of the container in its current lifecycle
 export type ContainerPhase =

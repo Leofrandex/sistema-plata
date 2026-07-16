@@ -324,6 +324,138 @@ export type Database = {
           },
         ]
       }
+      equipment: {
+        Row: {
+          active: boolean
+          brand: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          identification: string | null
+          maintenance_frequency_days: number | null
+          model: string | null
+          name: string
+          owner: string | null
+          provider: string | null
+          serial: string | null
+        }
+        Insert: {
+          active?: boolean
+          brand?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          identification?: string | null
+          maintenance_frequency_days?: number | null
+          model?: string | null
+          name: string
+          owner?: string | null
+          provider?: string | null
+          serial?: string | null
+        }
+        Update: {
+          active?: boolean
+          brand?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          identification?: string | null
+          maintenance_frequency_days?: number | null
+          model?: string | null
+          name?: string
+          owner?: string | null
+          provider?: string | null
+          serial?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "login_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_maintenance: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          equipment_id: string
+          id: string
+          notes: string | null
+          performed_at: string
+          voided_at: string | null
+          voided_by: string | null
+          voided_reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          equipment_id: string
+          id?: string
+          notes?: string | null
+          performed_at: string
+          voided_at?: string | null
+          voided_by?: string | null
+          voided_reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          equipment_id?: string
+          id?: string
+          notes?: string | null
+          performed_at?: string
+          voided_at?: string | null
+          voided_by?: string | null
+          voided_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_maintenance_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "login_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "login_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       external_transfers: {
         Row: {
           container_id: string
@@ -978,7 +1110,13 @@ export type Database = {
         | "plant_storage"
         | "cold_storage"
         | "treatment"
-      photo_event_type: "route" | "weighing" | "storage" | "treatment" | "other"
+      photo_event_type:
+        | "route"
+        | "weighing"
+        | "storage"
+        | "treatment"
+        | "other"
+        | "maintenance"
       route_event_status: "in_progress" | "completed"
       route_kind: "anden" | "morgue"
       route_slot: "06:30" | "10:30" | "13:20" | "14:30" | "18:30" | "21:00"
@@ -1134,7 +1272,14 @@ export const Constants = {
         "cold_storage",
         "treatment",
       ],
-      photo_event_type: ["route", "weighing", "storage", "treatment", "other"],
+      photo_event_type: [
+        "route",
+        "weighing",
+        "storage",
+        "treatment",
+        "other",
+        "maintenance",
+      ],
       route_event_status: ["in_progress", "completed"],
       route_kind: ["anden", "morgue"],
       route_slot: ["06:30", "10:30", "13:20", "14:30", "18:30", "21:00"],

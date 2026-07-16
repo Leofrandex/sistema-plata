@@ -7,6 +7,7 @@ const SECTION_LABELS: Record<PhotoEventType, string> = {
   storage: 'Cámara fría',
   treatment: 'Tratamiento',
   other: 'Otros',
+  maintenance: 'Mantenimiento',
 }
 
 interface Props {
