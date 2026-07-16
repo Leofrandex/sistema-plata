@@ -24,14 +24,20 @@ export default function EquipmentPage() {
   const [stateFilter, setStateFilter] = useState<StateFilter>('all')
 
   useEffect(() => {
+    let cancelled = false
     const db = createClient()
     Promise.all([q.listEquipment(db), q.listLatestMaintenanceByEquipment(db)])
-      .then(([eq, dates]) => { setEquipment(eq); setLastDates(dates) })
+      .then(([eq, dates]) => {
+        if (cancelled) return
+        setEquipment(eq)
+        setLastDates(dates)
+      })
       .catch((err) => {
         console.error('[equipment] cargar equipos falló:', err)
-        setError('No se pudieron cargar los equipos. Revisa tu conexión e intenta de nuevo.')
+        if (!cancelled) setError('No se pudieron cargar los equipos. Revisa tu conexión e intenta de nuevo.')
       })
-      .finally(() => setLoading(false))
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [])
 
   const rows: EquipmentTableRow[] = useMemo(() => {

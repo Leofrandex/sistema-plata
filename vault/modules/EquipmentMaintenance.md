@@ -33,5 +33,8 @@ base instalada de la PTDP. Spec completo:
 
 - **Módulo autónomo**: queries directas a Supabase (sin store/hydrator/outbox).
   Es flujo de coordinador en oficina; no infla la hidratación de operadores.
+  Aclaración: las fotos de mantenimiento sí entran a la hidratación general
+  (`listAllPhotos` del hydrator las trae, por vivir en `photos`); el payload
+  extra es marginal y se aceptó.
 - Solo coordinador: `/equipment` no está en `OPERATOR_PATHS` → AuthGuard bloquea.
 - Detalle vía `/equipment/detail?id=` (export estático, sin rutas dinámicas).

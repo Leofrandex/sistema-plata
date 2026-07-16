@@ -4,11 +4,12 @@ import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase/client'
 import * as q from '@/lib/supabase/queries'
 import { useStore } from '@/lib/store'
+import { cn } from '@/lib/utils'
 import { EquipmentForm, type EquipmentFormValues } from '@/components/equipment/equipment-form'
 import { MaintenanceForm } from '@/components/equipment/maintenance-form'
 import { MaintenanceHistory } from '@/components/equipment/maintenance-history'
@@ -73,10 +74,8 @@ function EquipmentDetailInner() {
   return (
     <div className="space-y-6 max-w-3xl">
       <div className="flex items-center gap-3">
-        <Link href="/equipment">
-          <Button variant="ghost" size="sm" className="gap-1">
-            <ArrowLeft className="h-4 w-4" />Equipos
-          </Button>
+        <Link href="/equipment" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'gap-1')}>
+          <ArrowLeft className="h-4 w-4" />Equipos
         </Link>
         <h1 className="text-2xl font-bold text-slate-800">
           {id ? (equipment ? equipment.name : 'Equipo') : 'Nuevo equipo'}

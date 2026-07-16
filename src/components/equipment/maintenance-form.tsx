@@ -51,6 +51,7 @@ export function MaintenanceForm({ equipmentId, equipmentName, onSaved, onCancel 
     } catch (err) {
       console.error('[equipment] registrar mantenimiento falló:', err)
       setError('No se pudo registrar el mantenimiento. Revisa tu conexión e intenta de nuevo.')
+    } finally {
       setSaving(false)
     }
   }
