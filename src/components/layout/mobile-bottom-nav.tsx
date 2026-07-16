@@ -16,6 +16,7 @@ import {
   Settings,
   LogOut,
   X,
+  Wrench,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/lib/store'
@@ -51,6 +52,7 @@ interface MoreLink {
 
 const MORE_LINKS: MoreLink[] = [
   { href: '/containers',          label: 'Tachos',          icon: Package },
+  { href: '/equipment',           label: 'Equipos',         icon: Wrench },
   { href: '/register/treatment',  label: 'Tratamiento',      icon: Flame },
   { href: '/register/transfer',   label: 'Traslado externo', icon: Truck },
   { href: '/admin/containers',    label: 'Admin tachos',    icon: Settings },

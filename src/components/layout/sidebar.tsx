@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, Package, Settings, ChevronDown, ClipboardList, FileText, LogOut } from 'lucide-react'
+import { LayoutDashboard, Package, Settings, ChevronDown, ClipboardList, FileText, LogOut, Wrench } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_NAME } from '@/lib/constants'
 import { useStore } from '@/lib/store'
@@ -25,6 +25,7 @@ const ADMIN_LINKS = [
 const TOP_NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/containers', label: 'Tachos', icon: Package },
+  { href: '/equipment', label: 'Equipos', icon: Wrench },
   { href: '/reports', label: 'Reportes', icon: FileText },
 ]
 
