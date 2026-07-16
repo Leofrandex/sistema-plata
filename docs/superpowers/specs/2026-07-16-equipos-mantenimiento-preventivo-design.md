@@ -9,7 +9,7 @@ Nueva tab **"Equipos"** (solo coordinador) para dar seguimiento al mantenimiento
 preventivo de la base instalada en la PTDP: una tabla con semáforo que indica
 cuándo toca el mantenimiento de cada equipo, cuántos días quedan y si está
 vencido. La base instalada viene del Excel
-`vault/inbox/BASE INSTALADA PTDP HOSPIMED ST SOFTWARE.xlsx` (61 equipos).
+`vault/inbox/BASE INSTALADA PTDP HOSPIMED ST SOFTWARE.xlsx` (60 equipos).
 
 ## Decisiones de alcance (validadas con el usuario)
 
@@ -96,7 +96,7 @@ Lógica en funciones puras testeables (módulo en `src/lib/`).
 
 ## Semilla
 
-Script único en `scripts/` que lee el Excel del inbox e inserta los 61 equipos
+Script único en `scripts/` que lee el Excel del inbox e inserta los 60 equipos
 con `maintenance_frequency_days = null`. Los duplicados legítimos (6 carritos
 de transporte, 12 baldes inox, etc.) entran como filas separadas distinguidas
 por `identification`. Normalizar espacios sobrantes del Excel (ej.
