@@ -10,6 +10,8 @@ import {
   type MaintenanceState,
 } from '@/lib/data/equipment-status'
 import { EquipmentTable, STATE_LABELS, type EquipmentTableRow } from '@/components/equipment/equipment-table'
+import { buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 type StateFilter = MaintenanceState | 'all'
 
@@ -71,7 +73,7 @@ export default function EquipmentPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-800">Equipos</h1>
-        <Link href="/equipment/detail" className="inline-flex items-center justify-center gap-2 rounded-lg border border-transparent bg-primary text-primary-foreground px-2.5 h-8 text-sm font-medium whitespace-nowrap transition-all outline-none select-none hover:bg-primary/80 focus-visible:ring-3 focus-visible:ring-ring/50">
+        <Link href="/equipment/detail" className={cn(buttonVariants({ variant: 'default' }), 'gap-2')}>
           <Plus className="h-4 w-4" />Nuevo equipo
         </Link>
       </div>
