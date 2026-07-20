@@ -418,7 +418,7 @@ export default function WeighingPage() {
                   </Button>
                   <Button
                     onClick={() => setConfirmingFinish(true)}
-                    disabled={sessionReceptions.length === 0 || pendingNotSkipped.length > 0}
+                    disabled={sessionReceptions.length === 0}
                     className="gap-2"
                   >
                     <StopCircle className="h-4 w-4" />
@@ -482,6 +482,7 @@ export default function WeighingPage() {
           {confirmingFinish && (
             <ConfirmFinishDialog
               count={sessionReceptions.length}
+              pendingCount={pendingNotSkipped.length}
               elapsed={elapsed}
               onCancel={() => setConfirmingFinish(false)}
               onConfirm={async () => {
@@ -519,6 +520,8 @@ export default function WeighingPage() {
 
 interface DialogProps {
   count: number
+  /** Tachos de la cola que quedan sin pesar ni marcar ausentes al finalizar. */
+  pendingCount: number
   elapsed: number
   onCancel: () => void
   onConfirm: () => void
@@ -566,7 +569,7 @@ function ConfirmCancelDialog({ count, onCancel, onConfirm }: CancelDialogProps) 
   )
 }
 
-function ConfirmFinishDialog({ count, elapsed, onCancel, onConfirm }: DialogProps) {
+function ConfirmFinishDialog({ count, pendingCount, elapsed, onCancel, onConfirm }: DialogProps) {
   return (
     <div
       role="dialog"
@@ -594,6 +597,12 @@ function ConfirmFinishDialog({ count, elapsed, onCancel, onConfirm }: DialogProp
           <p>Duración: <strong className="font-mono">{formatElapsed(elapsed)}</strong></p>
           <p>Tachos pesados: <strong>{count}</strong></p>
         </div>
+        {pendingCount > 0 && (
+          <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+            Quedan <strong>{pendingCount}</strong> tacho{pendingCount !== 1 ? 's' : ''} pendiente{pendingCount !== 1 ? 's' : ''} por
+            pesar. Seguirá{pendingCount !== 1 ? 'n' : ''} en la cola para la próxima sesión.
+          </div>
+        )}
         <div className="flex gap-3 justify-end">
           <Button variant="outline" onClick={onCancel}>Seguir pesando</Button>
           <Button onClick={onConfirm}>Sí, finalizar</Button>
