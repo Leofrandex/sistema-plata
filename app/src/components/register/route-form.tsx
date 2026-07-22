@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@hospiwaste/shared/components/ui/badge'
 import { Button } from '@hospiwaste/shared/components/ui/button'
 import { ContainerPickerSheet } from '@hospiwaste/shared/components/register/container-picker-sheet'
-import { PhotoCaptureMulti } from '@/components/register/photo-capture-multi'
+import { PhotoCaptureMulti } from '@hospiwaste/shared/components/register/photo-capture-multi'
 import { SignaturePad } from '@/components/register/signature-pad'
 import { cn } from '@hospiwaste/shared/lib/utils'
 import type { Container, Company } from '@hospiwaste/shared/lib/types'

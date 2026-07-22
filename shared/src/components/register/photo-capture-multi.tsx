@@ -4,8 +4,8 @@ import { useRef, useState } from 'react'
 import Image from 'next/image'
 import { Camera, X, Plus, Loader2 } from 'lucide-react'
 import { Button } from '@hospiwaste/shared/components/ui/button'
-import { watermarkPhoto } from '@/lib/photo-watermark'
-import { isNativeApp, getCameraPhoto } from '@/lib/capture-photo'
+import { watermarkPhoto } from '@hospiwaste/shared/lib/photo-watermark'
+import { isNativeApp, getCameraPhoto } from '@hospiwaste/shared/lib/capture-photo'
 
 interface Props {
   label: string

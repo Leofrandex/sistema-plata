@@ -1,10 +1,13 @@
 import type { Metadata } from 'next'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
-import { Sidebar } from '@/components/layout/sidebar'
-import { HubHeader } from '@/components/layout/hub-header'
+import { MobileHeader } from '@/components/layout/mobile-header'
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav'
-import { HubAuthGuard } from '@/components/layout/hub-auth-guard'
+import { SyncIndicator } from '@/components/layout/sync-indicator'
+import { AppAuthGuard } from '@/components/layout/app-auth-guard'
+import { OperatorSessionGuard } from '@/components/layout/operator-session-guard'
+import { AppLifecycle } from '@/components/layout/app-lifecycle'
+import { ErudaLoader } from '@/components/debug/eruda-loader'
 import { SWCleanup } from '@hospiwaste/shared/components/layout/sw-cleanup'
 import { ConnectionBanner } from '@hospiwaste/shared/components/layout/connection-banner'
 import { SupabaseHydrator } from '@hospiwaste/shared/components/supabase-hydrator'
@@ -17,7 +20,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
-  title: `${APP_NAME} Hub — ${APP_TAGLINE}`,
+  title: `${APP_NAME} — ${APP_TAGLINE}`,
   description: APP_DESCRIPTION,
   manifest: '/manifest.json',
 }
@@ -26,19 +29,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <body className={`${plusJakartaSans.variable} font-sans`}>
-        <HubAuthGuard>
+        <AppAuthGuard>
           <SWCleanup />
           <SupabaseHydrator />
+          <AppLifecycle />
+          <OperatorSessionGuard />
           <div className="flex min-h-screen bg-background">
-            <Sidebar />
             <div className="flex-1 flex flex-col">
-              <HubHeader />
+              <MobileHeader />
               <ConnectionBanner />
-              <main className="flex-1 p-4 md:p-6 pb-24 md:pb-6">{children}</main>
+              <main className="flex-1 p-4 md:p-6 pb-24">{children}</main>
+              <SyncIndicator />
             </div>
             <MobileBottomNav />
           </div>
-        </HubAuthGuard>
+          <ErudaLoader />
+        </AppAuthGuard>
       </body>
     </html>
   )

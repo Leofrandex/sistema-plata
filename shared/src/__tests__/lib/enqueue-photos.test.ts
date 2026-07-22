@@ -2,7 +2,7 @@
  * @jest-environment node
  */
 import 'fake-indexeddb/auto'
-import { enqueueEventPhotos } from '@/lib/data/photos'
+import { enqueueEventPhotos } from '@hospiwaste/shared/lib/data/photos'
 import { listOps, getPhotoBlob } from '@hospiwaste/shared/lib/offline-queue'
 
 // jsdom no está; stub mínimo de URL.createObjectURL para entorno node.

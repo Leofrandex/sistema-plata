@@ -9,18 +9,13 @@ import { cn } from '@hospiwaste/shared/lib/utils'
 import { signOut } from '@hospiwaste/shared/lib/auth/sign-out'
 
 const PAGE_TITLES: Record<string, string> = {
-  '/dashboard': 'Dashboard',
-  '/containers': 'Tachos',
-  '/reports': 'Reportes',
+  '/': 'Inicio',
   '/register/route': 'Recorridos',
   '/register/route/anden': 'Recorridos de andén',
   '/register/route/morgue': 'Recorrido de Morgue',
   '/register/weighing': 'Pesaje',
   '/register/treatment': 'Registrar Tratamiento',
   '/register/transfer': 'Registrar Traslado',
-  '/admin/containers': 'Administrar Tachos',
-  '/admin/clients': 'Administrar Clientes',
-  '/admin/companies': 'Administrar Empresas',
 }
 
 export function MobileHeader() {

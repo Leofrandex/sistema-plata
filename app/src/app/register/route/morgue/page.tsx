@@ -12,7 +12,7 @@ import { StartSessionButton } from '@/components/register/start-session-button'
 import { useStore } from '@hospiwaste/shared/lib/store'
 import { createClient } from '@hospiwaste/shared/lib/supabase/client'
 import * as q from '@hospiwaste/shared/lib/supabase/queries'
-import { enqueueEventPhotos } from '@/lib/data/photos'
+import { enqueueEventPhotos } from '@hospiwaste/shared/lib/data/photos'
 import { submitRouteEvent, routeEventOpId } from '@/lib/data/field-writes'
 import { useElapsed, formatElapsed } from '@/hooks/use-elapsed'
 import {

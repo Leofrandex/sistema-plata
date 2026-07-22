@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import { Button } from '@hospiwaste/shared/components/ui/button'
-import { PhotoCaptureMulti } from '@/components/register/photo-capture-multi'
+import { PhotoCaptureMulti } from '@hospiwaste/shared/components/register/photo-capture-multi'
 import { createClient } from '@hospiwaste/shared/lib/supabase/client'
 import * as q from '@hospiwaste/shared/lib/supabase/queries'
-import { uploadEventPhotos } from '@/lib/data/photos'
+import { uploadEventPhotos } from '@hospiwaste/shared/lib/data/photos'
 import { todayISO } from '@/lib/data/equipment-status'
 import { useStore } from '@hospiwaste/shared/lib/store'
 

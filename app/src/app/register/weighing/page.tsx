@@ -25,7 +25,7 @@ import {
   type ActiveSession,
 } from '@/lib/active-session'
 import { getPendingWeighingContainerIds, getContainerCurrentCompanyId, formatTachoNumber, getMetallicContainers } from '@hospiwaste/shared/lib/data/containers'
-import { enqueueEventPhotos } from '@/lib/data/photos'
+import { enqueueEventPhotos } from '@hospiwaste/shared/lib/data/photos'
 import { submitWeighingSession, submitReception, submitTreatmentRun, submitStorageEvent, submitContainerLocation, receptionOpId } from '@/lib/data/field-writes'
 import { createClient } from '@hospiwaste/shared/lib/supabase/client'
 import * as q from '@hospiwaste/shared/lib/supabase/queries'

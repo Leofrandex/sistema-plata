@@ -1,22 +1,23 @@
-import { isPublicPath, isOperatorAllowed } from '@hospiwaste/shared/lib/auth/route-access'
+import { pathMatchesAny } from '@hospiwaste/shared/lib/auth/route-access'
 
-describe('isPublicPath', () => {
-  it('marca /login y /auth como públicas', () => {
-    expect(isPublicPath('/login')).toBe(true)
-    expect(isPublicPath('/auth/callback')).toBe(true)
-  })
-  it('marca el resto como privadas', () => {
-    expect(isPublicPath('/dashboard')).toBe(false)
-  })
-})
+describe('pathMatchesAny', () => {
+  const PUBLIC = ['/login', '/auth']
 
-describe('isOperatorAllowed', () => {
-  it('permite rutas de operador y sus hijas', () => {
-    expect(isOperatorAllowed('/dashboard')).toBe(true)
-    expect(isOperatorAllowed('/register/route/anden/06:30')).toBe(true)
+  it('matchea la ruta exacta', () => {
+    expect(pathMatchesAny('/login', PUBLIC)).toBe(true)
   })
-  it('bloquea rutas de coordinador', () => {
-    expect(isOperatorAllowed('/reports')).toBe(false)
-    expect(isOperatorAllowed('/admin/containers')).toBe(false)
+
+  it('matchea rutas hijas por prefijo con separador', () => {
+    expect(pathMatchesAny('/auth/callback', PUBLIC)).toBe(true)
+    expect(pathMatchesAny('/register/route/anden/06:30', ['/register/route'])).toBe(true)
+  })
+
+  it('no matchea prefijos parciales sin separador', () => {
+    expect(pathMatchesAny('/loginx', PUBLIC)).toBe(false)
+  })
+
+  it('no matchea rutas fuera de la lista', () => {
+    expect(pathMatchesAny('/dashboard', PUBLIC)).toBe(false)
+    expect(pathMatchesAny('/admin/containers', ['/reports'])).toBe(false)
   })
 })
