@@ -1,0 +1,316 @@
+import type {
+  Client,
+  Company,
+  Container,
+  RouteEvent,
+  WeighingSession,
+  ContainerReception,
+  Photo,
+  RouteSlot,
+} from '@hospiwaste/shared/lib/types'
+import { getRouteSlotDefinition } from '@hospiwaste/shared/lib/constants'
+
+/** Una foto enriquecida con metadatos del contexto. */
+export interface ReportPhotoEntry {
+  photo: Photo
+  container_id: string
+  container: Container | null
+  taken_at: string
+  comment: string
+}
+
+/** Par peso/tacho de un pesaje, para render columnar en el reporte. */
+export interface WeighingPair {
+  container_id: string
+  container: Container | null
+  scale: Photo | null   // foto del peso/balanza (photo_ids[1])
+  tacho: Photo | null   // foto del tacho (photo_ids[0])
+}
+
+/** Grupo de fotos con una etiqueta (se renderiza como un "cuadro" o varios si >8). */
+export interface ReportPhotoGroup {
+  label: string
+  stage: 'route' | 'weighing'
+  photos: ReportPhotoEntry[]
+  pairs?: WeighingPair[]   // solo en grupos de pesaje
+}
+
+/** Un día del reporte. Cada día arranca en página nueva. */
+export interface ReportDay {
+  date: string // YYYY-MM-DD local
+  groups: ReportPhotoGroup[]
+}
+
+export interface PhotographicReportData {
+  company: Company
+  client: Client
+  rangeStart: string // YYYY-MM-DD
+  rangeEnd: string // YYYY-MM-DD
+  generatedAt: string
+  days: ReportDay[]
+  meta: {
+    routeEventCount: number
+    weighingReceptionCount: number
+    routePhotoCount: number
+    weighingPhotoCount: number
+    totalPhotos: number
+  }
+}
+
+export interface ReportStoreSlice {
+  clients: Client[]
+  companies: Company[]
+  containers: Container[]
+  routeEvents: RouteEvent[]
+  weighingSessions: WeighingSession[]
+  receptions: ContainerReception[]
+  photos: Photo[]
+}
+
+export interface ReportRange {
+  start: Date
+  end: Date
+}
+
+/** Lunes 00:00 local de la semana que contiene `reference`. */
+export function getMondayOfWeek(reference: Date = new Date()): Date {
+  const d = new Date(reference)
+  const day = d.getDay()
+  const diff = day === 0 ? -6 : 1 - day
+  d.setDate(d.getDate() + diff)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+/** Formatea una Date como `YYYY-MM-DD` en zona local. */
+export function isoDate(date: Date): string {
+  const yyyy = date.getFullYear()
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
+/** true si `value` (ISO datetime) cae dentro de `[start, end]` inclusivos. */
+export function withinRange(value: string, start: Date, end: Date): boolean {
+  const t = new Date(value).getTime()
+  return t >= start.getTime() && t <= end.getTime()
+}
+
+/** Parte un array en sub-arrays de tamaño `size`. */
+export function chunk<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = []
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
+  return out
+}
+
+/**
+ * Arma el reporte fotográfico de una empresa para un rango.
+ * - Default: [lunes 00:00 de la semana de `now`, `now`].
+ * - Devuelve null si la empresa o el cliente no existen.
+ *
+ * Orden estricto: por día → por ruta (slot, cronológico) → grupo Recorrido luego
+ * grupo Pesaje (recepciones de los tachos sucios recogidos en esa ruta). Las
+ * recepciones que no estén atadas a ninguna ruta del rango se agrupan por su fecha
+ * de pesaje en un grupo "Pesaje" al final del día.
+ */
+export function buildPhotographicReportData(
+  companyId: string,
+  store: ReportStoreSlice,
+  range?: ReportRange,
+): PhotographicReportData | null {
+  const company = store.companies.find((co) => co.id === companyId)
+  if (!company) return null
+  const client = store.clients.find((c) => c.id === company.client_id)
+  if (!client) return null
+
+  const end = range?.end ?? new Date()
+  const start = range?.start ?? getMondayOfWeek(end)
+
+  const photoMap = new Map(store.photos.map((p) => [p.id, p]))
+
+  // La empresa es propiedad del registro (snapshot en pesaje / recorrido). El tacho
+  // es independiente, así que un registro sin empresa no pertenece a ningún reporte.
+  const recBelongs = (r: ContainerReception): boolean => r.company_id === companyId
+  const routeBelongs = (e: RouteEvent): boolean => e.company_id === companyId
+
+  const routeEvents = store.routeEvents.filter(
+    (r) => !r.voided_at && r.kind === 'anden' && withinRange(r.started_at, start, end) && routeBelongs(r),
+  )
+  const receptions = store.receptions.filter(
+    (r) => !r.voided_at && withinRange(r.arrived_at, start, end) && recBelongs(r),
+  )
+
+  // Universo de tachos relevantes (para mapear fotos de ruta y datos del tacho)
+  const relevantContainerIds = new Set<string>([
+    ...receptions.map((r) => r.container_id),
+    ...routeEvents.flatMap((e) => [...e.containers_dirty_received, ...e.containers_clean_delivered]),
+  ])
+  const containers = store.containers.filter((c) => relevantContainerIds.has(c.id))
+  const containerIds = relevantContainerIds
+  const containerMap = new Map(containers.map((c) => [c.id, c]))
+
+  // Índice: container_id → primera ruta (date, slot) donde fue recogido
+  const rutaOfContainer = new Map<string, { date: string; slot: RouteSlot }>()
+  const sortedRoutes = [...routeEvents].sort(
+    (a, b) => new Date(a.started_at).getTime() - new Date(b.started_at).getTime(),
+  )
+  for (const ev of sortedRoutes) {
+    if (!ev.slot) continue
+    for (const cid of ev.containers_dirty_received) {
+      if (!containerIds.has(cid)) continue
+      if (!rutaOfContainer.has(cid)) {
+        rutaOfContainer.set(cid, { date: ev.date, slot: ev.slot })
+      }
+    }
+  }
+
+  type RutaKey = string // `${date}__${slot}`
+
+  // Agrupar route_events por ruta (date, slot)
+  const routesByKey = new Map<RutaKey, RouteEvent[]>()
+  for (const ev of sortedRoutes) {
+    if (!ev.slot) continue
+    const key = `${ev.date}__${ev.slot}`
+    const arr = routesByKey.get(key) ?? []
+    arr.push(ev)
+    routesByKey.set(key, arr)
+  }
+
+  // Receptions por ruta key (grupo Pesaje de cada ruta) + huérfanas
+  const receptionsByRuta = new Map<RutaKey, ContainerReception[]>()
+  const orphanReceptions: ContainerReception[] = []
+  for (const rec of receptions) {
+    const ruta = rutaOfContainer.get(rec.container_id)
+    if (ruta) {
+      const key = `${ruta.date}__${ruta.slot}`
+      const arr = receptionsByRuta.get(key) ?? []
+      arr.push(rec)
+      receptionsByRuta.set(key, arr)
+    } else {
+      orphanReceptions.push(rec)
+    }
+  }
+
+  const byTakenAt = (a: ReportPhotoEntry, b: ReportPhotoEntry) =>
+    new Date(a.taken_at).getTime() - new Date(b.taken_at).getTime()
+
+  function routePhotoEntries(events: RouteEvent[]): ReportPhotoEntry[] {
+    const out: ReportPhotoEntry[] = []
+    for (const ev of events) {
+      const dirtyOfCompany = ev.containers_dirty_received.filter((cid) => containerIds.has(cid))
+      const cleanOfCompany = ev.containers_clean_delivered.filter((cid) => containerIds.has(cid))
+      for (const photoId of ev.photo_ids) {
+        if (photoId === ev.signature_photo_id) continue
+        const photo = photoMap.get(photoId)
+        if (!photo) continue
+        out.push({
+          photo,
+          container_id: dirtyOfCompany[0] ?? cleanOfCompany[0] ?? '',
+          container: null,
+          taken_at: photo.taken_at,
+          comment: '',
+        })
+      }
+    }
+    return out.sort(byTakenAt)
+  }
+
+  function weighingGroupContent(recs: ContainerReception[]): { pairs: WeighingPair[]; photos: ReportPhotoEntry[] } {
+    const sorted = [...recs].sort(
+      (a, b) => new Date(a.arrived_at).getTime() - new Date(b.arrived_at).getTime(),
+    )
+    const pairs: WeighingPair[] = []
+    const photos: ReportPhotoEntry[] = []
+    for (const rec of sorted) {
+      const container = containerMap.get(rec.container_id) ?? null
+      const tacho = rec.photo_ids[0] ? photoMap.get(rec.photo_ids[0]) ?? null : null
+      const scale = rec.photo_ids[1] ? photoMap.get(rec.photo_ids[1]) ?? null : null
+      if (!tacho && !scale) continue
+      pairs.push({ container_id: rec.container_id, container, scale, tacho })
+      if (scale) photos.push({ photo: scale, container_id: rec.container_id, container, taken_at: scale.taken_at, comment: '' })
+      if (tacho) photos.push({ photo: tacho, container_id: rec.container_id, container, taken_at: tacho.taken_at, comment: '' })
+    }
+    return { pairs, photos }
+  }
+
+  // Construir mapa día → grupos
+  const dayMap = new Map<string, ReportPhotoGroup[]>()
+  function pushGroup(date: string, group: ReportPhotoGroup) {
+    if (group.photos.length === 0) return
+    const arr = dayMap.get(date) ?? []
+    arr.push(group)
+    dayMap.set(date, arr)
+  }
+
+  // Rutas ordenadas por (date, slot)
+  const rutaKeys = [...routesByKey.keys()].sort((a, b) => {
+    const [da, sa] = a.split('__')
+    const [db, sb] = b.split('__')
+    if (da !== db) return da < db ? -1 : 1
+    return sa < sb ? -1 : 1
+  })
+  for (const key of rutaKeys) {
+    const [date, slot] = key.split('__') as [string, RouteSlot]
+    const def = getRouteSlotDefinition(slot)
+    const events = routesByKey.get(key)!
+    pushGroup(date, {
+      label: `Recorrido — ${def.ordinal} ruta ${def.shortLabel}`,
+      stage: 'route',
+      photos: routePhotoEntries(events),
+    })
+    const rutaWeighing = weighingGroupContent(receptionsByRuta.get(key) ?? [])
+    pushGroup(date, {
+      label: `Pesaje — ${def.ordinal} ruta`,
+      stage: 'weighing',
+      photos: rutaWeighing.photos,
+      pairs: rutaWeighing.pairs,
+    })
+  }
+
+  // Pesajes huérfanos (sin recorrido en el rango): agrupar por fecha de pesaje
+  const orphanByDate = new Map<string, ContainerReception[]>()
+  for (const rec of orphanReceptions) {
+    const d = isoDate(new Date(rec.arrived_at))
+    const arr = orphanByDate.get(d) ?? []
+    arr.push(rec)
+    orphanByDate.set(d, arr)
+  }
+  for (const [date, recs] of orphanByDate) {
+    const orphanWeighing = weighingGroupContent(recs)
+    pushGroup(date, {
+      label: 'Pesaje',
+      stage: 'weighing',
+      photos: orphanWeighing.photos,
+      pairs: orphanWeighing.pairs,
+    })
+  }
+
+  const days: ReportDay[] = [...dayMap.keys()]
+    .sort()
+    .map((date) => ({ date, groups: dayMap.get(date)! }))
+
+  let routePhotoCount = 0
+  let weighingPhotoCount = 0
+  for (const day of days) {
+    for (const g of day.groups) {
+      if (g.stage === 'route') routePhotoCount += g.photos.length
+      else weighingPhotoCount += g.photos.length
+    }
+  }
+
+  return {
+    company,
+    client,
+    rangeStart: isoDate(start),
+    rangeEnd: isoDate(end),
+    generatedAt: new Date().toISOString(),
+    days,
+    meta: {
+      routeEventCount: routeEvents.length,
+      weighingReceptionCount: receptions.length,
+      routePhotoCount,
+      weighingPhotoCount,
+      totalPhotos: routePhotoCount + weighingPhotoCount,
+    },
+  }
+}

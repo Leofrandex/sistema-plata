@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -10,11 +10,11 @@
 !.yarn/versions
 
 # testing
-/coverage
+coverage/
 
 # next.js
-/.next/
-/out/
+.next/
+out/
 
 # production
 /build
@@ -49,12 +49,12 @@ vault/secrets/
 # claude code local config
 .claude/
 
-# next-pwa generated artifacts
-/public/sw.js
-/public/sw.js.map
-/public/workbox-*.js
-/public/workbox-*.js.map
-/public/fallback-*.js
+# next-pwa generated artifacts (legado)
+**/public/sw.js
+**/public/sw.js.map
+**/public/workbox-*.js
+**/public/workbox-*.js.map
+**/public/fallback-*.js
 
 # demo report artifacts (contienen fotos reales del piloto) + fuentes sueltas de logos
 /demo-report-page*.png
@@ -70,4 +70,4 @@ vault/secrets/
 # Android release signing — NUNCA versionar el keystore ni las credenciales reales
 *.keystore
 *.jks
-/android/keystore.properties
+/app/android/keystore.properties

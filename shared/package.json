@@ -1,0 +1,26 @@
+{
+  "name": "@hospiwaste/shared",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "test": "jest --passWithNoTests",
+    "test:ui": "vitest run"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.4.1",
+    "@supabase/supabase-js": "^2.106.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "idb": "^8.0.3",
+    "lucide-react": "^1.14.0",
+    "tailwind-merge": "^3.5.0",
+    "zustand": "^5.0.12"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-dom": "*"
+  }
+}
