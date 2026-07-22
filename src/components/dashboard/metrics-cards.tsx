@@ -22,7 +22,7 @@ export function computeDashboardMetrics(
   treatmentRuns: TreatmentRun[],
   today: string = new Date().toISOString().slice(0, 10)
 ): DashboardMetrics {
-  const routesToday = routeEvents.filter((r) => r.date === today).length
+  const routesToday = routeEvents.filter((r) => r.date === today && !r.voided_at).length
   // Los contenedores Yaris de flota no atraviesan el ciclo de planta:
   // fuera del pool en circulación (igual que computeCirculationBreakdown).
   const containersInCirculation = containers.filter(

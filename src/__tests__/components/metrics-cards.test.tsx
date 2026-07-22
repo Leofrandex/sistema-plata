@@ -41,4 +41,18 @@ describe('computeDashboardMetrics', () => {
     // 2 recorridos mockeados para 2026-05-17
     expect(metrics.routesToday).toBe(2)
   })
+
+  it('excludes voided routes from routesToday', () => {
+    const [first, ...rest] = MOCK_ROUTE_EVENTS.filter((r) => r.date === '2026-05-17')
+    const voided = { ...first, voided_at: '2026-05-17T20:00:00Z' }
+    const others = MOCK_ROUTE_EVENTS.filter((r) => r.date !== '2026-05-17')
+    const metrics = computeDashboardMetrics(
+      MOCK_CONTAINERS,
+      [voided, ...rest, ...others],
+      MOCK_RECEPTIONS,
+      MOCK_TREATMENT_RUNS,
+      '2026-05-17'
+    )
+    expect(metrics.routesToday).toBe(1)
+  })
 })
