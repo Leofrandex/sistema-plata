@@ -93,4 +93,16 @@ El inbox es la zona de aterrizaje para información cruda: transcripts de reunio
 
 ## Estado del proyecto
 
-Sin código aún. El vault se está construyendo antes que el código. Ver `vault/_index.md` para el estado actualizado.
+Sistema en producción (piloto PTDP). Ver `vault/_index.md` para el estado actualizado.
+
+## Estructura del repo (monorepo, desde 2026-07-22)
+
+npm workspaces con tres paquetes (ver ADR `vault/decisions/2026-07-22-separacion-hub-app.md`):
+
+- **`hub/`** — Next.js web para **coordinadores**: Dashboard, Tachos, Equipos, Historial, Reportes, Admin. Sin registro de operaciones.
+- **`app/`** — Next.js + Capacitor (APK Android) para **operadores**: Home, Recorrido, Pesaje, Tratamiento, Traslado. `android/` vive aquí.
+- **`shared/`** — paquete fuente `@hospiwaste/shared`: store, types, Supabase, lógica de datos, offline/outbox, UI base.
+
+Reglas: código de shared se importa siempre como `@hospiwaste/shared/...` (nunca `@/` dentro de shared); `@/*` es local de cada app. Build y dev con `--webpack`. Los gradle de `app/android/` generados por Capacitor se regeneran con `npx cap sync android` desde `app/` (no editar a mano).
+
+Comandos desde el root: `npm run dev:hub` (:3000), `npm run dev:app` (:3001), `npm run build:hub`, `npm run build:app`, `npm test` (jest de los 3 workspaces), `npm run test:ui` (vitest de `shared/src/components/ui`).

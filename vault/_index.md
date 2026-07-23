@@ -50,6 +50,7 @@ updated: 2026-05-21
 | Offline: outbox de campo (local-first, datos + fotos) | 🟢 Completado (E2E manual en modo avión pendiente) | `logs/2026-06-19-offline-outbox-campo.md` |
 | Recolor 4 estados + historial 2 líneas + tab tachos (filtros/fase/tiempo) + fotos reporte | 🟢 Completado (E2E manual pendiente) | `logs/2026-06-22-colores-historial-tachos-reportes.md` |
 | Tab Equipos: mantenimiento preventivo (semáforo + historial + fotos) | 🟢 Completado (E2E manual pendiente) | `logs/2026-07-16-equipos-mantenimiento-preventivo.md` |
+| Monorepo hub/app/shared + tab Historial + dashboard renovado (7 grupos de métricas) | 🟢 Completado (APK sin compilar — falta JDK; E2E manual pendiente) | `logs/2026-07-22-monorepo-hub-app-dashboard.md` · `decisions/2026-07-22-separacion-hub-app.md` |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completo · ⚠️ Tiene incoherencias
 
@@ -124,6 +125,16 @@ updated: 2026-05-21
 *(Vacío)*
 
 ## Notas del último procesamiento
+
+**2026-07-22** — Separación en monorepo (rama `feat/monorepo-split`): `hub/` (web
+coordinadores: Dashboard renovado con 7 grupos de métricas, Tachos, Equipos,
+**Historial** nuevo, Reportes, Admin — sin Registrar), `app/` (APK operadores: Home
+nuevo + register/**, sin dashboard), `shared/` (paquete `@hospiwaste/shared`).
+AuthGuard parametrizado por app (hub exige coordinador). Analítica nueva en
+`shared/src/lib/data/dashboard-analytics.ts` (15 tests). jest 179 + vitest 12,
+builds verdes. Pendiente: APK (sin JDK en la máquina) y E2E manual. Log:
+`logs/2026-07-22-monorepo-hub-app-dashboard.md`; ADR:
+`decisions/2026-07-22-separacion-hub-app.md`.
 
 **2026-07-16** — Excel de base instalada `BASE INSTALADA PTDP HOSPIMED ST SOFTWARE.xlsx`
 procesado: seed de 60 equipos (`scripts/seed-equipment-supabase.py`) + módulo nuevo
