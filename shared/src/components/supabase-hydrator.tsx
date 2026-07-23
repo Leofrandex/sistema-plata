@@ -4,7 +4,10 @@ import { useEffect } from 'react'
 import { createClient } from '@hospiwaste/shared/lib/supabase/client'
 import * as q from '@hospiwaste/shared/lib/supabase/queries'
 import { useStore } from '@hospiwaste/shared/lib/store'
-import { mergeById, pendingRecordIds } from '@hospiwaste/shared/lib/data/hydrate-merge'
+import { mergeById } from '@hospiwaste/shared/lib/data/hydrate-merge'
+import { getLocalStore } from '@hospiwaste/shared/lib/local-store'
+import { hydrateFromLocal, localPendingIds, type LocalSnapshot } from '@hospiwaste/shared/lib/local-store/hydrate-local'
+import { migrateOutboxToLocalStore } from '@hospiwaste/shared/lib/local-store/migrate-outbox'
 import type {
   Container,
   WeighingSession,
@@ -48,6 +51,24 @@ export function SupabaseHydrator() {
       const localUserId = sessionData.session?.user.id ?? null
       if (cancelled) return
       if (localUserId) useStore.getState().setCurrentProfileId(localUserId)
+
+      // Hidratación local-first: SIEMPRE antes de tocar la red, para que un
+      // reinicio de la app offline muestre los registros del dispositivo en
+      // vez de los mocks iniciales. En hub el LocalStore (IndexedDB) queda
+      // vacío porque hub no escribe ahí — el snapshot local es un no-op.
+      // `migrateOutboxToLocalStore` es idempotente (flag en meta) y barata
+      // en hub por la misma razón.
+      const localStore = await getLocalStore()
+      try {
+        await migrateOutboxToLocalStore(localStore)
+        hydrateLocalIntoStore(await hydrateFromLocal(localStore))
+      } catch (err) {
+        // Un fallo leyendo el LocalStore nunca debe tumbar la hidratación:
+        // seguimos con lo que ya hubiera en el store (mocks o corrida previa).
+        // eslint-disable-next-line no-console
+        console.error('[SupabaseHydrator] local hydration failed:', err)
+      }
+      if (cancelled) return
 
       try {
         // Profile del usuario actual (puede ser null si no hay sesión o si estamos
@@ -126,27 +147,10 @@ export function SupabaseHydrator() {
             : await q.listReceptionsBySessionIds(supabase, sessionIds)
         if (cancelled) return
 
-        const receptionIdsBySession = new Map<string, string[]>()
-        for (const r of receptionsRaw) {
-          if (!r.weighing_session_id) continue
-          const arr = receptionIdsBySession.get(r.weighing_session_id) ?? []
-          arr.push(r.id)
-          receptionIdsBySession.set(r.weighing_session_id, arr)
-        }
-
-        const weighingSessions: WeighingSession[] = sessionsRaw.map((s) => ({
-          id: s.id,
-          client_id: s.client_id,
-          date: s.date,
-          started_at: s.started_at,
-          ended_at: s.ended_at,
-          operator_id: s.operator_id,
-          status: s.status,
-          reception_ids: receptionIdsBySession.get(s.id) ?? [],
-          voided_at: s.voided_at ?? null,
-          voided_by: s.voided_by ?? null,
-          void_reason: s.void_reason ?? null,
-        }))
+        const receptionIdsBySession = buildReceptionIdsBySession(receptionsRaw)
+        const weighingSessions: WeighingSession[] = sessionsRaw.map((s) =>
+          mapWeighingSessionRow(s, receptionIdsBySession)
+        )
 
         const receptions: ContainerReception[] = receptionsRaw.map((r) => ({
           ...rowToReception(r),
@@ -159,7 +163,7 @@ export function SupabaseHydrator() {
         const locations: ContainerLocation[] = locationsRaw.map(rowToLocation)
         const users = profilesRaw.map((p) => ({ id: p.id, name: p.name }))
 
-        const pend = await pendingRecordIds()
+        const pend = await localPendingIds(localStore)
         const prev = useStore.getState()
         useStore.getState().hydrate({
           containers,
@@ -176,7 +180,9 @@ export function SupabaseHydrator() {
         // Éxito: marcamos la conexión como online.
         useStore.getState().setConnectionStatus('online')
       } catch (err) {
-        // Falla: la app sigue con mocks, pero avisamos al usuario vía banner.
+        // Falla de red: el store ya quedó hidratado desde el LocalStore arriba
+        // (los registros del dispositivo), así que no vaciamos nada acá — solo
+        // avisamos al usuario vía banner.
         // eslint-disable-next-line no-console
         console.error('[SupabaseHydrator] hydration failed:', err)
         if (!cancelled) useStore.getState().setConnectionStatus('error')
@@ -210,6 +216,99 @@ export function SupabaseHydrator() {
   }, [])
 
   return null
+}
+
+// ─── local-first: LocalStore snapshot → store Zustand ──────────────────────
+
+function buildReceptionIdsBySession(
+  receptions: Array<{ id: string; weighing_session_id: string | null }>
+): Map<string, string[]> {
+  const map = new Map<string, string[]>()
+  for (const r of receptions) {
+    if (!r.weighing_session_id) continue
+    const arr = map.get(r.weighing_session_id) ?? []
+    arr.push(r.id)
+    map.set(r.weighing_session_id, arr)
+  }
+  return map
+}
+
+function mapWeighingSessionRow(
+  s: {
+    id: string
+    client_id: string
+    date: string
+    started_at: string
+    ended_at: string | null
+    operator_id: string
+    status: 'in_progress' | 'completed'
+    voided_at?: string | null
+    voided_by?: string | null
+    void_reason?: string | null
+  },
+  receptionIdsBySession: Map<string, string[]>
+): WeighingSession {
+  return {
+    id: s.id,
+    client_id: s.client_id,
+    date: s.date,
+    started_at: s.started_at,
+    ended_at: s.ended_at,
+    operator_id: s.operator_id,
+    status: s.status,
+    reception_ids: receptionIdsBySession.get(s.id) ?? [],
+    voided_at: s.voided_at ?? null,
+    voided_by: s.voided_by ?? null,
+    void_reason: s.void_reason ?? null,
+  }
+}
+
+/** `dirtyByEvent`/`cleanByEvent` (Maps que arma `hydrateFromLocal`) → links planos,
+ *  para reusar `mapRouteEvents` (que espera arrays tipo `RouteContainerLink`). */
+function linksFromMap(m: Map<string, string[]>): q.RouteContainerLink[] {
+  const out: q.RouteContainerLink[] = []
+  for (const [route_event_id, ids] of m) {
+    for (const container_id of ids) out.push({ route_event_id, container_id })
+  }
+  return out
+}
+
+/**
+ * Hidrata el store Zustand con el snapshot del LocalStore del dispositivo,
+ * usando el mismo mapeo fila→estado que el fetch a Supabase. Se llama SIEMPRE
+ * antes de tocar la red: si el fetch falla (offline), esto ya quedó en el
+ * store y el catch de `load()` no lo pisa.
+ *
+ * Fotos quedan fuera a propósito: el LocalStore guarda binarios locales (no
+ * URLs), y el sync engine ya se encarga de subirlas — no se pierden aunque no
+ * se hidraten acá. Prioridad: registros primero (route_events, sessions,
+ * receptions, joins).
+ */
+function hydrateLocalIntoStore(local: LocalSnapshot): void {
+  const receptionIdsBySession = buildReceptionIdsBySession(
+    local.receptions as unknown as Array<{ id: string; weighing_session_id: string | null }>
+  )
+  const weighingSessions = local.weighingSessions.map((s) =>
+    mapWeighingSessionRow(s as unknown as Parameters<typeof mapWeighingSessionRow>[0], receptionIdsBySession)
+  )
+  const receptions = local.receptions.map((r) => rowToReception(r as unknown as q.ReceptionRow))
+  const routeEvents = mapRouteEvents(
+    local.routeEvents as unknown as q.RouteEventRow[],
+    linksFromMap(local.dirtyByEvent),
+    linksFromMap(local.cleanByEvent)
+  )
+  const storageEvents = local.storageEvents.map((r) => rowToStorageEvent(r as unknown as q.StorageEventRow))
+  const treatmentRuns = local.treatmentRuns.map((r) => rowToTreatmentRun(r as unknown as q.TreatmentRunRow))
+  const locations = local.containerLocations.map((r) => rowToLocation(r as unknown as q.ContainerLocationRow))
+
+  useStore.getState().hydrate({
+    weighingSessions,
+    receptions,
+    routeEvents,
+    storageEvents,
+    treatmentRuns,
+    locations,
+  })
 }
 
 // ─── adapters BD → store types ─────────────────────────────────────────────
