@@ -3,7 +3,7 @@ title: Índice del Vault — Hospimed Waste Tracking
 tags:
   - index
   - meta
-updated: 2026-05-21
+updated: 2026-07-23
 ---
 
 > [!info] Nota de marca (2026-05-12)
@@ -51,6 +51,7 @@ updated: 2026-05-21
 | Recolor 4 estados + historial 2 líneas + tab tachos (filtros/fase/tiempo) + fotos reporte | 🟢 Completado (E2E manual pendiente) | `logs/2026-06-22-colores-historial-tachos-reportes.md` |
 | Tab Equipos: mantenimiento preventivo (semáforo + historial + fotos) | 🟢 Completado (E2E manual pendiente) | `logs/2026-07-16-equipos-mantenimiento-preventivo.md` |
 | Monorepo hub/app/shared + tab Historial + dashboard renovado (7 grupos de métricas) | 🟢 Completado (APK sin compilar — falta JDK; E2E manual pendiente) | `logs/2026-07-22-monorepo-hub-app-dashboard.md` · `decisions/2026-07-22-separacion-hub-app.md` |
+| Offline SQLite local-first (motor TS, backend dual IndexedDB/SQLite) | 🟢 Completado (Plan B nativo + E2E dispositivo pendientes) | `logs/2026-07-23-offline-sqlite-local-first.md` |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completo · ⚠️ Tiene incoherencias
 
@@ -85,6 +86,7 @@ updated: 2026-05-21
 - `credenciales/2026-06-23-passwords-temporales.md` — ⚠️ contraseñas temporales en texto plano (operadores nuevos); revierte el criterio de no versionar
 
 ### Logs de cambios
+- `logs/2026-07-23-offline-sqlite-local-first.md` — motor offline SQLite local-first (Plan A), reemplaza el outbox de IndexedDB
 - `logs/2026-07-16-equipos-mantenimiento-preventivo.md` — tab Equipos (solo coordinador): semáforo de mantenimiento preventivo, historial con fotos, seed de 60 equipos del Excel
 - `logs/2026-07-08-fotos-opcionales-recorrido.md` — fotos ya no bloquean el guardado de recorrido (andén+morgue); regla = empresa+tacho+firma; revierte parte de `f93a8bc`
 - `logs/2026-07-06-reset-datos-piloto.md` — ⚠️ reset total de datos operativos (TRUNCATE 10 tablas, 230 tachos intactos); respaldo en `backups/`
@@ -125,6 +127,20 @@ updated: 2026-05-21
 *(Vacío)*
 
 ## Notas del último procesamiento
+
+**2026-07-23** — Motor offline SQLite local-first (Plan A, rama
+`feat/offline-sqlite-local-first`). Contrato `LocalStore` con backend dual: IndexedDB
+(web/dev) y SQLite+Filesystem (APK), tabla genérica `local_rows` (payload JSON) en vez de
+DDL por entidad, `local_photos` con `synced` propio, tabla `meta`. Sync engine con fases
+registro/fotos, timeout 15s, mutex. Hidratación local-first 1×/mount con `unionById`
+(fix de un Critical: no pisar estado del server). Migración idempotente del outbox
+IndexedDB legacy (Situación 2, `logs/2026-06-19-offline-outbox-campo.md`, ahora
+reemplazado) — sin descartar operaciones silenciosamente. Sesión APK en
+`@capacitor/preferences`, expira por 1h de inactividad. `event_type` de fotos usa el
+enum real de la BD (`route`/`weighing`), no lo que decía el plan — nota dejada para
+Plan B nativo (Kotlin) sobre el mapeo `drainPhotos`. jest 204 (152+35+17), vitest 12,
+builds hub+app OK, `cap sync android` regenerado. Pendiente: Plan B nativo (bloqueado
+por JDK) y E2E en dispositivo. Log: `logs/2026-07-23-offline-sqlite-local-first.md`.
 
 **2026-07-22** — Separación en monorepo (rama `feat/monorepo-split`): `hub/` (web
 coordinadores: Dashboard renovado con 7 grupos de métricas, Tachos, Equipos,

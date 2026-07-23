@@ -8,6 +8,10 @@ tags:
 updated: 2026-06-19
 ---
 
+> [!info] Reemplazado (2026-07-23)
+> Este outbox de IndexedDB fue reemplazado por el motor SQLite local-first (backend dual
+> IndexedDB/SQLite detrás del contrato `LocalStore`). Ver `logs/2026-07-23-offline-sqlite-local-first.md`.
+
 # Log 2026-06-19 — Resiliencia offline: outbox de campo
 
 ## Contexto
