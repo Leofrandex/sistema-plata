@@ -3,7 +3,7 @@ import { createIdbStore } from '@hospiwaste/shared/lib/local-store/idb-store'
 import type { NewLocalPhoto } from '@hospiwaste/shared/lib/local-store/types'
 
 const photo = (id: string): NewLocalPhoto => ({
-  photo_id: id, event_type: 'route_event', event_id: 're1', label: 'Andén',
+  photo_id: id, event_type: 'route', event_id: 're1', label: 'Andén',
   uploaded_by: 'op1', taken_at: '2026-07-22T10:00:00Z', role: 'dirty',
   ext: 'jpg', content_type: 'image/jpeg',
 })

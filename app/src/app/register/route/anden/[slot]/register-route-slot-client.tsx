@@ -183,9 +183,9 @@ export default function RegisterRouteSlotClient({ params }: Props) {
     const label = buildLabel()
     const toPhotos = (dataUrls: (string | null | undefined)[], role: string) =>
       dataUrls.filter((d): d is string => !!d).map((dataUrl) => ({ dataUrl, label, role }))
-    const upDirty = await saveEventPhotosLocal('route_event', routeEventId, toPhotos(formState.dirtyPhotos, 'dirty'), currentProfileId)
-    const upClean = await saveEventPhotosLocal('route_event', routeEventId, toPhotos(formState.cleanPhotos, 'clean'), currentProfileId)
-    const upSig = await saveEventPhotosLocal('route_event', routeEventId, toPhotos(formState.signature ? [formState.signature] : [], 'signature'), currentProfileId)
+    const upDirty = await saveEventPhotosLocal('route', routeEventId, toPhotos(formState.dirtyPhotos, 'dirty'), currentProfileId)
+    const upClean = await saveEventPhotosLocal('route', routeEventId, toPhotos(formState.cleanPhotos, 'clean'), currentProfileId)
+    const upSig = await saveEventPhotosLocal('route', routeEventId, toPhotos(formState.signature ? [formState.signature] : [], 'signature'), currentProfileId)
     ;[...upDirty, ...upClean, ...upSig].forEach(addPhoto)
     const dirtyIds = upDirty.map((p) => p.id)
     const cleanIds = upClean.map((p) => p.id)

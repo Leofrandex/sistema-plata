@@ -124,9 +124,11 @@ export async function enqueueEventPhotos(args: EnqueuePhotoArgs): Promise<Photo[
 // ─── LocalStore (Task 6+): escritura directa a `local_photos` ───────────────
 
 /** event_type con el que el sync engine (`local-store/sync-engine.ts`) resuelve
- *  la tabla padre de cada foto: `route_event` → `route_events`,
- *  `reception` → `container_receptions`, `treatment_run` sin padre local. */
-export type LocalPhotoEventType = 'route_event' | 'reception' | 'treatment_run'
+ *  la tabla padre de cada foto: `route` → `route_events`,
+ *  `weighing` → `container_receptions` (el event_id de una foto de pesaje ES
+ *  el id de la recepción), `treatment` sin padre local. Subconjunto de
+ *  `photo_event_type` (enum de la BD) usado por el flujo de campo. */
+export type LocalPhotoEventType = 'route' | 'weighing' | 'treatment'
 
 /**
  * Versión local-first de `enqueueEventPhotos` sobre el `LocalStore` (Task 3+):
@@ -154,7 +156,7 @@ export async function saveEventPhotosLocal(
     out.push({
       id: photo_id,
       url: URL.createObjectURL(blob),
-      event_type: eventType as unknown as PhotoEventType,
+      event_type: eventType,
       event_id: eventId,
       taken_at,
       label: p.label,

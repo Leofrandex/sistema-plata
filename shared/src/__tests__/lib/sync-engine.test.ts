@@ -61,14 +61,14 @@ describe('flush', () => {
   it('las fotos solo suben cuando su registro padre está synced', async () => {
     const s = await freshStore('c')
     await s.putRow('route_events', 'reC', { id: 'reC' })
-    await s.putPhoto({ photo_id: 'pC', event_type: 'route_event', event_id: 'reC', label: 'x',
+    await s.putPhoto({ photo_id: 'pC', event_type: 'route', event_id: 'reC', label: 'x',
       uploaded_by: null, taken_at: 't', role: null, ext: 'jpg', content_type: 'image/jpeg' },
       new Blob(['img']))
     const db = fakeDb()
     const r = await flush(db, s)
     expect(r.pushedRecords).toBe(1)
     expect(r.pushedPhotos).toBe(1)
-    expect((db as never as { uploads: string[] }).uploads).toEqual(['route_event/reC/pC.jpg'])
+    expect((db as never as { uploads: string[] }).uploads).toEqual(['route/reC/pC.jpg'])
     expect((await s.getUnsyncedPhotos())).toHaveLength(0)
   })
 
@@ -85,20 +85,20 @@ describe('flush', () => {
 
   it('una foto sin fila padre local (histórico ya en server) sube igual', async () => {
     const s = await freshStore('f')
-    await s.putPhoto({ photo_id: 'pF', event_type: 'route_event', event_id: 'reF-inexistente', label: 'x',
+    await s.putPhoto({ photo_id: 'pF', event_type: 'route', event_id: 'reF-inexistente', label: 'x',
       uploaded_by: null, taken_at: 't', role: null, ext: 'jpg', content_type: 'image/jpeg' },
       new Blob(['img']))
     const db = fakeDb()
     const r = await flush(db, s)
     expect(r.pushedPhotos).toBe(1)
-    expect((db as never as { uploads: string[] }).uploads).toEqual(['route_event/reF-inexistente/pF.jpg'])
+    expect((db as never as { uploads: string[] }).uploads).toEqual(['route/reF-inexistente/pF.jpg'])
   })
 
   it('una foto cuyo padre existe local y sigue unsynced NO sube', async () => {
     const s = await freshStore('g')
     const db = fakeDb({ route_events: 'RLS: rechazado' })
     await s.putRow('route_events', 'reG', { id: 'reG' })
-    await s.putPhoto({ photo_id: 'pG', event_type: 'route_event', event_id: 'reG', label: 'x',
+    await s.putPhoto({ photo_id: 'pG', event_type: 'route', event_id: 'reG', label: 'x',
       uploaded_by: null, taken_at: 't', role: null, ext: 'jpg', content_type: 'image/jpeg' },
       new Blob(['img']))
     const r = await flush(db, s)

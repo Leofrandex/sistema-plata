@@ -14,7 +14,7 @@ describe('migrateOutboxToLocalStore', () => {
     await putPhotoBlob({ photo_id: 'p1', blob: new Blob(['x']), content_type: 'image/jpeg' })
     await enqueueOp({
       op_id: 'ph:p1', type: 'upload_photo',
-      payload: { photo_id: 'p1', event_type: 'route_event', event_id: 're1', label: 'Andén',
+      payload: { photo_id: 'p1', event_type: 'route', event_id: 're1', label: 'Andén',
                  uploaded_by: 'op1', taken_at: '2026-07-22T10:00:00Z', role: 'dirty', ext: 'jpg' },
       deps: ['re:re1'],
     })
@@ -43,7 +43,7 @@ describe('migrateOutboxToLocalStore', () => {
     // upload_photo sin blob correspondiente (nunca se llamó putPhotoBlob para p2)
     await enqueueOp({
       op_id: 'ph:p2-missing', type: 'upload_photo',
-      payload: { photo_id: 'p2', event_type: 'route_event', event_id: 're2', label: 'Andén',
+      payload: { photo_id: 'p2', event_type: 'route', event_id: 're2', label: 'Andén',
                  uploaded_by: 'op1', taken_at: '2026-07-22T10:00:00Z', role: 'dirty', ext: 'jpg' },
       deps: [],
     })

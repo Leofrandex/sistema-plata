@@ -56,8 +56,8 @@ export async function flush(
     }
 
     for (const photo of await store.getUnsyncedPhotos()) {
-      const parentTable = photo.event_type === 'route_event' ? 'route_events'
-        : photo.event_type === 'reception' ? 'container_receptions'
+      const parentTable = photo.event_type === 'route' ? 'route_events'
+        : photo.event_type === 'weighing' ? 'container_receptions'
         : null
       if (parentTable && (await photoParentBlocked(store, parentTable, photo.event_id))) continue
       try {

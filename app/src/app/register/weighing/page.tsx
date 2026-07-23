@@ -178,7 +178,7 @@ export default function WeighingPage() {
     const photos = dataUrls
       .filter((d): d is string => !!d)
       .map((dataUrl) => ({ dataUrl, label, role: null }))
-    const saved = await saveEventPhotosLocal('reception', receptionId, photos, currentProfileId)
+    const saved = await saveEventPhotosLocal('weighing', receptionId, photos, currentProfileId)
     saved.forEach(addPhoto)
     return saved.map((p) => p.id)
   }
