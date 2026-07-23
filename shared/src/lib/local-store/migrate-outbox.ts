@@ -15,34 +15,42 @@ export async function migrateOutboxToLocalStore(store: LocalStore): Promise<{ mi
   let migrated = 0
   const ops = await listOps()
   for (const op of ops) {
-    await migrateOne(store, op)
-    await removeOp(op.op_id)
-    migrated++
+    const persisted = await migrateOne(store, op)
+    if (persisted) {
+      await removeOp(op.op_id)
+      migrated++
+    }
   }
 
   await store.setMeta(MIGRATED_KEY, '1')
   return { migrated }
 }
 
-async function migrateOne(store: LocalStore, op: OutboxOp): Promise<void> {
+async function migrateOne(store: LocalStore, op: OutboxOp): Promise<boolean> {
   if (op.type === 'upload_photo') {
     const p = op.payload as { photo_id: string; event_type: string; event_id: string; label: string
       uploaded_by: string | null; taken_at: string; role: string | null; ext: string }
     const entry = await getPhotoBlob(p.photo_id)
-    if (entry) {
-      await store.putPhoto({ ...p, content_type: entry.content_type }, entry.blob)
-      await removePhotoBlob(p.photo_id)
+    if (!entry) {
+      console.warn('[migrate-outbox] blob faltante, se deja la op en el outbox', op.op_id, 'missing_blob')
+      return false
     }
-    return
+    await store.putPhoto({ ...p, content_type: entry.content_type }, entry.blob)
+    await removePhotoBlob(p.photo_id)
+    return true
   }
   if (op.type === 'add_route_containers') {
     const { table, rows } = op.payload as { table: DomainTable; rows: Array<Record<string, unknown>> }
     for (const row of rows) {
       await store.putRow(table, `${row.route_event_id}:${row.container_id}`, row)
     }
-    return
+    return true
   }
   const table = TABLE_FOR_TYPE[op.type] as DomainTable | undefined
-  if (!table) return // tipo desconocido: se descarta con log en consola
+  if (!table) {
+    console.warn('[migrate-outbox] tipo de op desconocido, se deja la op en el outbox', op.op_id, 'unknown_type')
+    return false
+  }
   await store.putRow(table, (op.payload as { id: string }).id, op.payload)
+  return true
 }

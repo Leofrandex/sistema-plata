@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto'
-import { enqueueOp, putPhotoBlob, listOps } from '@hospiwaste/shared/lib/offline-queue'
+import { enqueueOp, putPhotoBlob, listOps, removeOp } from '@hospiwaste/shared/lib/offline-queue'
 import { createIdbStore } from '@hospiwaste/shared/lib/local-store/idb-store'
 import { migrateOutboxToLocalStore } from '@hospiwaste/shared/lib/local-store/migrate-outbox'
 
@@ -34,5 +34,45 @@ describe('migrateOutboxToLocalStore', () => {
 
     const r2 = await migrateOutboxToLocalStore(store) // idempotente
     expect(r2.migrated).toBe(0)
+  })
+
+  it('no descarta ops silenciosamente: blob faltante y tipo desconocido quedan en el outbox', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+
+    await enqueueOp({ op_id: 're:re2', type: 'create_route_event', payload: { id: 're2', slot: 2 }, deps: [] })
+    // upload_photo sin blob correspondiente (nunca se llamó putPhotoBlob para p2)
+    await enqueueOp({
+      op_id: 'ph:p2-missing', type: 'upload_photo',
+      payload: { photo_id: 'p2', event_type: 'route_event', event_id: 're2', label: 'Andén',
+                 uploaded_by: 'op1', taken_at: '2026-07-22T10:00:00Z', role: 'dirty', ext: 'jpg' },
+      deps: [],
+    })
+    // tipo de op desconocido
+    await enqueueOp({
+      op_id: 'unknown:op1', type: 'not_a_real_type' as never,
+      payload: { id: 'x1' },
+      deps: [],
+    })
+
+    const store = createIdbStore('migrate-outbox-drops-test')
+    await store.init()
+    const result = await migrateOutboxToLocalStore(store)
+
+    expect(result.migrated).toBe(1)
+    expect((await store.getRows('route_events')).map((r) => r.payload)).toContainEqual({ id: 're2', slot: 2 })
+
+    const remainingOps = await listOps()
+    expect(remainingOps.map((op) => op.op_id).sort()).toEqual(['ph:p2-missing', 'unknown:op1'])
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[migrate-outbox] blob faltante, se deja la op en el outbox', 'ph:p2-missing', 'missing_blob'
+    )
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[migrate-outbox] tipo de op desconocido, se deja la op en el outbox', 'unknown:op1', 'unknown_type'
+    )
+
+    warnSpy.mockRestore()
+    await removeOp('ph:p2-missing')
+    await removeOp('unknown:op1')
   })
 })
