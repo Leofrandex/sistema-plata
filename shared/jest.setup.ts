@@ -26,3 +26,12 @@ if (typeof globalThis.structuredClone !== 'function') {
   }
   globalThis.structuredClone = deepClone
 }
+
+// jsdom no implementa URL.createObjectURL/revokeObjectURL; stub mínimo para
+// código que genera object URLs locales para fotos (p.ej. saveEventPhotosLocal).
+if (typeof URL.createObjectURL !== 'function') {
+  URL.createObjectURL = () => 'blob:local/mock'
+}
+if (typeof URL.revokeObjectURL !== 'function') {
+  URL.revokeObjectURL = () => {}
+}

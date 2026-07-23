@@ -12,8 +12,8 @@ import { StartSessionButton } from '@/components/register/start-session-button'
 import { useStore } from '@hospiwaste/shared/lib/store'
 import { createClient } from '@hospiwaste/shared/lib/supabase/client'
 import * as q from '@hospiwaste/shared/lib/supabase/queries'
-import { enqueueEventPhotos } from '@hospiwaste/shared/lib/data/photos'
-import { submitRouteEvent, routeEventOpId } from '@/lib/data/field-writes'
+import { saveEventPhotosLocal } from '@hospiwaste/shared/lib/data/photos'
+import { submitRouteEvent } from '@/lib/data/field-writes'
 import { useElapsed, formatElapsed } from '@/hooks/use-elapsed'
 import {
   startSession,
@@ -163,10 +163,11 @@ export default function RegisterMorgueRoutePage() {
       formState.dirtyReceivedIds, formState.cleanDeliveredIds,
     )
 
-    const parentOpId = routeEventOpId(routeEventId)
-    const upDirty = await enqueueEventPhotos({ dataUrls: formState.dirtyPhotos, eventType: 'route', eventId: routeEventId, label, uploadedBy: currentProfileId, takenAt: now, role: 'dirty', parentOpId })
-    const upClean = await enqueueEventPhotos({ dataUrls: formState.cleanPhotos, eventType: 'route', eventId: routeEventId, label, uploadedBy: currentProfileId, takenAt: now, role: 'clean', parentOpId })
-    const upSig = await enqueueEventPhotos({ dataUrls: formState.signature ? [formState.signature] : [], eventType: 'route', eventId: routeEventId, label, uploadedBy: currentProfileId, takenAt: now, role: 'signature', parentOpId })
+    const toPhotos = (dataUrls: (string | null | undefined)[], role: string) =>
+      dataUrls.filter((d): d is string => !!d).map((dataUrl) => ({ dataUrl, label, role }))
+    const upDirty = await saveEventPhotosLocal('route_event', routeEventId, toPhotos(formState.dirtyPhotos, 'dirty'), currentProfileId)
+    const upClean = await saveEventPhotosLocal('route_event', routeEventId, toPhotos(formState.cleanPhotos, 'clean'), currentProfileId)
+    const upSig = await saveEventPhotosLocal('route_event', routeEventId, toPhotos(formState.signature ? [formState.signature] : [], 'signature'), currentProfileId)
     ;[...upDirty, ...upClean, ...upSig].forEach(addPhoto)
     const dirtyIds = upDirty.map((p) => p.id)
     const cleanIds = upClean.map((p) => p.id)

@@ -25,8 +25,8 @@ import {
   type ActiveSession,
 } from '@/lib/active-session'
 import { getPendingWeighingContainerIds, getContainerCurrentCompanyId, formatTachoNumber, getMetallicContainers } from '@hospiwaste/shared/lib/data/containers'
-import { enqueueEventPhotos } from '@hospiwaste/shared/lib/data/photos'
-import { submitWeighingSession, submitReception, submitTreatmentRun, submitStorageEvent, submitContainerLocation, receptionOpId } from '@/lib/data/field-writes'
+import { saveEventPhotosLocal } from '@hospiwaste/shared/lib/data/photos'
+import { submitWeighingSession, submitReception, submitTreatmentRun, submitStorageEvent, submitContainerLocation } from '@/lib/data/field-writes'
 import { createClient } from '@hospiwaste/shared/lib/supabase/client'
 import * as q from '@hospiwaste/shared/lib/supabase/queries'
 import { ConfirmVoidDialog } from '@hospiwaste/shared/components/ui/confirm-void-dialog'
@@ -173,14 +173,14 @@ export default function WeighingPage() {
   }
 
   async function persistWeighingPhotos(
-    receptionId: string, label: string, takenAt: string, dataUrls: (string | null | undefined)[],
+    receptionId: string, label: string, _takenAt: string, dataUrls: (string | null | undefined)[],
   ): Promise<string[]> {
-    const enqueued = await enqueueEventPhotos({
-      dataUrls, eventType: 'weighing', eventId: receptionId, label,
-      uploadedBy: currentProfileId, takenAt, parentOpId: receptionOpId(receptionId),
-    })
-    enqueued.forEach(addPhoto)
-    return enqueued.map((p) => p.id)
+    const photos = dataUrls
+      .filter((d): d is string => !!d)
+      .map((dataUrl) => ({ dataUrl, label, role: null }))
+    const saved = await saveEventPhotosLocal('reception', receptionId, photos, currentProfileId)
+    saved.forEach(addPhoto)
+    return saved.map((p) => p.id)
   }
 
   async function handleCreateReception(currentSessionId: string, gross: number) {

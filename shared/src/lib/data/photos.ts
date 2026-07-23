@@ -3,6 +3,7 @@ import * as q from '@hospiwaste/shared/lib/supabase/queries'
 import type { DB } from '@hospiwaste/shared/lib/supabase/queries/_helpers'
 import type { PhotoEventType } from '@hospiwaste/shared/lib/supabase/queries/photos'
 import { putPhotoBlob, enqueueOp } from '@hospiwaste/shared/lib/offline-queue'
+import { getLocalStore } from '@hospiwaste/shared/lib/local-store'
 
 /**
  * Sube una lista de data URLs a Storage, las registra en `public.photos` y
@@ -115,6 +116,48 @@ export async function enqueueEventPhotos(args: EnqueuePhotoArgs): Promise<Photo[
       event_id: args.eventId,
       taken_at: takenAt,
       label: args.label,
+    })
+  }
+  return out
+}
+
+// ─── LocalStore (Task 6+): escritura directa a `local_photos` ───────────────
+
+/** event_type con el que el sync engine (`local-store/sync-engine.ts`) resuelve
+ *  la tabla padre de cada foto: `route_event` → `route_events`,
+ *  `reception` → `container_receptions`, `treatment_run` sin padre local. */
+export type LocalPhotoEventType = 'route_event' | 'reception' | 'treatment_run'
+
+/**
+ * Versión local-first de `enqueueEventPhotos` sobre el `LocalStore` (Task 3+):
+ * guarda el blob y su metadata en `local_photos` (`synced=0`) en vez de
+ * `putPhotoBlob` + `enqueueOp`. Mismo contrato de conversión data URL → Blob y
+ * de retorno (`Photo[]` con object URL local) que `enqueueEventPhotos`.
+ */
+export async function saveEventPhotosLocal(
+  eventType: LocalPhotoEventType,
+  eventId: string,
+  photos: Array<{ dataUrl: string; label: string; role?: string | null }>,
+  uploadedBy: string | null,
+): Promise<Photo[]> {
+  const store = await getLocalStore()
+  const out: Photo[] = []
+  for (const p of photos) {
+    const photo_id = crypto.randomUUID()
+    const blob = dataUrlToBlob(p.dataUrl)
+    const ext = blobExt(blob.type)
+    const taken_at = new Date().toISOString()
+    await store.putPhoto({
+      photo_id, event_type: eventType, event_id: eventId, label: p.label,
+      uploaded_by: uploadedBy, taken_at, role: p.role ?? null, ext, content_type: blob.type || 'image/jpeg',
+    }, blob)
+    out.push({
+      id: photo_id,
+      url: URL.createObjectURL(blob),
+      event_type: eventType as unknown as PhotoEventType,
+      event_id: eventId,
+      taken_at,
+      label: p.label,
     })
   }
   return out
