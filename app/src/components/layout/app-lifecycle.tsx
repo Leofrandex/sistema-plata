@@ -56,9 +56,15 @@ export function AppLifecycle() {
      * Si el motor nativo rotó el refresh token en background, re-adopta esa
      * sesión en el cliente JS (C1). En fallo solo loguea: el operador podrá
      * necesitar re-login, pero no crasheamos el foreground.
+     * Solo re-adopta si ya hay una sesión JS activa: tras un logout con cola
+     * pendiente (signOut scope 'local' conserva las credenciales nativas
+     * para el drain), no revivir la sesión de quien cerró sesión si otra
+     * persona toma el teléfono compartido y la app vuelve a foreground.
      */
     async function adoptNativeRotation() {
       try {
+        const { data: { session } } = await createClient().auth.getSession()
+        if (!session) return
         const creds = await getNativeCredentials()
         if (creds?.hasCredentials && creds.rotatedAt > 0 && creds.refreshToken) {
           await createClient().auth.refreshSession({ refresh_token: creds.refreshToken })
