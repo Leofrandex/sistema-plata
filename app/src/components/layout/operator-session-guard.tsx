@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
 import { useStore } from '@hospiwaste/shared/lib/store'
 import { useOperatorCountdown } from '@/hooks/use-operator-countdown'
 import { createClient } from '@hospiwaste/shared/lib/supabase/client'
@@ -24,10 +25,22 @@ export function OperatorSessionGuard() {
   const doSignOut = useCallback(async () => {
     if (signingOut.current) return
     signingOut.current = true
-    await createClient().auth.signOut()
-    clearLoginAt()
     const counts = await (await getLocalStore()).pendingCounts()
-    await clearCredentialsIfDrained(counts.records + counts.photos)
+    const pending = counts.records + counts.photos
+    // Con cola pendiente en el APK: scope local, para que el drain nativo
+    // conserve viva la familia de tokens del lado del server (I1).
+    const local = Capacitor.isNativePlatform() && pending > 0
+    try {
+      await createClient().auth.signOut(local ? { scope: 'local' } : undefined)
+    } catch {
+      // Sin red: igual limpiamos el estado local y seguimos.
+    }
+    clearLoginAt()
+    try {
+      await clearCredentialsIfDrained(pending)
+    } catch (err) {
+      console.error('clearCredentialsIfDrained falló', err)
+    }
     router.replace('/login')
   }, [router])
 

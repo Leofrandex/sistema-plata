@@ -59,7 +59,15 @@ function LoginForm() {
       return
     }
     setLoginAt() // ancla del auto-logout (el guard lo ignora para coordinadores)
-    if (data.session) await handOffCredentials(data.session.refresh_token)
+    if (data.session) {
+      try {
+        await handOffCredentials(data.session.refresh_token)
+      } catch (err) {
+        // Bridge nativo falló: no bloquear el login — el sync nativo quedará
+        // sin credenciales hasta el próximo TOKEN_REFRESHED (I2).
+        console.error('handOffCredentials falló', err)
+      }
+    }
     router.push(nextPath)
     router.refresh()
   }

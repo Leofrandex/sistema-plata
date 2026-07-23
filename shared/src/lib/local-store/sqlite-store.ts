@@ -196,8 +196,10 @@ export function createSqliteStore(): LocalStore {
     },
 
     async markPhotoFailed(photo_id, error) {
+      // AND synced=0: no revivir como "fallida" una foto que el drain nativo ya subió (C2).
       await (await db()).run(
-        'UPDATE local_photos SET synced=0, attempts=attempts+1, sync_error=? WHERE photo_id=?', [error, photo_id])
+        'UPDATE local_photos SET synced=0, attempts=attempts+1, sync_error=? WHERE photo_id=? AND synced=0',
+        [error, photo_id])
     },
 
     async pendingCounts(): Promise<PendingCounts> {

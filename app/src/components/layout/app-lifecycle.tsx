@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@hospiwaste/shared/lib/supabase/client'
 import { isSessionExpired } from '@hospiwaste/shared/lib/supabase/preferences-storage'
 import { getLocalStore } from '@hospiwaste/shared/lib/local-store'
-import { clearCredentialsIfDrained, handOffCredentials, kickNativeSync } from '@/lib/native-sync'
+import { signOut } from '@hospiwaste/shared/lib/auth/sign-out'
+import { clearCredentialsIfDrained, getNativeCredentials, handOffCredentials, kickNativeSync } from '@/lib/native-sync'
 
 /**
  * En el APK (Capacitor):
@@ -15,11 +16,16 @@ import { clearCredentialsIfDrained, handOffCredentials, kickNativeSync } from '@
  *   cada vez que vuelve a foreground; si expiró, cierra sesión y manda a
  *   /login. La sesión ya no muere al cerrar la app — persiste en Preferences
  *   bounded solo por esta regla.
+ * - al volver a foreground, si el motor nativo rotó el refresh token en
+ *   background (rotatedAt > 0), re-adopta esa sesión con refreshSession():
+ *   el éxito dispara TOKEN_REFRESHED, que re-entrega el token al plugin y
+ *   resetea rotatedAt (C1). Sin esto, el RT que guarda el WebView queda de
+ *   una familia vieja y el próximo refresh JS forzaría un logout a mitad de
+ *   turno.
  * - re-entrega el refresh token al plugin nativo cuando Supabase lo rota
- *   (TOKEN_REFRESHED) o en un nuevo login fuera de /login (SIGNED_IN): el
- *   motor de sync nativo también rota el refresh token en cada drain, así
- *   que sin este listener el par WebView/nativo divergiría y el próximo
- *   login del lado JS pisaría un token ya viejo (M5).
+ *   (TOKEN_REFRESHED). El handoff inicial del login lo hace /login (C1: no
+ *   escuchar SIGNED_IN acá evita handoffs duplicados que pisen un token ya
+ *   rotado por el nativo).
  * En web es no-op.
  */
 export function AppLifecycle() {
@@ -32,10 +38,34 @@ export function AppLifecycle() {
 
     async function checkExpiry() {
       if (await isSessionExpired()) {
-        await createClient().auth.signOut()
         const counts = await (await getLocalStore()).pendingCounts()
-        await clearCredentialsIfDrained(counts.records + counts.photos)
+        const pending = counts.records + counts.photos
+        // Con cola pendiente: scope local para no matar la familia de tokens
+        // del lado del server — el drain nativo la sigue necesitando (I1).
+        await signOut(pending > 0 ? { scope: 'local' } : {})
+        try {
+          await clearCredentialsIfDrained(pending)
+        } catch (err) {
+          console.error('clearCredentialsIfDrained falló', err)
+        }
         router.replace('/login')
+      }
+    }
+
+    /**
+     * Si el motor nativo rotó el refresh token en background, re-adopta esa
+     * sesión en el cliente JS (C1). En fallo solo loguea: el operador podrá
+     * necesitar re-login, pero no crasheamos el foreground.
+     */
+    async function adoptNativeRotation() {
+      try {
+        const creds = await getNativeCredentials()
+        if (creds?.hasCredentials && creds.rotatedAt > 0 && creds.refreshToken) {
+          await createClient().auth.refreshSession({ refresh_token: creds.refreshToken })
+          // Éxito → TOKEN_REFRESHED → handOffCredentials resetea rotatedAt a 0.
+        }
+      } catch (err) {
+        console.error('re-adopción del token nativo falló', err)
       }
     }
 
@@ -45,6 +75,7 @@ export function AppLifecycle() {
         checkExpiry()
         App.addListener('appStateChange', ({ isActive }) => {
           if (isActive) {
+            adoptNativeRotation()
             window.dispatchEvent(new Event('hospiwaste:outbox-changed'))
             checkExpiry()
           } else {
@@ -56,8 +87,9 @@ export function AppLifecycle() {
         })
 
         const { data: sub } = createClient().auth.onAuthStateChange((event, session) => {
-          if ((event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') && session) {
-            handOffCredentials(session.refresh_token)
+          if (event === 'TOKEN_REFRESHED' && session) {
+            handOffCredentials(session.refresh_token).catch((err) =>
+              console.error('handOffCredentials falló', err))
           }
         })
         if (cancelled) sub.subscription.unsubscribe()

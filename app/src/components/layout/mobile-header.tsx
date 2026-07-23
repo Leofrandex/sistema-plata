@@ -6,6 +6,7 @@ import { APP_NAME } from '@hospiwaste/shared/lib/constants'
 import { useOperatorCountdown } from '@/hooks/use-operator-countdown'
 import { formatRemaining } from '@hospiwaste/shared/lib/session-timeout'
 import { cn } from '@hospiwaste/shared/lib/utils'
+import { Capacitor } from '@capacitor/core'
 import { signOut } from '@hospiwaste/shared/lib/auth/sign-out'
 import { getLocalStore } from '@hospiwaste/shared/lib/local-store'
 import { clearCredentialsIfDrained } from '@/lib/native-sync'
@@ -25,9 +26,16 @@ export function MobileHeader() {
   const router = useRouter()
   const { active, isWarning, remainingMs } = useOperatorCountdown()
   async function handleSignOut() {
-    await signOut()
     const counts = await (await getLocalStore()).pendingCounts()
-    await clearCredentialsIfDrained(counts.records + counts.photos)
+    const pending = counts.records + counts.photos
+    // Con cola pendiente en el APK: scope local, para que el drain nativo
+    // conserve viva la familia de tokens del lado del server (I1).
+    await signOut(Capacitor.isNativePlatform() && pending > 0 ? { scope: 'local' } : {})
+    try {
+      await clearCredentialsIfDrained(pending)
+    } catch (err) {
+      console.error('clearCredentialsIfDrained falló', err)
+    }
     router.replace('/login')
   }
   if (pathname === '/login' || pathname.startsWith('/auth/')) return null

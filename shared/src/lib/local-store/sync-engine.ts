@@ -62,9 +62,13 @@ export async function flush(
         : null
       if (parentTable && (await photoParentBlocked(store, parentTable, photo.event_id))) continue
       try {
-        await pushPhoto(db, store, photo, timeoutMs)
-        await store.markPhotoSynced(photo.photo_id)
-        result.pushedPhotos++
+        const outcome = await pushPhoto(db, store, photo, timeoutMs)
+        if (outcome === 'pushed') {
+          await store.markPhotoSynced(photo.photo_id)
+          result.pushedPhotos++
+        }
+        // 'already-synced': el drain nativo la subió mientras esta pasada leía (C2) — ni
+        // markPhotoSynced de nuevo ni contarla como pushed.
       } catch (err) {
         if (isNetworkError(err)) return result
         await store.markPhotoFailed(photo.photo_id, err instanceof Error ? err.message : String(err))
@@ -107,9 +111,20 @@ async function pushRow(db: DB, row: LocalRow, timeoutMs: number): Promise<void> 
   if (error) throw new Error(`${row.tbl} upsert: ${error.message}`)
 }
 
-async function pushPhoto(db: DB, store: LocalStore, p: LocalPhoto, timeoutMs: number): Promise<void> {
+async function pushPhoto(
+  db: DB,
+  store: LocalStore,
+  p: LocalPhoto,
+  timeoutMs: number,
+): Promise<'pushed' | 'already-synced'> {
   const blob = await store.getPhotoBlob(p.photo_id)
-  if (!blob) throw new Error(`foto ${p.photo_id}: binario ausente`)
+  if (!blob) {
+    // Sin blob: puede que el drain nativo concurrente ya la haya subido (y borrado el
+    // binario). Re-leer el estado real antes de declararla corrupta (C2).
+    const current = (await store.getPhotos()).find((x) => x.photo_id === p.photo_id)
+    if (current?.synced) return 'already-synced'
+    throw new Error(`foto ${p.photo_id}: binario ausente`)
+  }
   const path = `${p.event_type}/${p.event_id}/${p.photo_id}.${p.ext}`
   const up = await withTimeout(
     Promise.resolve(db.storage.from(BUCKET).upload(path, blob, { contentType: p.content_type, upsert: true })),
@@ -125,4 +140,5 @@ async function pushPhoto(db: DB, store: LocalStore, p: LocalPhoto, timeoutMs: nu
     timeoutMs,
   )
   if (error) throw new Error(`photos upsert: ${error.message}`)
+  return 'pushed'
 }

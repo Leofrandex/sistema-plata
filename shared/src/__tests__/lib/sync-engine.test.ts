@@ -137,6 +137,28 @@ describe('flush', () => {
     expect(await s.getUnsyncedRows()).toHaveLength(1) // re-flushea en la próxima pasada
   })
 
+  it('foto synced=1 sin blob (subida por el drain nativo) no falla ni se re-sube', async () => {
+    const s = await freshStore('i')
+    await s.putPhoto({ photo_id: 'pI', event_type: 'route', event_id: 'reI', label: 'x',
+      uploaded_by: null, taken_at: 't', role: null, ext: 'jpg', content_type: 'image/jpeg' },
+      new Blob(['img']))
+    // El drain nativo la subió (synced=1, binario borrado) mientras el flush JS leía su
+    // snapshot de pendientes: simulamos la lectura vieja con getUnsyncedPhotos stale.
+    await s.markPhotoSynced('pI')
+    const stale: LocalStore = {
+      ...s,
+      getUnsyncedPhotos: async () => (await s.getPhotos()).filter((p) => p.photo_id === 'pI'),
+    }
+    const db = fakeDb()
+    const r = await flush(db, stale)
+    expect(r.failed).toBe(0)
+    expect(r.pushedPhotos).toBe(0)
+    expect((db as never as { uploads: string[] }).uploads).toEqual([]) // no doble subida
+    const [p] = await s.getPhotos()
+    expect(p.synced).toBe(true)
+    expect(p.sync_error).toBeNull() // no quedó marcada como fallida
+  })
+
   it('mutex: un flush concurrente retorna skipped', async () => {
     const s = await freshStore('e')
     await s.putRow('route_events', 'reE', { id: 'reE' })

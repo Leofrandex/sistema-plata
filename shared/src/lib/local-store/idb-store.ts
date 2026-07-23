@@ -128,6 +128,7 @@ export function createIdbStore(dbName = DB_NAME): LocalStore {
     async markPhotoFailed(photo_id, error) {
       const rec = (await (await db()).get('local_photos', photo_id)) as PhotoRecord | undefined
       if (!rec) return
+      if (toBool(rec)) return // ya la subió el otro lado: no revivirla como "fallida" (C2)
       await (await db()).put('local_photos', { ...rec, synced: 0, attempts: rec.attempts + 1, sync_error: error })
     },
 
