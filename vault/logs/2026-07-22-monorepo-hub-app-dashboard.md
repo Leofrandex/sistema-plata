@@ -61,6 +61,19 @@ Rama `feat/monorepo-split` (desde `feat/apk-capacitor`). Ver ADR
 - Revisión visual del dashboard en dev con el histórico Airkem (acumulado 2026 =
   253,991.71 kg ✓; estancados con 66d desde el fin del histórico ✓).
 
+## Deploy en Vercel (2026-07-22, configurado)
+
+Proyecto **`sistema-ptdp`** (team Sebastian's projects), conectado por Git al repo
+`Leofrandex/sistema-plata`, rama `main`. Configuración aplicada vía API:
+`rootDirectory: "hub"` + `sourceFilesOutsideRootDirectory: true` → cada push a
+main despliega **solo el hub**. Dominio público (exento de Deployment
+Protection): **https://sistema-ptdp.vercel.app**. Fixes que exigió el monorepo:
+el install de Vercel no incluye las devDependencies del root, así que hub/app
+declaran su propio toolchain (tailwind/typescript/@types); `@capacitor/core+camera`
+declarados en shared (los usa `capture-photo` con import dinámico); tests y
+configs de jest excluidos del type-check de `next build`. No crear un repo
+aparte para el hub: depende de `shared/` y los workspaces.
+
 ## Pendiente
 - Compilar/instalar el APK cuando haya JDK (Android Studio) y E2E manual en
   dispositivo (cámara, offline, sync).
