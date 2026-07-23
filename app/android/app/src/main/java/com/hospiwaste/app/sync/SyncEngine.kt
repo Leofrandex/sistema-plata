@@ -60,7 +60,7 @@ object SyncEngine {
      */
     private class NetworkDown(cause: Throwable) : Exception(cause)
 
-    fun drain(ctx: Context): DrainOutcome {
+    fun drain(ctx: Context, owner: String = "native-" + java.util.UUID.randomUUID().toString().take(8)): DrainOutcome {
         val creds = SyncCredentials.load(ctx) ?: return DrainOutcome(0, 0, -1)
         val dbPath = File(ctx.getDatabasePath(DB_FILE).absolutePath)
         if (!dbPath.exists()) return DrainOutcome(0, 0, 0)
@@ -71,7 +71,7 @@ object SyncEngine {
             SQLiteDatabase.OPEN_READWRITE or SQLiteDatabase.ENABLE_WRITE_AHEAD_LOGGING,
         )
         db.use {
-            if (!SyncLock.acquire(it, "service")) return DrainOutcome(0, 0, -1)
+            if (!SyncLock.acquire(it, owner)) return DrainOutcome(0, 0, -1)
             var pushed = 0
             var failed = 0
             try {
@@ -125,7 +125,7 @@ object SyncEngine {
                 // Contención con la conexión SQLite del WebView (I2): pasada parcial, no crashear al caller.
                 return DrainOutcome(pushed, failed, -1)
             } finally {
-                SyncLock.release(it, "service")
+                SyncLock.release(it, owner)
             }
         }
     }

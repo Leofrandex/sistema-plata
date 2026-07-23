@@ -13,7 +13,6 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import java.io.File
 import kotlin.concurrent.thread
 
 /**
@@ -33,7 +32,7 @@ class SyncService : Service() {
                 // la conexión del WebView (I2); nunca debe tumbar el servicio.
                 Log.w(TAG, "drain() falló", e)
             } finally {
-                stopSelf()
+                stopSelf(startId)
             }
         }
         return START_NOT_STICKY
