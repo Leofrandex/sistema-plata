@@ -6,7 +6,7 @@ import { AlertTriangle } from 'lucide-react'
 import { useStore } from '@hospiwaste/shared/lib/store'
 import { useOperatorCountdown } from '@/hooks/use-operator-countdown'
 import { createClient } from '@hospiwaste/shared/lib/supabase/client'
-import { clearLoginAt, getLoginAt, formatRemaining } from '@hospiwaste/shared/lib/session-timeout'
+import { clearLoginAt, getLoginAt, formatRemaining, registerActivity } from '@hospiwaste/shared/lib/session-timeout'
 
 /**
  * Cierra la sesión de los operadores 1 h después del login (timeout absoluto) y
@@ -43,6 +43,19 @@ export function OperatorSessionGuard() {
   useEffect(() => {
     if (active && isExpired) doSignOut()
   }, [active, isExpired, doSignOut])
+
+  // Cada interacción del usuario actualiza el ancla de inactividad del APK
+  // (throttleada dentro de registerActivity). No depende del rol: es barato y
+  // el chequeo de expiración por inactividad solo se usa en nativo de todos modos.
+  useEffect(() => {
+    const handler = () => registerActivity()
+    window.addEventListener('pointerdown', handler)
+    window.addEventListener('keydown', handler)
+    return () => {
+      window.removeEventListener('pointerdown', handler)
+      window.removeEventListener('keydown', handler)
+    }
+  }, [])
 
   if (!active || !isWarning) return null
 

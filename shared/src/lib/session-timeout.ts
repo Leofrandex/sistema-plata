@@ -1,7 +1,14 @@
+import { touchActivity } from './supabase/preferences-storage'
+
 /**
  * Lógica pura del auto-logout de operadores. El corte es ABSOLUTO: 60 min desde
  * el login (no se reinicia por actividad). El ancla `login_at` vive en
  * localStorage para sobrevivir recargas de la app dentro de la hora.
+ *
+ * Además, en el APK (nativo) cada interacción registrada actualiza el ancla de
+ * inactividad de `preferences-storage.ts` (throttleada a 30s para no castigar
+ * Preferences con escrituras constantes) — esa es la expiración que sobrevive
+ * al cierre de la app; este corte absoluto de acá sigue aplicando aparte.
  */
 export const SESSION_DURATION_MS = 60 * 60 * 1000
 export const WARNING_MS = 5 * 60 * 1000
@@ -51,4 +58,21 @@ export function getLoginAt(): number | null {
 export function clearLoginAt(): void {
   if (typeof window === 'undefined') return
   localStorage.removeItem(LOGIN_AT_KEY)
+}
+
+export const ACTIVITY_THROTTLE_MS = 30_000
+
+let lastActivityTouchAt = 0
+
+/**
+ * Registra actividad del operador para la expiración por inactividad del APK
+ * (ver `preferences-storage.ts`). Throttleada a `ACTIVITY_THROTTLE_MS` para no
+ * escribir en Preferences en cada evento. Falla en silencio fuera de
+ * plataforma nativa (no hay `@capacitor/preferences` real que persista nada
+ * útil ahí; el chequeo de expiración solo corre en nativo de todos modos).
+ */
+export function registerActivity(now: number = Date.now()): void {
+  if (now - lastActivityTouchAt < ACTIVITY_THROTTLE_MS) return
+  lastActivityTouchAt = now
+  touchActivity().catch(() => { /* @capacitor/preferences no disponible: no-op */ })
 }
