@@ -33,6 +33,11 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <service
+            android:name=".sync.SyncService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false" />
     </application>
 
     <!-- Permissions -->
@@ -40,4 +45,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Cámara: captura de fotos de recorrido/pesaje vía @capacitor/camera -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Sync nativo en background: foreground service de tipo dataSync -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 </manifest>

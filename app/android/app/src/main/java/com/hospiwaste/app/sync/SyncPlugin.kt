@@ -26,7 +26,7 @@ class SyncPlugin : Plugin() {
 
     @PluginMethod
     fun kick(call: PluginCall) {
-        // TODO(Task 4): SyncService.startIfPending(context)
+        SyncService.startIfPending(context)
         call.resolve()
     }
 }
