@@ -59,7 +59,7 @@ export async function flush(
       const parentTable = photo.event_type === 'route_event' ? 'route_events'
         : photo.event_type === 'reception' ? 'container_receptions'
         : null
-      if (parentTable && !(await store.isRowSynced(parentTable, photo.event_id))) continue
+      if (parentTable && (await photoParentBlocked(store, parentTable, photo.event_id))) continue
       try {
         await pushPhoto(db, store, photo, timeoutMs)
         await store.markPhotoSynced(photo.photo_id)
@@ -89,6 +89,13 @@ async function parentBlocked(store: LocalStore, row: LocalRow, failedNow: Set<st
 
 function parentFk(tbl: DomainTable): string {
   return tbl === 'container_receptions' ? 'weighing_session_id' : 'route_event_id'
+}
+
+/** Misma semántica que parentBlocked: sin fila padre local (histórico ya en server) no bloquea. */
+async function photoParentBlocked(store: LocalStore, parentTable: DomainTable, eventId: string): Promise<boolean> {
+  const parentRows = await store.getRows(parentTable)
+  const local = parentRows.find((r) => r.id === eventId)
+  return local ? !local.synced : false
 }
 
 async function pushRow(db: DB, row: LocalRow, timeoutMs: number): Promise<void> {

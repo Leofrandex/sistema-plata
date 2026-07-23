@@ -83,6 +83,30 @@ describe('flush', () => {
     expect(row.sync_error).toBeNull()
   })
 
+  it('una foto sin fila padre local (histórico ya en server) sube igual', async () => {
+    const s = await freshStore('f')
+    await s.putPhoto({ photo_id: 'pF', event_type: 'route_event', event_id: 'reF-inexistente', label: 'x',
+      uploaded_by: null, taken_at: 't', role: null, ext: 'jpg', content_type: 'image/jpeg' },
+      new Blob(['img']))
+    const db = fakeDb()
+    const r = await flush(db, s)
+    expect(r.pushedPhotos).toBe(1)
+    expect((db as never as { uploads: string[] }).uploads).toEqual(['route_event/reF-inexistente/pF.jpg'])
+  })
+
+  it('una foto cuyo padre existe local y sigue unsynced NO sube', async () => {
+    const s = await freshStore('g')
+    const db = fakeDb({ route_events: 'RLS: rechazado' })
+    await s.putRow('route_events', 'reG', { id: 'reG' })
+    await s.putPhoto({ photo_id: 'pG', event_type: 'route_event', event_id: 'reG', label: 'x',
+      uploaded_by: null, taken_at: 't', role: null, ext: 'jpg', content_type: 'image/jpeg' },
+      new Blob(['img']))
+    const r = await flush(db, s)
+    expect(r.pushedPhotos).toBe(0)
+    expect((db as never as { uploads: string[] }).uploads).toEqual([])
+    expect((await s.getUnsyncedPhotos())).toHaveLength(1)
+  })
+
   it('mutex: un flush concurrente retorna skipped', async () => {
     const s = await freshStore('e')
     await s.putRow('route_events', 'reE', { id: 'reE' })
