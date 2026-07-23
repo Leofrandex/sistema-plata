@@ -14,7 +14,7 @@ class SyncPlugin : Plugin() {
         val rt = call.getString("refreshToken")
         if (url == null || anon == null || rt == null) { call.reject("faltan campos"); return }
         SyncCredentials.save(context, Credentials(url, anon, rt))
-        // TODO(Task 5): SyncWork.schedule(context)
+        SyncWork.schedule(context)
         call.resolve()
     }
 
