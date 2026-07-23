@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { createClient } from '@hospiwaste/shared/lib/supabase/client'
 import * as q from '@hospiwaste/shared/lib/supabase/queries'
 import { useStore } from '@hospiwaste/shared/lib/store'
-import { mergeById } from '@hospiwaste/shared/lib/data/hydrate-merge'
+import { mergeById, unionById } from '@hospiwaste/shared/lib/data/hydrate-merge'
 import { getLocalStore } from '@hospiwaste/shared/lib/local-store'
 import { hydrateFromLocal, localPendingIds, type LocalSnapshot } from '@hospiwaste/shared/lib/local-store/hydrate-local'
 import { migrateOutboxToLocalStore } from '@hospiwaste/shared/lib/local-store/migrate-outbox'
@@ -40,6 +40,10 @@ export function SupabaseHydrator() {
     const supabase = createClient()
 
     let cancelled = false
+    // Cierre del efecto (mount) — persiste entre las múltiples invocaciones de
+    // `load()` (login/logout, token refresh, online, visibilitychange, retry)
+    // sin necesitar useRef: el efecto solo corre una vez (deps []).
+    let localHydrated = false
 
     async function load() {
       // ID del operador desde la sesión LOCAL (sin red). Clave para offline:
@@ -52,21 +56,30 @@ export function SupabaseHydrator() {
       if (cancelled) return
       if (localUserId) useStore.getState().setCurrentProfileId(localUserId)
 
-      // Hidratación local-first: SIEMPRE antes de tocar la red, para que un
-      // reinicio de la app offline muestre los registros del dispositivo en
-      // vez de los mocks iniciales. En hub el LocalStore (IndexedDB) queda
-      // vacío porque hub no escribe ahí — el snapshot local es un no-op.
-      // `migrateOutboxToLocalStore` es idempotente (flag en meta) y barata
-      // en hub por la misma razón.
+      // Hidratación local-first: SOLO en la primera corrida de este mount
+      // (antes del primer fetch), para que un reinicio de la app offline
+      // muestre los registros del dispositivo en vez de los mocks iniciales.
+      // Las corridas siguientes de `load()` (login/logout, token refresh,
+      // online, visibilitychange, retry) van directo al fetch+merge de abajo,
+      // que ya preserva lo local no sincronizado vía `mergeById` +
+      // `localPendingIds` y, si el fetch falla, deja el store intacto. Repetir
+      // la hidratación local en cada `load()` pisaba (hub, LocalStore vacío)
+      // o angostaba (app) el store cuando el fetch subsiguiente fallaba.
+      // En hub el LocalStore (IndexedDB) queda vacío porque hub no escribe
+      // ahí — el snapshot local es un no-op. `migrateOutboxToLocalStore` es
+      // idempotente (flag en meta) y barata en hub por la misma razón.
       const localStore = await getLocalStore()
-      try {
-        await migrateOutboxToLocalStore(localStore)
-        hydrateLocalIntoStore(await hydrateFromLocal(localStore))
-      } catch (err) {
-        // Un fallo leyendo el LocalStore nunca debe tumbar la hidratación:
-        // seguimos con lo que ya hubiera en el store (mocks o corrida previa).
-        // eslint-disable-next-line no-console
-        console.error('[SupabaseHydrator] local hydration failed:', err)
+      if (!localHydrated) {
+        try {
+          await migrateOutboxToLocalStore(localStore)
+          hydrateLocalIntoStore(await hydrateFromLocal(localStore))
+        } catch (err) {
+          // Un fallo leyendo el LocalStore nunca debe tumbar la hidratación:
+          // seguimos con lo que ya hubiera en el store (mocks o corrida previa).
+          // eslint-disable-next-line no-console
+          console.error('[SupabaseHydrator] local hydration failed:', err)
+        }
+        localHydrated = true
       }
       if (cancelled) return
 
@@ -275,9 +288,15 @@ function linksFromMap(m: Map<string, string[]>): q.RouteContainerLink[] {
 
 /**
  * Hidrata el store Zustand con el snapshot del LocalStore del dispositivo,
- * usando el mismo mapeo fila→estado que el fetch a Supabase. Se llama SIEMPRE
- * antes de tocar la red: si el fetch falla (offline), esto ya quedó en el
- * store y el catch de `load()` no lo pisa.
+ * usando el mismo mapeo fila→estado que el fetch a Supabase. Se llama solo en
+ * la primera corrida del mount, antes de tocar la red: si el fetch falla
+ * (offline), esto ya quedó en el store y el catch de `load()` no lo pisa.
+ *
+ * Cinturón y tirantes: en vez de reemplazar los arrays del store a ciegas,
+ * los une por id con `unionById` (gana lo local, se conserva lo que ya
+ * hubiera en el store y no está en el snapshot local) — así esta llamada
+ * nunca es destructiva aunque el store ya traiga algo (p.ej. otro efecto que
+ * corrió antes).
  *
  * Fotos quedan fuera a propósito: el LocalStore guarda binarios locales (no
  * URLs), y el sync engine ya se encarga de subirlas — no se pierden aunque no
@@ -301,13 +320,14 @@ function hydrateLocalIntoStore(local: LocalSnapshot): void {
   const treatmentRuns = local.treatmentRuns.map((r) => rowToTreatmentRun(r as unknown as q.TreatmentRunRow))
   const locations = local.containerLocations.map((r) => rowToLocation(r as unknown as q.ContainerLocationRow))
 
+  const prev = useStore.getState()
   useStore.getState().hydrate({
-    weighingSessions,
-    receptions,
-    routeEvents,
-    storageEvents,
-    treatmentRuns,
-    locations,
+    weighingSessions: unionById(weighingSessions, prev.weighingSessions),
+    receptions: unionById(receptions, prev.receptions),
+    routeEvents: unionById(routeEvents, prev.routeEvents),
+    storageEvents: unionById(storageEvents, prev.storageEvents),
+    treatmentRuns: unionById(treatmentRuns, prev.treatmentRuns),
+    locations: unionById(locations, prev.locations),
   })
 }
 
