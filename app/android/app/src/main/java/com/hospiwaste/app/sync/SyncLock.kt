@@ -35,7 +35,12 @@ object SyncLock {
         }
     }
 
+    /** No-throw: si falla (p.ej. contención con el WebView), el TTL de 120s acota el lock huérfano (I2). */
     fun release(db: SQLiteDatabase, owner: String) {
-        db.execSQL("DELETE FROM meta WHERE key=? AND value LIKE ?", arrayOf(KEY, "$owner:%"))
+        try {
+            db.execSQL("DELETE FROM meta WHERE key=? AND value LIKE ?", arrayOf(KEY, "$owner:%"))
+        } catch (_: Exception) {
+            // swallow: TTL_MS acota el lock si no se pudo liberar.
+        }
     }
 }
