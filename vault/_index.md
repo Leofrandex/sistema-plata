@@ -51,7 +51,7 @@ updated: 2026-07-23
 | Recolor 4 estados + historial 2 líneas + tab tachos (filtros/fase/tiempo) + fotos reporte | 🟢 Completado (E2E manual pendiente) | `logs/2026-06-22-colores-historial-tachos-reportes.md` |
 | Tab Equipos: mantenimiento preventivo (semáforo + historial + fotos) | 🟢 Completado (E2E manual pendiente) | `logs/2026-07-16-equipos-mantenimiento-preventivo.md` |
 | Monorepo hub/app/shared + tab Historial + dashboard renovado (7 grupos de métricas) | 🟢 Completado (APK sin compilar — falta JDK; E2E manual pendiente) | `logs/2026-07-22-monorepo-hub-app-dashboard.md` · `decisions/2026-07-22-separacion-hub-app.md` |
-| Offline SQLite local-first (motor TS, backend dual IndexedDB/SQLite) | 🟢 Completado (Plan B nativo + E2E dispositivo pendientes) | `logs/2026-07-23-offline-sqlite-local-first.md` |
+| Offline SQLite local-first (Plan A motor TS + Plan B background sync nativo) | 🟢 Completado (E2E manual en dispositivo pendiente) | `logs/2026-07-23-offline-sqlite-local-first.md` |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completo · ⚠️ Tiene incoherencias
 

@@ -113,3 +113,68 @@ subagente (spec + calidad). Rama `feat/offline-sqlite-local-first`, base `85f3ab
   monorepo hub/app/shared sobre el que corre este motor.
 - `logs/2026-06-19-login-tarjetas-auto-logout-operador.md` — mecanismo de sesión web que la sesión
   APK complementa (no reemplaza).
+
+---
+
+# Adenda 2026-07-23 — Plan B: background sync nativo (Kotlin)
+
+Ejecutado el mismo día a continuación del Plan A (Tasks 2–5 de
+`docs/superpowers/plans/2026-07-22-offline-sqlite-B-nativo.md`), también con
+subagent-driven-development y review final de rama. **Falta solo la Task 6: E2E manual
+en dispositivo real.**
+
+## Hallazgo previo clave
+
+No hay JDK "instalado": las compilaciones usan el **Temurin 21 embebido en la extensión
+Java de Antigravity IDE** (`~\.antigravity-ide\extensions\redhat.java-*\jre\*`). El
+Android SDK ya estaba en `%LOCALAPPDATA%\Android\Sdk`. Ni Android Studio ni EAS son
+necesarios (EAS no soporta Capacitor).
+
+## Qué se hizo (`app/android/.../sync/` + bridge TS)
+
+- **`SyncCredentials.kt`** — EncryptedSharedPreferences (`hospiwaste_sync`): url, anon key,
+  refresh token y `rotated_at` (0 = el token vino del WebView; >0 = lo rotó el nativo).
+- **`SyncPlugin.kt`** (`NativeSync`) — `setCredentials` (login/TOKEN_REFRESHED),
+  `getCredentials`, `clearCredentials` (cancela el work), `kick`.
+- **`SyncEngine.kt`** — abre `hospiwasteSQLite.db` (WAL), **no rota el token si la cola
+  está vacía**, sube `local_rows` en `SYNC_ORDER` (gating padre→hijo, `rev` anti-clobber,
+  red≠rechazo con abort de pasada) y fotos (`route`→route_events, `weighing`→
+  container_receptions; padre local unsynced bloquea, ausente no), REST con timeout 15 s,
+  `sync_error` con código HTTP + snippet. Persistencia del refresh token rotado antes de usarlo.
+- **`SyncLock.kt`** — lock en `meta` (`flush_lock`, owner único por drain + TTL 120 s +
+  `renew` por tabla/foto).
+- **`SyncService.kt`** — foreground service `dataSync`: notificación, drain en hilo,
+  `stopSelf(startId)`, `startIfPending` (red + credenciales + EXISTS de pendientes).
+- **`SyncWork.kt` + `BootReceiver.kt`** — periódico 15 min con constraint de red,
+  `KEEP`, re-agenda tras reboot; sin credenciales → success (no churn).
+- **Bridge TS** (`app/src/lib/native-sync.ts` + wiring): handoff del refresh token en
+  login y TOKEN_REFRESHED; re-adopción de la rotación nativa al volver a foreground
+  (**solo si hay sesión JS activa** — teléfono compartido); `clearCredentialsIfDrained`
+  en los 3 logouts (scope `local` si hay pendientes, para no matar la familia de tokens);
+  `kick` al ir a background.
+
+## Decisiones
+
+- Red vs rechazo replicado del motor TS: un corte a mitad de drain NO marca `sync_error`
+  (evita falsas alarmas de "rechazados" en el indicador).
+- Foto ya subida por el otro motor = skip silencioso (guard `synced=0` en markPhotoFailed
+  de ambos lados) — mata el escenario "zombi" binario-borrado-pero-unsynced.
+- Logout con cola pendiente → signOut `scope: 'local'` en nativo: el drain post-logout
+  conserva una familia de tokens válida (decisión usuario 2026-07-22).
+
+## Verificación
+
+- `gradlew assembleDebug` verde en cada tarea (JDK Antigravity). jest 209 (3 workspaces)
+  + vitest 12 verdes; `build:app`/`build:hub` OK.
+- Reviews: 2 Critical (carrera de rotación de token; foto zombi) y 5 Important detectados
+  por los reviewers y corregidos (commits `da86dda`, `f83398d`, `026ee79`, más los fixes
+  por tarea). Veredicto final: **Ready for device E2E**.
+
+## Pendiente — E2E en dispositivo real (Task 6)
+
+Los 6 criterios del spec §7 **más** los deltas del review final: carrera de rotación
+(app abierta >45 min con cola vacía → sesión sobrevive), re-adopción tras drain nativo,
+foto en drenado concurrente (background→foreground rápido), Android 13+ sin permiso de
+notificaciones, kick desde background en Android 12+ (FGS restrictions), Doze >1 h,
+reboot con cola, logout online con pendientes, drain largo de fotos (>120 s). Registrar
+resultados en un log nuevo.
