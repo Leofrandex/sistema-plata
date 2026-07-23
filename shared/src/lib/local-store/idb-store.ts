@@ -66,11 +66,15 @@ export function createIdbStore(dbName = DB_NAME): LocalStore {
     },
 
     async markRowSynced(tbl, id, rev) {
-      const r = await getRow(tbl, id)
-      if (!r) return
-      // Un putRow concurrente movió la rev: la fila quedó pendiente con el payload nuevo.
-      if (rev !== undefined && r.rev !== rev) return
-      await (await db()).put('local_rows', { ...r, synced: 1, sync_error: null })
+      // get + put condicional en UNA sola transacción: evita que un putRow concurrente
+      // pise el resultado entre el get y el put (compare-and-set atómico, igual que sqlite).
+      const d = await db()
+      const tx = d.transaction('local_rows', 'readwrite')
+      const r = (await tx.store.get([tbl, id])) as (LocalRow & { synced: number | boolean }) | undefined
+      if (r && (rev === undefined || (r.rev ?? 0) === rev)) {
+        await tx.store.put({ ...r, synced: 1, sync_error: null })
+      }
+      await tx.done
     },
 
     async markRowFailed(tbl, id, error) {
