@@ -10,6 +10,7 @@ import { APP_NAME } from '@hospiwaste/shared/lib/constants'
 import { createClient } from '@hospiwaste/shared/lib/supabase/client'
 import { getLoginDirectory, type LoginDirectoryEntry } from '@hospiwaste/shared/lib/supabase/queries'
 import { setLoginAt } from '@hospiwaste/shared/lib/session-timeout'
+import { handOffCredentials } from '@/lib/native-sync'
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/)
@@ -48,7 +49,7 @@ function LoginForm() {
     setLoading(true)
     setError(null)
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: loginEmail,
       password,
     })
@@ -58,6 +59,7 @@ function LoginForm() {
       return
     }
     setLoginAt() // ancla del auto-logout (el guard lo ignora para coordinadores)
+    if (data.session) await handOffCredentials(data.session.refresh_token)
     router.push(nextPath)
     router.refresh()
   }

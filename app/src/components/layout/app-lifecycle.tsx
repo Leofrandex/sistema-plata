@@ -4,6 +4,8 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@hospiwaste/shared/lib/supabase/client'
 import { isSessionExpired } from '@hospiwaste/shared/lib/supabase/preferences-storage'
+import { getLocalStore } from '@hospiwaste/shared/lib/local-store'
+import { clearCredentialsIfDrained, kickNativeSync } from '@/lib/native-sync'
 
 /**
  * En el APK (Capacitor):
@@ -25,6 +27,8 @@ export function AppLifecycle() {
     async function checkExpiry() {
       if (await isSessionExpired()) {
         await createClient().auth.signOut()
+        const counts = await (await getLocalStore()).pendingCounts()
+        await clearCredentialsIfDrained(counts.records + counts.photos)
         router.replace('/login')
       }
     }
@@ -37,6 +41,8 @@ export function AppLifecycle() {
           if (isActive) {
             window.dispatchEvent(new Event('hospiwaste:outbox-changed'))
             checkExpiry()
+          } else {
+            kickNativeSync()
           }
         }).then((h) => {
           if (cancelled) h.remove()

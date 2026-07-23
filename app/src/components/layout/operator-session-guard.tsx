@@ -7,6 +7,8 @@ import { useStore } from '@hospiwaste/shared/lib/store'
 import { useOperatorCountdown } from '@/hooks/use-operator-countdown'
 import { createClient } from '@hospiwaste/shared/lib/supabase/client'
 import { clearLoginAt, getLoginAt, formatRemaining, registerActivity } from '@hospiwaste/shared/lib/session-timeout'
+import { getLocalStore } from '@hospiwaste/shared/lib/local-store'
+import { clearCredentialsIfDrained } from '@/lib/native-sync'
 
 /**
  * Cierra la sesión de los operadores 1 h después del login (timeout absoluto) y
@@ -24,6 +26,8 @@ export function OperatorSessionGuard() {
     signingOut.current = true
     await createClient().auth.signOut()
     clearLoginAt()
+    const counts = await (await getLocalStore()).pendingCounts()
+    await clearCredentialsIfDrained(counts.records + counts.photos)
     router.replace('/login')
   }, [router])
 

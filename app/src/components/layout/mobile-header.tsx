@@ -7,6 +7,8 @@ import { useOperatorCountdown } from '@/hooks/use-operator-countdown'
 import { formatRemaining } from '@hospiwaste/shared/lib/session-timeout'
 import { cn } from '@hospiwaste/shared/lib/utils'
 import { signOut } from '@hospiwaste/shared/lib/auth/sign-out'
+import { getLocalStore } from '@hospiwaste/shared/lib/local-store'
+import { clearCredentialsIfDrained } from '@/lib/native-sync'
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Inicio',
@@ -24,6 +26,8 @@ export function MobileHeader() {
   const { active, isWarning, remainingMs } = useOperatorCountdown()
   async function handleSignOut() {
     await signOut()
+    const counts = await (await getLocalStore()).pendingCounts()
+    await clearCredentialsIfDrained(counts.records + counts.photos)
     router.replace('/login')
   }
   if (pathname === '/login' || pathname.startsWith('/auth/')) return null
