@@ -75,11 +75,17 @@ object SyncEngine {
             var pushed = 0
             var failed = 0
             try {
+                // Cola vacía: no rotar el refresh token gratis (C1). Cada rotación nativa
+                // invalida el RT que guarda el WebView; rotar sin nada que subir solo
+                // acerca al operador a un logout forzado a mitad de turno.
+                if (!hasPending(it)) return DrainOutcome(0, 0, 0)
                 val token = refreshAccessToken(ctx, creds) ?: return DrainOutcome(0, 0, -1)
                 // `tbl:id` de filas que fallaron en esta pasada — bloquea a sus hijas (espejo de failedParents en flush()).
                 val failedNow = mutableSetOf<String>()
 
                 for (tbl in SYNC_ORDER) {
+                    // Un drain largo puede exceder el TTL del lock: renovarlo por tabla (I3).
+                    SyncLock.renew(it, owner)
                     // Materializar antes de mutar: no tocar la tabla bajo un cursor abierto (M1).
                     val rows = it.rawQuery(
                         "SELECT id, payload, rev FROM local_rows WHERE tbl=? AND synced=0 ORDER BY created_at",
@@ -117,7 +123,7 @@ object SyncEngine {
                     }
                 }
 
-                val photoResult = drainPhotos(ctx, it, creds, token)
+                val photoResult = drainPhotos(ctx, it, creds, token, owner)
                 pushed += photoResult.ok
                 failed += photoResult.fail
                 return DrainOutcome(pushed, failed, pendingCount(it))
@@ -129,6 +135,12 @@ object SyncEngine {
             }
         }
     }
+
+    /** EXISTS barato: ¿hay algo que subir? Evita rotar el token para una cola vacía (C1). */
+    private fun hasPending(db: SQLiteDatabase): Boolean = db.rawQuery(
+        "SELECT EXISTS(SELECT 1 FROM local_rows WHERE synced=0) OR EXISTS(SELECT 1 FROM local_photos WHERE synced=0)",
+        null,
+    ).use { c -> c.moveToFirst() && c.getInt(0) == 1 }
 
     private fun pendingCount(db: SQLiteDatabase): Int = db.rawQuery(
         "SELECT (SELECT COUNT(*) FROM local_rows WHERE synced=0) + (SELECT COUNT(*) FROM local_photos WHERE synced=0)",
@@ -163,7 +175,15 @@ object SyncEngine {
                 if (!res.isSuccessful) return null
                 val json = JSONObject(res.body!!.string())
                 // Supabase rota el refresh token: persistir el nuevo o el próximo drain falla.
-                SyncCredentials.save(ctx, creds.copy(refreshToken = json.getString("refresh_token")))
+                // rotatedAt > 0 marca que el RT vigente ya no es el que conoce el WebView (C1):
+                // al volver a foreground, el JS lo lee y re-adopta la sesión con este RT.
+                SyncCredentials.save(
+                    ctx,
+                    creds.copy(
+                        refreshToken = json.getString("refresh_token"),
+                        rotatedAt = System.currentTimeMillis(),
+                    ),
+                )
                 json.getString("access_token")
             }
         } catch (_: Exception) {
@@ -231,7 +251,13 @@ object SyncEngine {
     private data class PhotoDrainResult(val ok: Int, val fail: Int)
 
     /** Fotos de padres ya subidos: archivo -> Storage REST -> upsert en photos. */
-    private fun drainPhotos(ctx: Context, db: SQLiteDatabase, creds: Credentials, token: String): PhotoDrainResult {
+    private fun drainPhotos(
+        ctx: Context,
+        db: SQLiteDatabase,
+        creds: Credentials,
+        token: String,
+        owner: String,
+    ): PhotoDrainResult {
         var ok = 0
         var fail = 0
         // Materializar antes de mutar: no tocar la tabla bajo un cursor abierto (M1).
@@ -260,11 +286,16 @@ object SyncEngine {
         }
 
         for (p in photos) {
+            // Subir fotos es lento: renovar el lock antes de cada una (I3).
+            SyncLock.renew(db, owner)
             if (photoBlocked(db, p.eventType, p.eventId)) continue
 
             try {
                 val file = File(ctx.filesDir, p.fileUri)
                 if (!file.exists()) {
+                    // Sin archivo: puede que el flush JS la haya subido (y borrado el binario)
+                    // mientras esta pasada leía. Si ya quedó synced=1, saltar en silencio (C2).
+                    if (isPhotoSynced(db, p.photoId)) continue
                     markPhotoFailed(db, p.photoId, "binario ausente: ${p.fileUri}")
                     fail++
                     continue
@@ -318,9 +349,15 @@ object SyncEngine {
         return PhotoDrainResult(ok, fail)
     }
 
+    private fun isPhotoSynced(db: SQLiteDatabase, photoId: String): Boolean = db.rawQuery(
+        "SELECT synced FROM local_photos WHERE photo_id=?",
+        arrayOf(photoId),
+    ).use { c -> c.moveToFirst() && c.getInt(0) == 1 }
+
+    /** `AND synced=0`: no revivir como "fallida" una foto que el otro lado ya subió (C2). */
     private fun markPhotoFailed(db: SQLiteDatabase, photoId: String, error: String) {
         db.execSQL(
-            "UPDATE local_photos SET attempts=attempts+1, synced=0, sync_error=? WHERE photo_id=?",
+            "UPDATE local_photos SET attempts=attempts+1, synced=0, sync_error=? WHERE photo_id=? AND synced=0",
             arrayOf(truncate(error), photoId),
         )
     }

@@ -323,7 +323,8 @@ object SyncEngine {
         db.rawQuery("SELECT photo_id, event_type, event_id, label, uploaded_by, taken_at, role, ext, content_type, file_uri FROM local_photos WHERE synced=0", null).use { c ->
             while (c.moveToNext()) {
                 val photoId = c.getString(0); val eventType = c.getString(1); val eventId = c.getString(2)
-                val parentTbl = if (eventType == "route_event") "route_events" else "container_receptions"
+                // Mapeo alineado al fix de Plan A: event_type "route" → route_events, "weighing" → container_receptions.
+                val parentTbl = if (eventType == "route") "route_events" else "container_receptions"
                 val parentSynced = db.rawQuery(
                     "SELECT synced FROM local_rows WHERE tbl=? AND id=?", arrayOf(parentTbl, eventId),
                 ).use { p -> !p.moveToFirst() || p.getInt(0) == 1 } // sin fila local = histórico ya en server

@@ -35,6 +35,22 @@ object SyncLock {
         }
     }
 
+    /**
+     * Extiende el TTL solo si el lock sigue siendo del `owner` (I3): un drain largo (muchas
+     * fotos con señal débil) puede exceder los 120s y dejar que otro proceso "robe" el lock.
+     * No-throw: si falla por contención, el peor caso vuelve a ser el TTL original.
+     */
+    fun renew(db: SQLiteDatabase, owner: String) {
+        try {
+            db.execSQL(
+                "UPDATE meta SET value=? WHERE key=? AND value LIKE ?",
+                arrayOf("$owner:${System.currentTimeMillis() + TTL_MS}", KEY, "$owner:%"),
+            )
+        } catch (_: Exception) {
+            // swallow: el TTL vigente sigue acotando el lock.
+        }
+    }
+
     /** No-throw: si falla (p.ej. contención con el WebView), el TTL de 120s acota el lock huérfano (I2). */
     fun release(db: SQLiteDatabase, owner: String) {
         try {

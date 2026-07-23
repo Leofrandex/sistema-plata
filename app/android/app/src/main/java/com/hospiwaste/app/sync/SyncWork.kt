@@ -23,6 +23,9 @@ class SyncWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, params) {
         //                                         próximo ciclo)
         //   pending > 0 && pushed == 0         -> retry (nada se movió; probablemente la red
         //                                         cayó a mitad de la pasada)
+        // Sin credenciales (logout): success, no retry — el ciclo periódico igual queda
+        // cancelado por clearCredentials, esto solo evita churn de una corrida ya encolada (I4).
+        if (SyncCredentials.load(applicationContext) == null) return Result.success()
         val outcome = try {
             SyncEngine.drain(applicationContext)
         } catch (_: Exception) {
@@ -46,5 +49,10 @@ object SyncWork {
             .build()
         WorkManager.getInstance(ctx)
             .enqueueUniquePeriodicWork(UNIQUE_WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, req)
+    }
+
+    /** Detiene el ciclo periódico tras un logout con cola drenada (I4). */
+    fun cancel(ctx: Context) {
+        WorkManager.getInstance(ctx).cancelUniqueWork(UNIQUE_WORK_NAME)
     }
 }
