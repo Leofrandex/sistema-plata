@@ -1,4 +1,4 @@
-@import "tw-animate-css";
+@import "../../../node_modules/tw-animate-css/dist/tw-animate.css";
 @import "../../../node_modules/shadcn/dist/tailwind.css";
 @import "../../../shared/src/styles/tokens.css";
 @tailwind base;
