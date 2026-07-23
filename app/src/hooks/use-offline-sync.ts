@@ -1,33 +1,33 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { countPendingOps } from '@hospiwaste/shared/lib/offline-queue'
-import { drainOutbox } from '@hospiwaste/shared/lib/outbox-sync'
+import { getLocalStore, type PendingCounts } from '@hospiwaste/shared/lib/local-store'
+import { flush } from '@hospiwaste/shared/lib/local-store/sync-engine'
 import { createClient } from '@hospiwaste/shared/lib/supabase/client'
 
+const ZERO: PendingCounts = { records: 0, photos: 0, rejected: 0 }
+
 export function useOfflineSync() {
-  const [pendingCount, setPendingCount] = useState(0)
+  const [counts, setCounts] = useState<PendingCounts>(ZERO)
   const [isOnline, setIsOnline] = useState(true)
 
-  const refreshCount = useCallback(async () => {
-    setPendingCount(await countPendingOps())
+  const refreshCounts = useCallback(async () => {
+    setCounts(await (await getLocalStore()).pendingCounts())
   }, [])
 
   const sync = useCallback(async () => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) return
     try {
-      await drainOutbox(createClient())
+      await flush(createClient(), await getLocalStore())
     } catch (err) {
-      // El drenado individual ya maneja sus errores; esto cubre fallos al abrir
-      // el cliente. No es fatal: se reintenta en el próximo disparo.
-      console.error('[offline-sync] drain falló:', err)
+      console.error('[offline-sync] flush falló:', err)
     }
-    await refreshCount()
-  }, [refreshCount])
+    await refreshCounts()
+  }, [refreshCounts])
 
   useEffect(() => {
     setIsOnline(navigator.onLine)
-    refreshCount()
+    refreshCounts()
     if (navigator.onLine) sync()
 
     function handleOnline() { setIsOnline(true); sync() }
@@ -48,7 +48,7 @@ export function useOfflineSync() {
       window.removeEventListener('hospiwaste:outbox-changed', onChanged)
       clearInterval(interval)
     }
-  }, [sync, refreshCount])
+  }, [sync, refreshCounts])
 
-  return { isOnline, pendingCount, refreshCount }
+  return { isOnline, counts, refreshCounts }
 }

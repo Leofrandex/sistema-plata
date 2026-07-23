@@ -1,12 +1,29 @@
 'use client'
 
 import { useOfflineSync } from '@/hooks/use-offline-sync'
-import { WifiOff, RefreshCw } from 'lucide-react'
+import { WifiOff, RefreshCw, AlertTriangle } from 'lucide-react'
 
 export function SyncIndicator() {
-  const { isOnline, pendingCount } = useOfflineSync()
+  const { isOnline, counts } = useOfflineSync()
+  const { records, photos, rejected } = counts
+  const pending = records + photos
 
-  if (isOnline && pendingCount === 0) return null
+  // El estado de error nunca se oculta: elementos rechazados requieren revisión manual.
+  if (rejected === 0 && isOnline && pending === 0) return null
+
+  if (rejected > 0) {
+    return (
+      <div className="fixed bottom-20 right-4 md:bottom-6 flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium shadow-lg z-50 bg-destructive/10 text-destructive">
+        <AlertTriangle className="h-4 w-4" />
+        {rejected} elemento{rejected !== 1 ? 's' : ''} rechazado{rejected !== 1 ? 's' : ''} — revisar
+      </div>
+    )
+  }
+
+  const label =
+    pending === 0
+      ? 'Todo sincronizado'
+      : `${records} registro${records !== 1 ? 's' : ''} y ${photos} foto${photos !== 1 ? 's' : ''} por sincronizar`
 
   return (
     <div
@@ -15,9 +32,9 @@ export function SyncIndicator() {
       }`}
     >
       {isOnline ? (
-        <><RefreshCw className="h-4 w-4 animate-spin" />{pendingCount} pendiente{pendingCount !== 1 ? 's' : ''} · sincronizando…</>
+        <><RefreshCw className="h-4 w-4 animate-spin" />{label}</>
       ) : (
-        <><WifiOff className="h-4 w-4" />Sin conexión · {pendingCount} en cola</>
+        <><WifiOff className="h-4 w-4" />Sin conexión · {label}</>
       )}
     </div>
   )
