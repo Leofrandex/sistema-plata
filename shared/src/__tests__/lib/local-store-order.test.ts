@@ -2,7 +2,7 @@ import { SYNC_ORDER, sortBySyncOrder, PARENT_OF } from '@hospiwaste/shared/lib/l
 import type { LocalRow } from '@hospiwaste/shared/lib/local-store/types'
 
 function row(tbl: LocalRow['tbl'], id: string, created_at: string): LocalRow {
-  return { tbl, id, payload: {}, synced: false, attempts: 0, sync_error: null, created_at }
+  return { tbl, id, payload: {}, synced: false, attempts: 0, sync_error: null, created_at, rev: 1 }
 }
 
 describe('SYNC_ORDER', () => {

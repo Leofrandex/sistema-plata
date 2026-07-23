@@ -16,6 +16,7 @@ import { uploadEventPhotos, saveEventPhotosLocal } from '@hospiwaste/shared/lib/
 import { getLocalStore } from '@hospiwaste/shared/lib/local-store'
 import { submitRouteEvent } from '@/lib/data/field-writes'
 import { applyFieldEdit } from '@/lib/data/field-edits'
+import { deleteLocalRouteEvent } from '@/lib/data/local-deletes'
 import { getSlotAndenEvents, computeSlotStatus } from '@hospiwaste/shared/lib/data/route-sessions'
 import { getRouteSlotDefinition, paramToSlot } from '@hospiwaste/shared/lib/constants'
 import { useElapsed, formatElapsed } from '@/hooks/use-elapsed'
@@ -254,13 +255,22 @@ export default function RegisterRouteSlotClient({ params }: Props) {
         await q.setRouteContainersClean(supabase, id, formState.cleanDeliveredIds)
       })
       if (mode === 'local') {
-        // Reescribe también las filas join locales con la selección de tachos actual.
+        // Reescribe también las filas join locales con la selección de tachos actual
+        // y borra las de tachos des-seleccionados (para que no lleguen al server).
         const store = await getLocalStore()
-        for (const cid of formState.dirtyReceivedIds) {
-          await store.putRow('route_event_containers_dirty', `${id}:${cid}`, { route_event_id: id, container_id: cid })
-        }
-        for (const cid of formState.cleanDeliveredIds) {
-          await store.putRow('route_event_containers_clean', `${id}:${cid}`, { route_event_id: id, container_id: cid })
+        const joins = [
+          { tbl: 'route_event_containers_dirty', selected: formState.dirtyReceivedIds },
+          { tbl: 'route_event_containers_clean', selected: formState.cleanDeliveredIds },
+        ] as const
+        for (const { tbl, selected } of joins) {
+          for (const cid of selected) {
+            await store.putRow(tbl, `${id}:${cid}`, { route_event_id: id, container_id: cid })
+          }
+          const existingRows = await store.getRows(tbl)
+          const stale = existingRows.filter(
+            (r) => r.payload.route_event_id === id && !selected.includes(r.payload.container_id as string),
+          )
+          for (const r of stale) await store.deleteRow(tbl, r.id)
         }
       }
     } catch (err) {
@@ -325,6 +335,7 @@ export default function RegisterRouteSlotClient({ params }: Props) {
       console.error('[recorrido andén] borrar andén falló:', err)
       return
     }
+    await deleteLocalRouteEvent(id)
     deleteRouteEvent(id)
     resetForm()
   }
@@ -397,6 +408,7 @@ export default function RegisterRouteSlotClient({ params }: Props) {
       console.error('[recorrido andén] cancelar falló:', err)
       return
     }
+    for (const a of sessionAndenes) await deleteLocalRouteEvent(a.id)
     sessionAndenes.forEach((a) => deleteRouteEvent(a.id))
     await endSession(activeSession.key)
     setActiveSession(null)

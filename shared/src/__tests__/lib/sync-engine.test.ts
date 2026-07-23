@@ -107,6 +107,36 @@ describe('flush', () => {
     expect((await s.getUnsyncedPhotos())).toHaveLength(1)
   })
 
+  it('un putRow concurrente durante el flush deja la fila unsynced con el payload nuevo', async () => {
+    const s = await freshStore('h')
+    await s.putRow('route_events', 'reH', { id: 'reH', status: 'in_progress' })
+
+    // Deferred: el upsert del server no resuelve hasta que lo liberemos.
+    let releaseUpsert!: () => void
+    const gate = new Promise<void>((res) => { releaseUpsert = res })
+    let upsertStarted!: () => void
+    const started = new Promise<void>((res) => { upsertStarted = res })
+    const db = {
+      from: () => ({
+        upsert: async () => { upsertStarted(); await gate; return { error: null } },
+      }),
+      storage: { from: () => ({ upload: async () => ({ error: null }) }) },
+    } as never
+
+    const flushing = flush(db, s)
+    await started
+    // Escritura concurrente (p.ej. cierre del día) mientras el upsert viaja al server.
+    await s.putRow('route_events', 'reH', { id: 'reH', status: 'completed' })
+    releaseUpsert()
+    await flushing
+
+    // markRowSynced con la rev capturada no debe pisar la escritura nueva.
+    const [row] = await s.getRows('route_events')
+    expect(row.synced).toBe(false)
+    expect(row.payload).toEqual({ id: 'reH', status: 'completed' })
+    expect(await s.getUnsyncedRows()).toHaveLength(1) // re-flushea en la próxima pasada
+  })
+
   it('mutex: un flush concurrente retorna skipped', async () => {
     const s = await freshStore('e')
     await s.putRow('route_events', 'reE', { id: 'reE' })

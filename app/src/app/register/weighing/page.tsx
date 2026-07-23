@@ -28,6 +28,7 @@ import { getPendingWeighingContainerIds, getContainerCurrentCompanyId, formatTac
 import { saveEventPhotosLocal } from '@hospiwaste/shared/lib/data/photos'
 import { submitWeighingSession, submitReception, submitTreatmentRun, submitStorageEvent, submitContainerLocation } from '@/lib/data/field-writes'
 import { applyFieldEdit } from '@/lib/data/field-edits'
+import { deleteLocalWeighingSession } from '@/lib/data/local-deletes'
 import { createClient } from '@hospiwaste/shared/lib/supabase/client'
 import * as q from '@hospiwaste/shared/lib/supabase/queries'
 import { ConfirmVoidDialog } from '@hospiwaste/shared/components/ui/confirm-void-dialog'
@@ -329,6 +330,7 @@ export default function WeighingPage() {
       console.error('[pesaje] borrar sesión falló:', err)
       return
     }
+    await deleteLocalWeighingSession(ctx.weighing_session_id)
     deleteWeighingSession(ctx.weighing_session_id)
     await endSession(activeSession.key)
     setActiveSession(null)

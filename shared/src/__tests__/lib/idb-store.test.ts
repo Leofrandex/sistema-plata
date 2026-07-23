@@ -75,6 +75,44 @@ describe('idb-store', () => {
     expect(await s.pendingCounts()).toEqual({ records: 2, photos: 1, rejected: 1 })
   })
 
+  it('deleteRow elimina la fila; un id inexistente es no-op', async () => {
+    const s = createIdbStore(`test-db-${testCounter++}`)
+    await s.init()
+    await s.putRow('route_events', 're5', { id: 're5' })
+    await s.deleteRow('route_events', 're5')
+    expect(await s.getRows('route_events')).toHaveLength(0)
+    expect(await s.getUnsyncedRows()).toHaveLength(0)
+    await expect(s.deleteRow('route_events', 'no-existe')).resolves.toBeUndefined()
+  })
+
+  it('deletePhotosByEvent borra metadatos Y binario solo del evento indicado; evento inexistente es no-op', async () => {
+    const s = createIdbStore(`test-db-${testCounter++}`)
+    await s.init()
+    await s.putPhoto(photo('p3'), new Blob(['a'], { type: 'image/jpeg' }))
+    await s.putPhoto({ ...photo('p4'), event_id: 'otro-evento' }, new Blob(['b'], { type: 'image/jpeg' }))
+    await s.deletePhotosByEvent('route', 're1')
+    expect((await s.getPhotos()).map((p) => p.photo_id)).toEqual(['p4'])
+    expect(await s.getPhotoBlob('p3')).toBeNull()
+    expect(await s.getPhotoBlob('p4')).not.toBeNull()
+    await expect(s.deletePhotosByEvent('route', 'no-existe')).resolves.toBeUndefined()
+    expect(await s.getPhotos()).toHaveLength(1)
+  })
+
+  it('putRow incrementa rev y markRowSynced con rev vieja no marca (con rev vigente sí)', async () => {
+    const s = createIdbStore(`test-db-${testCounter++}`)
+    await s.init()
+    await s.putRow('route_events', 're6', { v: 1 })
+    let [r] = await s.getRows('route_events')
+    expect(r.rev).toBe(1)
+    await s.putRow('route_events', 're6', { v: 2 })
+    ;[r] = await s.getRows('route_events')
+    expect(r.rev).toBe(2)
+    await s.markRowSynced('route_events', 're6', 1) // rev vieja: no-op
+    expect(await s.isRowSynced('route_events', 're6')).toBe(false)
+    await s.markRowSynced('route_events', 're6', 2)
+    expect(await s.isRowSynced('route_events', 're6')).toBe(true)
+  })
+
   it('meta get/set', async () => {
     const s = createIdbStore(`test-db-${testCounter++}`)
     await s.init()

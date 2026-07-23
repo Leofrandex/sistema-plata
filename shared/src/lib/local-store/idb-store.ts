@@ -34,7 +34,7 @@ export function createIdbStore(dbName = DB_NAME): LocalStore {
 
   async function getRow(tbl: DomainTable, id: string): Promise<LocalRow | undefined> {
     const r = await (await db()).get('local_rows', [tbl, id])
-    return r ? ({ ...r, synced: toBool(r) } as LocalRow) : undefined
+    return r ? ({ ...r, synced: toBool(r), rev: r.rev ?? 0 } as LocalRow) : undefined
   }
 
   return {
@@ -46,17 +46,18 @@ export function createIdbStore(dbName = DB_NAME): LocalStore {
         tbl, id, payload,
         synced: 0, attempts: 0, sync_error: null,
         created_at: prev?.created_at ?? new Date().toISOString(),
+        rev: (prev?.rev ?? 0) + 1,
       })
     },
 
     async getRows(tbl) {
       const all = (await (await db()).getAll('local_rows')) as Array<LocalRow & { synced: number | boolean }>
-      return all.filter((r) => r.tbl === tbl).map((r) => ({ ...r, synced: toBool(r) }))
+      return all.filter((r) => r.tbl === tbl).map((r) => ({ ...r, synced: toBool(r), rev: r.rev ?? 0 }))
     },
 
     async getUnsyncedRows() {
       const all = (await (await db()).getAll('local_rows')) as Array<LocalRow & { synced: number | boolean }>
-      return all.filter((r) => !toBool(r)).map((r) => ({ ...r, synced: false }))
+      return all.filter((r) => !toBool(r)).map((r) => ({ ...r, synced: false, rev: r.rev ?? 0 }))
     },
 
     async isRowSynced(tbl, id) {
@@ -64,9 +65,11 @@ export function createIdbStore(dbName = DB_NAME): LocalStore {
       return r?.synced === true
     },
 
-    async markRowSynced(tbl, id) {
+    async markRowSynced(tbl, id, rev) {
       const r = await getRow(tbl, id)
       if (!r) return
+      // Un putRow concurrente movió la rev: la fila quedó pendiente con el payload nuevo.
+      if (rev !== undefined && r.rev !== rev) return
       await (await db()).put('local_rows', { ...r, synced: 1, sync_error: null })
     },
 
@@ -74,6 +77,20 @@ export function createIdbStore(dbName = DB_NAME): LocalStore {
       const r = await getRow(tbl, id)
       if (!r) return
       await (await db()).put('local_rows', { ...r, synced: 0, attempts: r.attempts + 1, sync_error: error })
+    },
+
+    async deleteRow(tbl, id) {
+      await (await db()).delete('local_rows', [tbl, id])
+    },
+
+    async deletePhotosByEvent(event_type, event_id) {
+      const d = await db()
+      const all = (await d.getAll('local_photos')) as PhotoRecord[]
+      for (const p of all) {
+        if (p.event_type === event_type && p.event_id === event_id) {
+          await d.delete('local_photos', p.photo_id) // metadatos + blob viven en el mismo registro
+        }
+      }
     },
 
     async putPhoto(photo, blob) {

@@ -39,6 +39,8 @@ export interface LocalRow {
   attempts: number
   sync_error: string | null
   created_at: string
+  /** Versión local: putRow la incrementa. Permite a markRowSynced detectar escrituras concurrentes. */
+  rev: number
 }
 
 export interface NewLocalPhoto {
@@ -73,8 +75,12 @@ export interface LocalStore {
   getRows(tbl: DomainTable): Promise<LocalRow[]>
   getUnsyncedRows(): Promise<LocalRow[]>
   isRowSynced(tbl: DomainTable, id: string): Promise<boolean>
-  markRowSynced(tbl: DomainTable, id: string): Promise<void>
+  /** Con `rev`: solo marca synced si la fila local sigue en esa rev (no pisa un putRow concurrente). */
+  markRowSynced(tbl: DomainTable, id: string, rev?: number): Promise<void>
   markRowFailed(tbl: DomainTable, id: string, error: string): Promise<void>
+  deleteRow(tbl: DomainTable, id: string): Promise<void>
+  /** Borra metadatos Y binarios de todas las fotos locales de un evento (tolera archivos ausentes). */
+  deletePhotosByEvent(event_type: string, event_id: string): Promise<void>
   putPhoto(photo: NewLocalPhoto, blob: Blob): Promise<void>
   getPhotos(): Promise<LocalPhoto[]>
   getUnsyncedPhotos(): Promise<LocalPhoto[]>

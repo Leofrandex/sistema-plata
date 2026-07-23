@@ -7,6 +7,7 @@ export const SCHEMA_SQL: string[] = [
      tbl TEXT NOT NULL, id TEXT NOT NULL, payload TEXT NOT NULL,
      synced INTEGER NOT NULL DEFAULT 0, attempts INTEGER NOT NULL DEFAULT 0,
      sync_error TEXT, created_at TEXT NOT NULL,
+     rev INTEGER NOT NULL DEFAULT 0,
      PRIMARY KEY (tbl, id)
    );`,
   `CREATE INDEX IF NOT EXISTS idx_local_rows_unsynced ON local_rows (synced, tbl);`,
@@ -53,6 +54,8 @@ export function createSqliteStore(): LocalStore {
     await c.open()
     await c.execute('PRAGMA journal_mode=WAL;')
     for (const stmt of SCHEMA_SQL) await c.execute(stmt)
+    // Migración idempotente: CREATE TABLE IF NOT EXISTS no agrega columnas a tablas ya creadas.
+    try { await c.execute('ALTER TABLE local_rows ADD COLUMN rev INTEGER NOT NULL DEFAULT 0;') } catch { /* ya existe */ }
     conn = c
     return c
   }
@@ -68,6 +71,7 @@ export function createSqliteStore(): LocalStore {
       payload: JSON.parse(r.payload as string),
       synced: r.synced === 1, attempts: r.attempts as number,
       sync_error: (r.sync_error as string) ?? null, created_at: r.created_at as string,
+      rev: (r.rev as number) ?? 0,
     }
   }
 
@@ -88,9 +92,10 @@ export function createSqliteStore(): LocalStore {
 
     async putRow(tbl, id, payload) {
       await (await db()).run(
-        `INSERT INTO local_rows (tbl, id, payload, synced, attempts, sync_error, created_at)
-         VALUES (?, ?, ?, 0, 0, NULL, ?)
-         ON CONFLICT(tbl, id) DO UPDATE SET payload=excluded.payload, synced=0, attempts=0, sync_error=NULL`,
+        `INSERT INTO local_rows (tbl, id, payload, synced, attempts, sync_error, created_at, rev)
+         VALUES (?, ?, ?, 0, 0, NULL, ?, 1)
+         ON CONFLICT(tbl, id) DO UPDATE SET
+           payload=excluded.payload, synced=0, attempts=0, sync_error=NULL, rev=local_rows.rev + 1`,
         [tbl, id, JSON.stringify(payload), new Date().toISOString()],
       )
     },
@@ -110,13 +115,36 @@ export function createSqliteStore(): LocalStore {
       return res.values?.[0]?.synced === 1
     },
 
-    async markRowSynced(tbl, id) {
-      await (await db()).run('UPDATE local_rows SET synced=1, sync_error=NULL WHERE tbl=? AND id=?', [tbl, id])
+    async markRowSynced(tbl, id, rev) {
+      if (rev === undefined) {
+        await (await db()).run('UPDATE local_rows SET synced=1, sync_error=NULL WHERE tbl=? AND id=?', [tbl, id])
+        return
+      }
+      // Un putRow concurrente movió la rev: la fila queda pendiente con el payload nuevo.
+      await (await db()).run(
+        'UPDATE local_rows SET synced=1, sync_error=NULL WHERE tbl=? AND id=? AND rev=?', [tbl, id, rev])
     },
 
     async markRowFailed(tbl, id, error) {
       await (await db()).run(
-        'UPDATE local_rows SET attempts=attempts+1, sync_error=? WHERE tbl=? AND id=?', [error, tbl, id])
+        'UPDATE local_rows SET synced=0, attempts=attempts+1, sync_error=? WHERE tbl=? AND id=?', [error, tbl, id])
+    },
+
+    async deleteRow(tbl, id) {
+      await (await db()).run('DELETE FROM local_rows WHERE tbl=? AND id=?', [tbl, id])
+    },
+
+    async deletePhotosByEvent(event_type, event_id) {
+      const c = await db()
+      const res = await c.query(
+        'SELECT photo_id, file_uri FROM local_photos WHERE event_type=? AND event_id=?', [event_type, event_id])
+      const rows = res.values ?? []
+      if (rows.length === 0) return
+      const { Filesystem, Directory } = await fs()
+      for (const p of rows) {
+        try { await Filesystem.deleteFile({ path: p.file_uri, directory: Directory.Data }) } catch { /* ya no está */ }
+      }
+      await c.run('DELETE FROM local_photos WHERE event_type=? AND event_id=?', [event_type, event_id])
     },
 
     async putPhoto(photo, blob) {
@@ -169,7 +197,7 @@ export function createSqliteStore(): LocalStore {
 
     async markPhotoFailed(photo_id, error) {
       await (await db()).run(
-        'UPDATE local_photos SET attempts=attempts+1, sync_error=? WHERE photo_id=?', [error, photo_id])
+        'UPDATE local_photos SET synced=0, attempts=attempts+1, sync_error=? WHERE photo_id=?', [error, photo_id])
     },
 
     async pendingCounts(): Promise<PendingCounts> {

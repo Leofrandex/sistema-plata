@@ -43,9 +43,10 @@ export async function flush(
 
     for (const row of rows) {
       if (await parentBlocked(store, row, failedParents)) { continue }
+      const revAtRead = row.rev // si un putRow concurrente mueve la rev, la fila queda pendiente y re-flushea
       try {
         await pushRow(db, row, timeoutMs)
-        await store.markRowSynced(row.tbl, row.id)
+        await store.markRowSynced(row.tbl, row.id, revAtRead)
         result.pushedRecords++
       } catch (err) {
         if (isNetworkError(err)) return result // red caída: reintentar en el próximo trigger
