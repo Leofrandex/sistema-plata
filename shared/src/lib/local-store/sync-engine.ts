@@ -1,5 +1,5 @@
 import type { DB } from '../supabase/queries/_helpers'
-import { isNetworkError } from '../outbox-sync'
+import { isNetworkError } from './net'
 import { ON_CONFLICT, PARENT_OF, sortBySyncOrder, type DomainTable, type LocalPhoto, type LocalRow, type LocalStore } from './types'
 
 export const REQUEST_TIMEOUT_MS = 15_000

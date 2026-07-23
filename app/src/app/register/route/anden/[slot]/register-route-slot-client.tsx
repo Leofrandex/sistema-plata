@@ -13,7 +13,9 @@ import { useStore } from '@hospiwaste/shared/lib/store'
 import { createClient } from '@hospiwaste/shared/lib/supabase/client'
 import * as q from '@hospiwaste/shared/lib/supabase/queries'
 import { uploadEventPhotos, saveEventPhotosLocal } from '@hospiwaste/shared/lib/data/photos'
+import { getLocalStore } from '@hospiwaste/shared/lib/local-store'
 import { submitRouteEvent } from '@/lib/data/field-writes'
+import { applyFieldEdit } from '@/lib/data/field-edits'
 import { getSlotAndenEvents, computeSlotStatus } from '@hospiwaste/shared/lib/data/route-sessions'
 import { getRouteSlotDefinition, paramToSlot } from '@hospiwaste/shared/lib/constants'
 import { useElapsed, formatElapsed } from '@/hooks/use-elapsed'
@@ -230,16 +232,37 @@ export default function RegisterRouteSlotClient({ params }: Props) {
   async function handleUpdateAnden(id: string) {
     if (!currentProfileId) return
     const now = new Date().toISOString()
-    const supabase = createClient()
+    const existing = routeEvents.find((r) => r.id === id)
+    if (!existing) return
 
-    // 1) Actualizar ubicación + tachos
+    // 1) Reescribir localmente si aún no sincronizó; si ya sincronizó, editar online
+    // (el error se muestra: nunca falla en silencio).
     try {
-      await q.updateRouteEvent(supabase, id, {
-        company_id: formState.companyId || null,
+      const mode = await applyFieldEdit('route_events', id, {
+        id, client_id: existing.client_id, company_id: formState.companyId || null,
+        kind: existing.kind, slot: existing.slot, date: existing.date,
+        started_at: existing.started_at, ended_at: existing.ended_at,
+        operator_id: existing.operator_id, status: existing.status,
         area: formState.area,
+      }, async () => {
+        const supabase = createClient()
+        await q.updateRouteEvent(supabase, id, {
+          company_id: formState.companyId || null,
+          area: formState.area,
+        })
+        await q.setRouteContainersDirty(supabase, id, formState.dirtyReceivedIds)
+        await q.setRouteContainersClean(supabase, id, formState.cleanDeliveredIds)
       })
-      await q.setRouteContainersDirty(supabase, id, formState.dirtyReceivedIds)
-      await q.setRouteContainersClean(supabase, id, formState.cleanDeliveredIds)
+      if (mode === 'local') {
+        // Reescribe también las filas join locales con la selección de tachos actual.
+        const store = await getLocalStore()
+        for (const cid of formState.dirtyReceivedIds) {
+          await store.putRow('route_event_containers_dirty', `${id}:${cid}`, { route_event_id: id, container_id: cid })
+        }
+        for (const cid of formState.cleanDeliveredIds) {
+          await store.putRow('route_event_containers_clean', `${id}:${cid}`, { route_event_id: id, container_id: cid })
+        }
+      }
     } catch (err) {
       console.error('[recorrido andén] actualizar andén falló:', err)
       alert('No se pudieron guardar los cambios. Revisá tu conexión.')
@@ -251,6 +274,7 @@ export default function RegisterRouteSlotClient({ params }: Props) {
     let newCleanIds: string[] = []
     let newSignatureId: string | null = null
     const label = buildLabel()
+    const supabase = createClient()
     try {
       const upDirty = await uploadEventPhotos(supabase, {
         dataUrls: formState.dirtyPhotos, eventType: 'route', eventId: id,

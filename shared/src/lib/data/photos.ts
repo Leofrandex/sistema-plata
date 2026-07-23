@@ -2,7 +2,6 @@ import type { Photo } from '@hospiwaste/shared/lib/types'
 import * as q from '@hospiwaste/shared/lib/supabase/queries'
 import type { DB } from '@hospiwaste/shared/lib/supabase/queries/_helpers'
 import type { PhotoEventType } from '@hospiwaste/shared/lib/supabase/queries/photos'
-import { putPhotoBlob, enqueueOp } from '@hospiwaste/shared/lib/offline-queue'
 import { getLocalStore } from '@hospiwaste/shared/lib/local-store'
 
 /**
@@ -55,18 +54,7 @@ export async function uploadEventPhotos(
   return photos
 }
 
-// ─── Offline local-first (Plan B: cableado offline) ──────────────────────────
-
-export interface EnqueuePhotoArgs {
-  dataUrls: (string | null | undefined)[]
-  eventType: 'route' | 'weighing' | 'storage' | 'treatment' | 'other'
-  eventId: string
-  label: string
-  uploadedBy?: string | null
-  takenAt?: string
-  role?: string | null
-  parentOpId: string
-}
+// ─── Offline local-first ──────────────────────────────────────────────────────
 
 /** Convierte un data URL a Blob (igual que el helper interno de queries/photos). */
 function dataUrlToBlob(dataUrl: string): Blob {
@@ -85,43 +73,7 @@ function blobExt(type: string): string {
   return map[type] ?? 'jpg'
 }
 
-/**
- * Versión local-first de uploadEventPhotos: NO sube a la red. Guarda el blob en
- * IndexedDB y encola una op `upload_photo` por foto (dep = parentOpId). Devuelve
- * objetos Photo con object URL local para mostrar al instante.
- */
-export async function enqueueEventPhotos(args: EnqueuePhotoArgs): Promise<Photo[]> {
-  const out: Photo[] = []
-  const takenAt = args.takenAt ?? new Date().toISOString()
-  for (const dataUrl of args.dataUrls) {
-    if (!dataUrl) continue
-    const photoId = crypto.randomUUID()
-    const blob = dataUrlToBlob(dataUrl)
-    const ext = blobExt(blob.type)
-    await putPhotoBlob({ photo_id: photoId, blob, content_type: blob.type || 'image/jpeg' })
-    await enqueueOp({
-      op_id: `photo:${photoId}`,
-      type: 'upload_photo',
-      payload: {
-        photo_id: photoId, event_type: args.eventType, event_id: args.eventId,
-        label: args.label, uploaded_by: args.uploadedBy ?? null, taken_at: takenAt,
-        role: args.role ?? null, ext,
-      },
-      deps: [args.parentOpId],
-    })
-    out.push({
-      id: photoId,
-      url: URL.createObjectURL(blob),
-      event_type: args.eventType,
-      event_id: args.eventId,
-      taken_at: takenAt,
-      label: args.label,
-    })
-  }
-  return out
-}
-
-// ─── LocalStore (Task 6+): escritura directa a `local_photos` ───────────────
+// ─── LocalStore: escritura directa a `local_photos` ──────────────────────────
 
 /** event_type con el que el sync engine (`local-store/sync-engine.ts`) resuelve
  *  la tabla padre de cada foto: `route` → `route_events`,
@@ -131,10 +83,9 @@ export async function enqueueEventPhotos(args: EnqueuePhotoArgs): Promise<Photo[
 export type LocalPhotoEventType = 'route' | 'weighing' | 'treatment'
 
 /**
- * Versión local-first de `enqueueEventPhotos` sobre el `LocalStore` (Task 3+):
- * guarda el blob y su metadata en `local_photos` (`synced=0`) en vez de
- * `putPhotoBlob` + `enqueueOp`. Mismo contrato de conversión data URL → Blob y
- * de retorno (`Photo[]` con object URL local) que `enqueueEventPhotos`.
+ * Versión local-first de subida de fotos sobre el `LocalStore`: guarda el blob
+ * y su metadata en `local_photos` (`synced=0`). Devuelve objetos `Photo` con
+ * object URL local para mostrar al instante.
  */
 export async function saveEventPhotosLocal(
   eventType: LocalPhotoEventType,

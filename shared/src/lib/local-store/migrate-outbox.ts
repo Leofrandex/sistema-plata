@@ -1,5 +1,5 @@
 import { listOps, getPhotoBlob, removeOp, removePhotoBlob, type OutboxOp } from '../offline-queue'
-import { TABLE_FOR_TYPE } from '../outbox-sync'
+import { TABLE_FOR_TYPE } from './net'
 import type { DomainTable, LocalStore } from './types'
 
 const MIGRATED_KEY = 'migrated_outbox'

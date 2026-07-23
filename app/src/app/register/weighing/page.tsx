@@ -27,6 +27,7 @@ import {
 import { getPendingWeighingContainerIds, getContainerCurrentCompanyId, formatTachoNumber, getMetallicContainers } from '@hospiwaste/shared/lib/data/containers'
 import { saveEventPhotosLocal } from '@hospiwaste/shared/lib/data/photos'
 import { submitWeighingSession, submitReception, submitTreatmentRun, submitStorageEvent, submitContainerLocation } from '@/lib/data/field-writes'
+import { applyFieldEdit } from '@/lib/data/field-edits'
 import { createClient } from '@hospiwaste/shared/lib/supabase/client'
 import * as q from '@hospiwaste/shared/lib/supabase/queries'
 import { ConfirmVoidDialog } from '@hospiwaste/shared/components/ui/confirm-void-dialog'
@@ -219,18 +220,33 @@ export default function WeighingPage() {
     const now = new Date().toISOString()
     const label = buildPhotoLabel()
 
-    // 1) Actualizar reception en Supabase
+    // 1) Reescribir localmente si aún no sincronizó; si ya sincronizó, editar online
+    // (el error se muestra: nunca falla en silencio).
     try {
-      const supabase = createClient()
-      await q.updateReception(supabase, receptionId, {
+      await applyFieldEdit('container_receptions', receptionId, {
+        id: receptionId,
         container_id: formState.container_id,
+        weighing_session_id: existing.weighing_session_id,
+        arrived_at: existing.arrived_at,
         gross_weight_kg: gross,
+        operator_id: existing.operator_id,
         observations: formState.observations,
+        company_id: existing.company_id,
         waste_type: formState.waste_type,
         treat_immediately: formState.treat_immediately,
+      }, async () => {
+        const supabase = createClient()
+        await q.updateReception(supabase, receptionId, {
+          container_id: formState.container_id,
+          gross_weight_kg: gross,
+          observations: formState.observations,
+          waste_type: formState.waste_type,
+          treat_immediately: formState.treat_immediately,
+        })
       })
     } catch (err) {
       console.error('[pesaje] editar reception falló:', err)
+      alert('No se pudieron guardar los cambios. Revisá tu conexión.')
       return
     }
 

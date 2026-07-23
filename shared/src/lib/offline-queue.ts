@@ -1,35 +1,9 @@
 import { getDB } from './idb'
 
-const STORE_NAME = 'queue'
-
-export interface QueuedEvent {
-  id?: number
-  type: string
-  payload: Record<string, unknown>
-  queued_at: string
-}
-
-export async function enqueue(event: Omit<QueuedEvent, 'id' | 'queued_at'>): Promise<void> {
-  const db = await getDB()
-  await db.add(STORE_NAME, { ...event, queued_at: new Date().toISOString() })
-}
-
-export async function dequeueAll(): Promise<QueuedEvent[]> {
-  const db = await getDB()
-  return db.getAll(STORE_NAME) as Promise<QueuedEvent[]>
-}
-
-export async function clearAll(): Promise<void> {
-  const db = await getDB()
-  await db.clear(STORE_NAME)
-}
-
-export async function getQueueCount(): Promise<number> {
-  const db = await getDB()
-  return db.count(STORE_NAME)
-}
-
-// ─── Outbox (operaciones local-first) ────────────────────────────────────────
+// ─── Outbox (operaciones local-first, legacy) ────────────────────────────────
+// Solo sobrevive lo que consume la migración a LocalStore (`migrate-outbox.ts`)
+// y sus tests: leer/borrar ops pendientes y blobs de fotos encoladas antes del
+// motor SQLite/IDB nuevo.
 
 const OUTBOX = 'outbox'
 const PHOTO_BLOBS = 'photo_blobs'
@@ -75,18 +49,6 @@ export async function listOps(): Promise<OutboxOp[]> {
 export async function removeOp(op_id: string): Promise<void> {
   const db = await getDB()
   await db.delete(OUTBOX, op_id)
-}
-
-export async function bumpAttempts(op_id: string): Promise<void> {
-  const db = await getDB()
-  const op = (await db.get(OUTBOX, op_id)) as OutboxOp | undefined
-  if (!op) return
-  await db.put(OUTBOX, { ...op, attempts: op.attempts + 1 })
-}
-
-export async function countPendingOps(): Promise<number> {
-  const db = await getDB()
-  return db.count(OUTBOX)
 }
 
 export async function putPhotoBlob(e: PhotoBlobEntry): Promise<void> {
