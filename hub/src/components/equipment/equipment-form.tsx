@@ -21,12 +21,30 @@ interface Props {
   onCancel?: () => void
 }
 
-const FREQUENCY_SHORTCUTS = [
-  { label: '1 mes', days: 30 },
-  { label: '3 meses', days: 90 },
-  { label: '6 meses', days: 180 },
-  { label: '1 año', days: 365 },
-]
+/** Unidades del campo de frecuencia. Se persiste siempre en días. */
+type FrequencyUnit = 'days' | 'months' | 'years'
+
+const DAYS_PER_UNIT: Record<FrequencyUnit, number> = { days: 1, months: 30, years: 365 }
+
+const UNIT_LABELS: Record<FrequencyUnit, string> = {
+  days: 'días',
+  months: 'meses',
+  years: 'años',
+}
+
+/** Elige la unidad más "grande" que represente los días sin resto (365 → 1 año, 45 → 45 días). */
+function splitFrequency(days: number | null): { amount: string; unit: FrequencyUnit } {
+  if (days === null) return { amount: '', unit: 'months' }
+  if (days % DAYS_PER_UNIT.years === 0) return { amount: String(days / DAYS_PER_UNIT.years), unit: 'years' }
+  if (days % DAYS_PER_UNIT.months === 0) return { amount: String(days / DAYS_PER_UNIT.months), unit: 'months' }
+  return { amount: String(days), unit: 'days' }
+}
+
+function toDays(amount: string, unit: FrequencyUnit): number | null {
+  const n = Number(amount)
+  if (amount.trim() === '' || !Number.isFinite(n) || n <= 0) return null
+  return Math.max(1, Math.round(n * DAYS_PER_UNIT[unit]))
+}
 
 const EMPTY: EquipmentFormValues = {
   name: '', brand: null, model: null, serial: null,
@@ -38,6 +56,17 @@ export function EquipmentForm({ initial, submitLabel, onSubmit, onCancel }: Prop
   const [values, setValues] = useState<EquipmentFormValues>(initial ?? EMPTY)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // La cantidad se mantiene como texto para no perder lo que el usuario escribe
+  // mientras edita (p. ej. borrar el campo por completo antes de teclear otro número).
+  const [freq, setFreq] = useState(() => splitFrequency(initial?.maintenance_frequency_days ?? null))
+
+  function setFrequency(next: { amount?: string; unit?: FrequencyUnit }) {
+    const merged = { ...freq, ...next }
+    setFreq(merged)
+    setValues((v) => ({ ...v, maintenance_frequency_days: toDays(merged.amount, merged.unit) }))
+  }
+
+  const frequencyDays = values.maintenance_frequency_days
 
   function setText(field: keyof EquipmentFormValues, raw: string) {
     setValues((v) => ({ ...v, [field]: raw.trim() === '' ? null : raw }))
@@ -86,32 +115,33 @@ export function EquipmentForm({ initial, submitLabel, onSubmit, onCancel }: Prop
       </div>
 
       <div className="space-y-1">
-        <label className="text-sm font-medium text-slate-700">Frecuencia de mantenimiento (días)</label>
+        <label className="text-sm font-medium text-slate-700">Frecuencia de mantenimiento</label>
         <div className="flex flex-wrap items-center gap-2">
           <input
             type="number"
             min={1}
-            value={values.maintenance_frequency_days ?? ''}
-            onChange={(e) => setValues((v) => ({
-              ...v,
-              maintenance_frequency_days: e.target.value === '' ? null : Math.max(1, Number(e.target.value)),
-            }))}
+            step={1}
+            inputMode="numeric"
+            value={freq.amount}
+            onChange={(e) => setFrequency({ amount: e.target.value })}
             placeholder="Sin configurar"
-            className="w-40 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/30"
+            className="w-32 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/30"
           />
-          {FREQUENCY_SHORTCUTS.map(({ label, days }) => (
-            <Button
-              key={days}
-              type="button"
-              variant={values.maintenance_frequency_days === days ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setValues((v) => ({ ...v, maintenance_frequency_days: days }))}
-            >
-              {label}
-            </Button>
-          ))}
+          <select
+            value={freq.unit}
+            onChange={(e) => setFrequency({ unit: e.target.value as FrequencyUnit })}
+            className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/30"
+          >
+            {(Object.keys(UNIT_LABELS) as FrequencyUnit[]).map((u) => (
+              <option key={u} value={u}>{UNIT_LABELS[u]}</option>
+            ))}
+          </select>
         </div>
-        <p className="text-xs text-slate-400">Sin frecuencia el equipo queda "Sin configurar" en el semáforo.</p>
+        <p className="text-xs text-slate-400">
+          {frequencyDays === null
+            ? 'Sin frecuencia el equipo queda "Sin configurar" en el semáforo.'
+            : `Equivale a ${frequencyDays} ${frequencyDays === 1 ? 'día' : 'días'} entre mantenimientos.`}
+        </p>
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
