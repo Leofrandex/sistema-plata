@@ -52,6 +52,7 @@ updated: 2026-07-23
 | Tab Equipos: mantenimiento preventivo (semáforo + historial + fotos) | 🟢 Completado (E2E manual pendiente) | `logs/2026-07-16-equipos-mantenimiento-preventivo.md` |
 | Monorepo hub/app/shared + tab Historial + dashboard renovado (7 grupos de métricas) | 🟢 Completado (APK sin compilar — falta JDK; E2E manual pendiente) | `logs/2026-07-22-monorepo-hub-app-dashboard.md` · `decisions/2026-07-22-separacion-hub-app.md` |
 | Offline SQLite local-first (Plan A motor TS + Plan B background sync nativo) | 🟢 Completado (E2E manual en dispositivo pendiente) | `logs/2026-07-23-offline-sqlite-local-first.md` |
+| Fix: cola de pesaje excluía para siempre a todo tacho ya pesado (41 tachos invisibles) | 🟢 Completado (APK v2 compilado; E2E en dispositivo pendiente) | `logs/2026-07-28-fix-cola-pesaje-ciclo-reabierto.md` · `decisions/2026-07-28-cola-pesaje-por-fecha.md` |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completo · ⚠️ Tiene incoherencias
 
@@ -80,12 +81,16 @@ updated: 2026-07-23
 - `decisions/2026-06-10-empresa-por-registro.md` — la empresa es del registro (recorrido/pesaje), no del tacho; `containers.company_id` eliminado
 - `decisions/2026-06-01-roles-acceso.md` — roles coordinador/operador; control en UI + middleware + RLS
 - `decisions/2026-06-01-ids-tachos-supabase-vs-mock.md` — ⚠️ IDs en Supabase son numéricos sin prefijo (`020`), no `A-020`; el prefijo es solo del mock
+- `decisions/2026-07-28-cola-pesaje-por-fecha.md` — la cola de pesaje se reabre con cada recogida sucia posterior al último pesaje; no exige tratamiento intermedio
 
 ### Credenciales (sensible)
 - `credenciales/2026-07-06-credenciales-completas.md` — ⚠️ TODAS las contraseñas (12 usuarios) en texto plano; 9 reseteadas el 2026-07-06 para consolidar
 - `credenciales/2026-06-23-passwords-temporales.md` — ⚠️ contraseñas temporales en texto plano (operadores nuevos); revierte el criterio de no versionar
 
 ### Logs de cambios
+- `logs/2026-07-28-reset-datos-operativos.md` — ⚠️ reset de datos operativos (TRUNCATE 10 tablas, 246 tachos intactos); respaldo en `backups/2026-07-28-reset/`
+- `logs/2026-07-28-fix-cola-pesaje-ciclo-reabierto.md` — la cola de pesaje comparaba existencia y no fechas: todo tacho pesado una vez salía de la cola para siempre
+- `logs/2026-07-27-inventario-tachos-190-200.md` — inventario físico 240 L: altas 190–200 y M16–M20; taras existentes verificadas sin cambios
 - `logs/2026-07-23-offline-sqlite-local-first.md` — motor offline SQLite local-first (Plan A), reemplaza el outbox de IndexedDB
 - `logs/2026-07-16-equipos-mantenimiento-preventivo.md` — tab Equipos (solo coordinador): semáforo de mantenimiento preventivo, historial con fotos, seed de 60 equipos del Excel
 - `logs/2026-07-08-fotos-opcionales-recorrido.md` — fotos ya no bloquean el guardado de recorrido (andén+morgue); regla = empresa+tacho+firma; revierte parte de `f93a8bc`

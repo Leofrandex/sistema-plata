@@ -103,23 +103,37 @@ export function getRouteEventIdsAnyDirection(
     .map((r) => r.id)
 }
 
-// Cola de trabajo del pesador: tachos activos recogidos sucios en algún
-// recorrido que aún no tienen reception registrada. Las recepciones anuladas
-// (voided_at != null, "deshacer pesaje") no cuentan: el tacho vuelve a pendiente.
+// Cola de trabajo del pesador: tachos activos cuya última recogida sucia es
+// POSTERIOR a su último pesaje vigente. La comparación es por fecha, no por
+// existencia: el tacho recorre el ciclo muchas veces, así que cada recogida
+// sucia reabre el pendiente aunque ya se haya pesado en ciclos anteriores.
+// Las recepciones anuladas (voided_at != null, "deshacer pesaje") no cuentan:
+// el tacho vuelve a pendiente.
 export function getPendingWeighingContainerIds(
   containers: Container[],
   routeEvents: RouteEvent[],
   receptions: ContainerReception[]
 ): string[] {
-  const pesadosIds = new Set(
-    receptions.filter((r) => !r.voided_at).map((r) => r.container_id)
-  )
+  const ultimoPesajePorTacho = new Map<string, number>()
+  for (const r of receptions) {
+    if (r.voided_at) continue
+    const ts = new Date(r.arrived_at).getTime()
+    const previo = ultimoPesajePorTacho.get(r.container_id) ?? -Infinity
+    if (ts > previo) ultimoPesajePorTacho.set(r.container_id, ts)
+  }
+
   return containers
     .filter((c) => {
       if (c.status !== 'active') return false
-      if (pesadosIds.has(c.id)) return false
       if (c.is_yaris_container) return false
-      return getRouteEventIdsForContainer(routeEvents, c.id).length > 0
+      const recogidasSucias = routeEvents.filter(
+        (r) => !r.voided_at && r.containers_dirty_received.includes(c.id),
+      )
+      if (recogidasSucias.length === 0) return false
+      const ultimaRecogida = Math.max(
+        ...recogidasSucias.map((r) => new Date(r.started_at).getTime()),
+      )
+      return ultimaRecogida > (ultimoPesajePorTacho.get(c.id) ?? -Infinity)
     })
     .map((c) => c.id)
 }

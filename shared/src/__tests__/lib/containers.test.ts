@@ -279,6 +279,45 @@ describe('getPendingWeighingContainerIds', () => {
     const result = getPendingWeighingContainerIds(containers, [voidedRoute], [])
     expect(result).toEqual([])
   })
+
+  // Caso real 2026-07-28: los tachos 130/157/149 se recogieron sucios en el
+  // recorrido de las 06:30 pero ya tenían un pesaje de días atrás, así que la
+  // cola los excluía y el operador no podía seleccionarlos. El ciclo se reabre
+  // con cada recogida sucia posterior al último pesaje.
+  it('un tacho recogido sucio después de su último pesaje vuelve a pendientes', () => {
+    const containers = [c('130')]
+    const rutaHoy = {
+      ...routeWith('130'), id: 're-hoy', date: '2026-07-28', started_at: '2026-07-28T11:28:00Z',
+    } as RouteEvent
+    const pesajeViejo = rec('130', { arrived_at: '2026-07-23T19:30:00Z' })
+    const result = getPendingWeighingContainerIds(containers, [rutaHoy], [pesajeViejo])
+    expect(result).toEqual(['130'])
+  })
+
+  it('con varias recogidas, manda la más reciente contra el último pesaje', () => {
+    const containers = [c('130')]
+    const rutaVieja = {
+      ...routeWith('130'), id: 're-vieja', date: '2026-07-23', started_at: '2026-07-23T18:00:00Z',
+    } as RouteEvent
+    const rutaHoy = {
+      ...routeWith('130'), id: 're-hoy', date: '2026-07-28', started_at: '2026-07-28T11:28:00Z',
+    } as RouteEvent
+    const pesajeIntermedio = rec('130', { arrived_at: '2026-07-23T19:30:00Z' })
+    const result = getPendingWeighingContainerIds(
+      containers, [rutaVieja, rutaHoy], [pesajeIntermedio],
+    )
+    expect(result).toEqual(['130'])
+  })
+
+  it('recogida anterior al último pesaje no reabre el pendiente', () => {
+    const containers = [c('130')]
+    const rutaVieja = {
+      ...routeWith('130'), id: 're-vieja', date: '2026-07-23', started_at: '2026-07-23T18:00:00Z',
+    } as RouteEvent
+    const pesajePosterior = rec('130', { arrived_at: '2026-07-23T19:30:00Z' })
+    const result = getPendingWeighingContainerIds(containers, [rutaVieja], [pesajePosterior])
+    expect(result).toEqual([])
+  })
 })
 
 describe('deriveContainerCompanyId', () => {
