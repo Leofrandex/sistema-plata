@@ -53,6 +53,7 @@ updated: 2026-07-23
 | Monorepo hub/app/shared + tab Historial + dashboard renovado (7 grupos de métricas) | 🟢 Completado (APK sin compilar — falta JDK; E2E manual pendiente) | `logs/2026-07-22-monorepo-hub-app-dashboard.md` · `decisions/2026-07-22-separacion-hub-app.md` |
 | Offline SQLite local-first (Plan A motor TS + Plan B background sync nativo) | 🟢 Completado (E2E manual en dispositivo pendiente) | `logs/2026-07-23-offline-sqlite-local-first.md` |
 | Fix: cola de pesaje excluía para siempre a todo tacho ya pesado (41 tachos invisibles) | 🟢 Completado (APK v2 compilado; E2E en dispositivo pendiente) | `logs/2026-07-28-fix-cola-pesaje-ciclo-reabierto.md` · `decisions/2026-07-28-cola-pesaje-por-fecha.md` |
+| Equipos: frecuencia de mantenimiento libre (valor + unidad días/meses/años) | 🟢 Completado (en producción; E2E manual pendiente) | `logs/2026-08-08-frecuencia-mantenimiento-libre.md` |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completo · ⚠️ Tiene incoherencias
 
@@ -88,6 +89,7 @@ updated: 2026-07-23
 - `credenciales/2026-06-23-passwords-temporales.md` — ⚠️ contraseñas temporales en texto plano (operadores nuevos); revierte el criterio de no versionar
 
 ### Logs de cambios
+- `logs/2026-08-08-frecuencia-mantenimiento-libre.md` — Equipos: la frecuencia deja de ser cuatro atajos de meses y pasa a valor libre + unidad; sigue persistiéndose en días
 - `logs/2026-07-28-reset-datos-operativos.md` — ⚠️ reset de datos operativos (TRUNCATE 10 tablas, 246 tachos intactos); respaldo en `backups/2026-07-28-reset/`
 - `logs/2026-07-28-fix-cola-pesaje-ciclo-reabierto.md` — la cola de pesaje comparaba existencia y no fechas: todo tacho pesado una vez salía de la cola para siempre
 - `logs/2026-07-27-inventario-tachos-190-200.md` — inventario físico 240 L: altas 190–200 y M16–M20; taras existentes verificadas sin cambios
@@ -132,6 +134,18 @@ updated: 2026-07-23
 *(Vacío)*
 
 ## Notas del último procesamiento
+
+**2026-08-08** — Equipos: la frecuencia de mantenimiento pasa de cuatro atajos fijos
+(1/3/6 meses, 1 año) a **cantidad libre + unidad** (días/meses/años). El campo numérico
+ya existía, pero pedía días y competía con los botones, así que se leía como si los meses
+predefinidos fueran las únicas opciones. Se sigue persistiendo en
+`equipment.maintenance_frequency_days` — sin migración y sin tocar el semáforo — con
+1 mes = 30 días y 1 año = 365 (la conversión que ya usaban los atajos). Al cargar, la
+unidad mostrada es la mayor que divida exacto. Queda anotado que un mes son 30 días y no
+un mes calendario: sobre un año el desfase ronda 5 días; decidir con el coordinador si el
+vencimiento debe ser por calendario. Desplegado a producción junto con el fix de la cola de
+pesaje (`sistema-ptdp`, commit `4eafb3b`). jest 212/212, `build:hub` OK. Pendiente: E2E
+manual. Log: `logs/2026-08-08-frecuencia-mantenimiento-libre.md`.
 
 **2026-07-23** — Motor offline SQLite local-first (Plan A, rama
 `feat/offline-sqlite-local-first`). Contrato `LocalStore` con backend dual: IndexedDB
