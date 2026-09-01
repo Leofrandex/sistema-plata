@@ -155,6 +155,33 @@ export function getWeighableContainerIds(containers: Container[]): string[] {
 }
 
 /**
+ * Última recepción vigente del tacho dentro del día local de `nowISO`.
+ * Alimenta el aviso suave de duplicado en pesaje: con la cola abierta
+ * (modo interino) nada impide pesar dos veces el mismo tacho por error.
+ * Devuelve null si no hay ninguna: el aviso no bloquea el guardado.
+ */
+export function findTodayReceptionForContainer(
+  receptions: ContainerReception[],
+  containerId: string,
+  nowISO: string,
+): ContainerReception | null {
+  const localDay = (iso: string): string => {
+    const d = new Date(iso)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+  const today = localDay(nowISO)
+
+  const delDia = receptions.filter(
+    (r) => r.container_id === containerId && !r.voided_at && localDay(r.arrived_at) === today,
+  )
+  if (delDia.length === 0) return null
+
+  return delDia.reduce((masReciente, r) =>
+    new Date(r.arrived_at).getTime() > new Date(masReciente.arrived_at).getTime() ? r : masReciente,
+  )
+}
+
+/**
  * Tachos dedicados a "Metálicos No reutilizables" disponibles para pesar.
  * Siempre disponibles (no requieren recorrido), igual que los Yaris. Solo se
  * ofrecen en el formulario cuando el tipo de desecho elegido es 'metallic'.

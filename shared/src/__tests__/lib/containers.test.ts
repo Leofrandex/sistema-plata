@@ -7,6 +7,7 @@ import {
   getMetallicContainers,
   getPendingWeighingContainerIds,
   getWeighableContainerIds,
+  findTodayReceptionForContainer,
   deriveContainerCompanyId,
 } from '@hospiwaste/shared/lib/data/containers'
 import type {
@@ -380,6 +381,45 @@ describe('getWeighableContainerIds', () => {
 
   it('lista vacía → []', () => {
     expect(getWeighableContainerIds([])).toEqual([])
+  })
+})
+
+describe('findTodayReceptionForContainer', () => {
+  const rec = (over: Partial<ContainerReception> = {}): ContainerReception => ({
+    id: 'rec-1', container_id: '001', weighing_session_id: 's',
+    arrived_at: '2026-09-01T14:00:00Z', gross_weight_kg: 40, operator_id: 'op',
+    photo_ids: [], observations: '', ...over,
+  })
+  const now = '2026-09-01T18:00:00Z'
+
+  it('devuelve la recepción del mismo día para ese tacho', () => {
+    const found = findTodayReceptionForContainer([rec()], '001', now)
+    expect(found?.id).toBe('rec-1')
+  })
+
+  it('ignora recepciones de otro tacho', () => {
+    expect(findTodayReceptionForContainer([rec()], '002', now)).toBeNull()
+  })
+
+  it('ignora recepciones de días anteriores', () => {
+    const ayer = rec({ id: 'rec-ayer', arrived_at: '2026-08-31T14:00:00Z' })
+    expect(findTodayReceptionForContainer([ayer], '001', now)).toBeNull()
+  })
+
+  it('ignora recepciones anuladas', () => {
+    const anulada = rec({ voided_at: '2026-09-01T15:00:00Z' })
+    expect(findTodayReceptionForContainer([anulada], '001', now)).toBeNull()
+  })
+
+  it('con varias del día devuelve la más reciente', () => {
+    const temprano = rec({ id: 'rec-am', arrived_at: '2026-09-01T09:00:00Z' })
+    const tarde = rec({ id: 'rec-pm', arrived_at: '2026-09-01T16:00:00Z' })
+    const found = findTodayReceptionForContainer([temprano, tarde], '001', now)
+    expect(found?.id).toBe('rec-pm')
+  })
+
+  it('sin recepciones devuelve null', () => {
+    expect(findTodayReceptionForContainer([], '001', now)).toBeNull()
   })
 })
 
