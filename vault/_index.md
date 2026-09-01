@@ -3,7 +3,7 @@ title: Índice del Vault — Hospimed Waste Tracking
 tags:
   - index
   - meta
-updated: 2026-07-23
+updated: 2026-09-01
 ---
 
 > [!info] Nota de marca (2026-05-12)
@@ -22,7 +22,7 @@ updated: 2026-07-23
 **Fase:** Preparación lanzamiento PTDP — ajustes post-piloto; lanzamiento oficial 2026-06-01
 **Última reunión:** 2026-05-18 (Francesca + Karolyne + Marely + Sebastián) — ver `logs/2026-05-18-reunion-ptdp-demo-piloto.md`
 **Hito crítico:** lanzamiento oficial lunes 2026-06-01
-**Última actualización del vault:** 2026-07-16
+**Última actualización del vault:** 2026-09-01
 
 | Área | Estado | Archivo |
 |------|--------|---------|
@@ -54,6 +54,7 @@ updated: 2026-07-23
 | Offline SQLite local-first (Plan A motor TS + Plan B background sync nativo) | 🟢 Completado (E2E manual en dispositivo pendiente) | `logs/2026-07-23-offline-sqlite-local-first.md` |
 | Fix: cola de pesaje excluía para siempre a todo tacho ya pesado (41 tachos invisibles) | 🟢 Completado (APK v2 compilado; E2E en dispositivo pendiente) | `logs/2026-07-28-fix-cola-pesaje-ciclo-reabierto.md` · `decisions/2026-07-28-cola-pesaje-por-fecha.md` |
 | Equipos: frecuencia de mantenimiento libre (valor + unidad días/meses/años) | 🟢 Completado (en producción; E2E manual pendiente) | `logs/2026-08-08-frecuencia-mantenimiento-libre.md` |
+| Modo interino solo-pesaje (recorridos deshabilitados) | 🟢 Completado (reset y rollout de APK pendientes) | logs/2026-09-01-modo-interino-solo-pesaje.md |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completo · ⚠️ Tiene incoherencias
 
@@ -83,12 +84,16 @@ updated: 2026-07-23
 - `decisions/2026-06-01-roles-acceso.md` — roles coordinador/operador; control en UI + middleware + RLS
 - `decisions/2026-06-01-ids-tachos-supabase-vs-mock.md` — ⚠️ IDs en Supabase son numéricos sin prefijo (`020`), no `A-020`; el prefijo es solo del mock
 - `decisions/2026-07-28-cola-pesaje-por-fecha.md` — la cola de pesaje se reabre con cada recogida sucia posterior al último pesaje; no exige tratamiento intermedio
+- `decisions/2026-09-01-modo-interino-solo-pesaje.md` — flag `INTERIM_MODE`: recorridos congelados, cola de pesaje abierta a todos los tachos, temporal hasta el rediseño offline
 
 ### Credenciales (sensible)
 - `credenciales/2026-07-06-credenciales-completas.md` — ⚠️ TODAS las contraseñas (12 usuarios) en texto plano; 9 reseteadas el 2026-07-06 para consolidar
 - `credenciales/2026-06-23-passwords-temporales.md` — ⚠️ contraseñas temporales en texto plano (operadores nuevos); revierte el criterio de no versionar
 
 ### Logs de cambios
+- `logs/2026-09-01-modo-interino-solo-pesaje.md` — ⚠️ recorridos deshabilitados en el APK, cola de pesaje abierta a todos los tachos, empresa obligatoria en el pesaje; reset de datos y compilación del APK v1.3 pendientes
+- `logs/2026-08-25-fix-sesion-apk-preferences-sqlite.md` — el objeto de plugin de Capacitor es thenable: la sesión del APK y el LocalStore SQLite estaban muertos desde el 2026-07-23
+- `logs/2026-08-25-instalacion-apk-firma-debug-vs-release.md` — el APK no instalaba en planta por firma debug vs release, no por la versión de Android
 - `logs/2026-08-08-frecuencia-mantenimiento-libre.md` — Equipos: la frecuencia deja de ser cuatro atajos de meses y pasa a valor libre + unidad; sigue persistiéndose en días
 - `logs/2026-07-28-reset-datos-operativos.md` — ⚠️ reset de datos operativos (TRUNCATE 10 tablas, 246 tachos intactos); respaldo en `backups/2026-07-28-reset/`
 - `logs/2026-07-28-fix-cola-pesaje-ciclo-reabierto.md` — la cola de pesaje comparaba existencia y no fechas: todo tacho pesado una vez salía de la cola para siempre
@@ -135,6 +140,26 @@ updated: 2026-07-23
 
 ## Notas del último procesamiento
 
+**2026-09-01** — Modo interino solo-pesaje (rama `feat/modo-interino-solo-pesaje`, 9 commits,
+`7d40e82`..`6f8b831`): con la capa offline de recorridos rota en campo, se congela el registro
+de recorridos y se rediseña aparte, manteniendo la app viva solo para pesaje (+ tratamiento y
+traslado, intactos). Flag único `INTERIM_MODE` (`shared/src/lib/config/interim-mode.ts`) en
+cuatro puntos: cola de pesaje abierta a todos los tachos activos (`getWeighableContainerIds`,
+función hermana de `getPendingWeighingContainerIds` — esta última no se toca), Home del APK con
+"Recorrido" en mantenimiento (y sin el I/O de `getActiveSession` que antes corría igual en cada
+arranque), guard del subárbol `/register/route` vía layout de Next, y banner en el dashboard del
+hub. Empresa pasa a elegirse a mano en el pesaje (obligatoria) porque ya no se hereda de ningún
+recorrido; buscador de tacho por número reemplaza al `<Select>` plano (246 tachos activos); aviso
+suave de "ya se pesó hoy" por día **local** del dispositivo (no UTC, a propósito — distinto del
+corte que usa el resto de la analítica). Scripts de reset de datos operativos listos en
+`scripts/` con un hallazgo: `photos` es una tabla compartida con las fotos de mantenimiento de
+equipos (`event_type = 'maintenance'`), así que el reset pasó de `TRUNCATE` a un `DELETE`
+selectivo que las conserva. jest 243/243 (172 shared + 36 hub + 35 app), vitest 12/12,
+`build:hub` y `build:app` verdes. **Pendiente:** compilar y firmar el APK v1.3, desplegarlo en
+planta, y recién entonces correr el reset de datos operativos — ninguno de los tres se ejecutó
+en este cierre. Ver ADR `decisions/2026-09-01-modo-interino-solo-pesaje.md` y log
+`logs/2026-09-01-modo-interino-solo-pesaje.md`.
+
 **2026-08-08** — Equipos: la frecuencia de mantenimiento pasa de cuatro atajos fijos
 (1/3/6 meses, 1 año) a **cantidad libre + unidad** (días/meses/años). El campo numérico
 ya existía, pero pedía días y competía con los botones, así que se leía como si los meses
@@ -146,6 +171,23 @@ un mes calendario: sobre un año el desfase ronda 5 días; decidir con el coordi
 vencimiento debe ser por calendario. Desplegado a producción junto con el fix de la cola de
 pesaje (`sistema-ptdp`, commit `4eafb3b`). jest 212/212, `build:hub` OK. Pendiente: E2E
 manual. Log: `logs/2026-08-08-frecuencia-mantenimiento-libre.md`.
+
+**2026-08-25** — Fix de dos bugs del APK vivos desde el 2026-07-23, ambos diagnosticados en
+dispositivo por `adb forward` + CDP (el release no manda la consola del WebView a logcat).
+(1) `preferences-storage.ts` devolvía el objeto `Preferences` desde una función `async`: el
+proxy de plugin de Capacitor responde a cualquier propiedad, `then` incluida, así que el
+await no resolvía nunca y **la sesión del APK estaba muerta** — Pesaje colgado en "Cargando
+tu sesión…". (2) `sqlite-store.ts` abría la conexión con `execute('PRAGMA
+journal_mode=WAL')`, que Android rechaza por devolver filas: **el LocalStore nunca se
+creó** y el outbox no drenaba nada. Se añadió guard try/catch en el arranque de
+`supabase-hydrator.tsx`, que era lo que volvía invisibles ambos fallos. El mock del plugin
+en tests pasó a ser un `Proxy` fiel. `versionCode` 3 / `1.2`. jest 213/213, APK release
+firmado y verificado en dispositivo. Aparte: el APK no instalaba en planta por la firma
+debug del build de julio, no por la versión de Android. Pendiente: **migrar los teléfonos
+de planta a v1.2** (requiere desinstalar por el cambio de llave) y decidir si conviene un
+custom domain de Supabase — el DNS de Movistar VE no resuelve el subdominio del proyecto.
+Logs: `logs/2026-08-25-fix-sesion-apk-preferences-sqlite.md`,
+`logs/2026-08-25-instalacion-apk-firma-debug-vs-release.md`.
 
 **2026-07-23** — Motor offline SQLite local-first (Plan A, rama
 `feat/offline-sqlite-local-first`). Contrato `LocalStore` con backend dual: IndexedDB
