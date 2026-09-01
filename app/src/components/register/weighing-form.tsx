@@ -62,6 +62,8 @@ interface Props {
   allContainers: Container[]
   /** Empresas disponibles para atribuir el pesaje. */
   companies: Company[]
+  /** Aviso no bloqueante: el tacho elegido ya tiene un pesaje vigente de hoy. */
+  duplicateWarning?: string | null
   locked: boolean
   mode: 'create' | 'edit'
   onSubmit: () => void
@@ -77,6 +79,7 @@ export function WeighingForm({
   metallicContainers,
   allContainers,
   companies,
+  duplicateWarning,
   locked,
   mode,
   onSubmit,
@@ -123,6 +126,7 @@ export function WeighingForm({
   function changeWasteType(v: string | null) {
     const next = (v ?? 'infectious') as WasteType
     const crossingMetallic = (state.waste_type === 'metallic') !== (next === 'metallic')
+    if (crossingMetallic) setTachoSearch('')
     onChange({
       waste_type: next,
       ...(crossingMetallic ? { container_id: '' } : {}),
@@ -266,6 +270,11 @@ export function WeighingForm({
             </Badge>
           )}
         </div>
+      )}
+      {duplicateWarning && (
+        <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          {duplicateWarning}
+        </p>
       )}
 
       {/* Tipo de desecho — input del operador (ya no es propiedad del tacho) */}

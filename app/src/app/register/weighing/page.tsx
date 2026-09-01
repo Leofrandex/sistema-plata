@@ -24,7 +24,7 @@ import {
   type ActiveSession,
 } from '@/lib/active-session'
 import { INTERIM_MODE } from '@hospiwaste/shared/lib/config/interim-mode'
-import { getPendingWeighingContainerIds, getWeighableContainerIds, getContainerCurrentCompanyId, getMetallicContainers } from '@hospiwaste/shared/lib/data/containers'
+import { getPendingWeighingContainerIds, getWeighableContainerIds, getContainerCurrentCompanyId, getMetallicContainers, findTodayReceptionForContainer } from '@hospiwaste/shared/lib/data/containers'
 import { saveEventPhotosLocal } from '@hospiwaste/shared/lib/data/photos'
 import { submitWeighingSession, submitReception, submitTreatmentRun, submitStorageEvent, submitContainerLocation } from '@/lib/data/field-writes'
 import { applyFieldEdit } from '@/lib/data/field-edits'
@@ -107,6 +107,20 @@ export default function WeighingPage() {
   const inheritedCompanyId = formState.container_id
     ? getContainerCurrentCompanyId(formState.container_id, routeEvents, treatmentRuns, externalTransfers)
     : null
+
+  // Aviso no bloqueante: el tacho elegido ya tiene un pesaje vigente de hoy.
+  // Solo en modo creación — al editar, la recepción propia siempre coincidiría consigo misma.
+  const duplicateWarning = (() => {
+    if (isEditing || !formState.container_id) return null
+    const previa = findTodayReceptionForContainer(
+      receptions, formState.container_id, new Date().toISOString(),
+    )
+    if (!previa) return null
+    const hora = new Date(previa.arrived_at).toLocaleTimeString('es-PA', {
+      hour: '2-digit', minute: '2-digit',
+    })
+    return `Este tacho ya se pesó hoy a las ${hora}. Podés continuar si es un segundo pesaje real.`
+  })()
 
   function updateForm(updates: Partial<WeighingFormState>) {
     setFormState((prev) => {
@@ -457,6 +471,7 @@ export default function WeighingPage() {
             metallicContainers={metallicContainers}
             allContainers={containers}
             companies={companies}
+            duplicateWarning={duplicateWarning}
             locked={!isRunning}
             mode={isEditing ? 'edit' : 'create'}
             onSubmit={handleSubmitForm}

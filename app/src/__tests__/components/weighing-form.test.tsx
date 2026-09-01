@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { WeighingForm, EMPTY_WEIGHING_FORM } from '@/components/register/weighing-form'
 import type { Container, Company } from '@hospiwaste/shared/lib/types'
@@ -98,5 +98,61 @@ describe('WeighingForm — buscador de tacho', () => {
     await user.type(screen.getByPlaceholderText(/número de tacho/i), '002')
     await user.click(screen.getByRole('button', { name: /002/ }))
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ container_id: '002' }))
+  })
+
+  it('limpia el texto de búsqueda al cruzar hacia o desde tipo metálico', async () => {
+    const user = userEvent.setup()
+    renderConCatalogo()
+    await user.type(screen.getByPlaceholderText(/número de tacho/i), '145')
+    const wasteTypeGroup = screen.getByText('Tipo de desecho').closest('div')!
+    await user.click(within(wasteTypeGroup).getByRole('combobox'))
+    await user.click(await screen.findByRole('option', { name: /metálicos no reutilizables/i }))
+    expect(screen.getByPlaceholderText(/número de tacho/i)).toHaveValue('')
+  })
+})
+
+describe('WeighingForm — aviso de duplicado', () => {
+  it('muestra el aviso cuando se pasa duplicateWarning', () => {
+    render(
+      <WeighingForm
+        state={{ ...EMPTY_WEIGHING_FORM, container_id: '001', company_id: 'company-ion' }}
+        onChange={() => {}}
+        availableContainers={containers}
+        yarisContainers={[]}
+        metallicContainers={[]}
+        allContainers={containers}
+        companies={companies}
+        duplicateWarning="Este tacho ya se pesó hoy a las 09:15."
+        locked={false}
+        mode="create"
+        onSubmit={() => {}}
+      />,
+    )
+    expect(screen.getByText(/ya se pesó hoy a las 09:15/i)).toBeInTheDocument()
+  })
+
+  it('no bloquea el guardado cuando hay aviso', () => {
+    render(
+      <WeighingForm
+        state={{
+          ...EMPTY_WEIGHING_FORM,
+          container_id: '001', company_id: 'company-ion',
+          photo_container: 'data:image/png;base64,x',
+          photo_scale: 'data:image/png;base64,y',
+          gross_weight: '40',
+        }}
+        onChange={() => {}}
+        availableContainers={containers}
+        yarisContainers={[]}
+        metallicContainers={[]}
+        allContainers={containers}
+        companies={companies}
+        duplicateWarning="Este tacho ya se pesó hoy a las 09:15."
+        locked={false}
+        mode="create"
+        onSubmit={() => {}}
+      />,
+    )
+    expect(screen.getByRole('button', { name: /guardar y agregar otro/i })).toBeEnabled()
   })
 })
