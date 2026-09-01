@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import HomePage from '@/app/page'
+import { getActiveSession } from '../../lib/active-session'
 
 jest.mock('@hospiwaste/shared/lib/store', () => ({
   useStore: () => ({ users: [], currentProfileId: 'op-1', routeEvents: [] }),
@@ -27,5 +28,10 @@ describe('HomePage en modo interino', () => {
   it('oculta la sección de recorridos del día', () => {
     render(<HomePage />)
     expect(screen.queryByText('Recorridos de hoy')).not.toBeInTheDocument()
+  })
+
+  it('no consulta las sesiones activas de recorrido al montar (evita I/O innecesario)', () => {
+    render(<HomePage />)
+    expect(getActiveSession).not.toHaveBeenCalled()
   })
 })

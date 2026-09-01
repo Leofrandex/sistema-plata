@@ -38,6 +38,12 @@ export default function HomePage() {
   // Sesiones locales (cronómetro IndexedDB) por slot, para reflejar "en curso"
   // aunque aún no se haya guardado ningún andén.
   useEffect(() => {
+    // En modo interino la sección "Recorridos de hoy" no se pinta (ver JSX
+    // más abajo): no tiene sentido pagar el I/O a IndexedDB de cada slot en
+    // cada arranque del Home. Al revertir el flag, este bloque vuelve a
+    // correr tal cual.
+    if (INTERIM_MODE) return
+
     let cancelled = false
     async function load() {
       const entries = await Promise.all(
@@ -53,12 +59,16 @@ export default function HomePage() {
   }, [today])
 
   const slots = useMemo(
-    () =>
-      ROUTE_SLOTS.map((slot) => ({
+    () => {
+      // Mismo motivo que el efecto de arriba: no calcular nada para una
+      // sección que en modo interino no se renderiza.
+      if (INTERIM_MODE) return []
+      return ROUTE_SLOTS.map((slot) => ({
         id: slot.id,
         shortLabel: slot.shortLabel,
         ...computeSlotStatus(routeEvents, today, slot.id, localStarts[slot.id] ?? null),
-      })),
+      }))
+    },
     [routeEvents, today, localStarts],
   )
 
