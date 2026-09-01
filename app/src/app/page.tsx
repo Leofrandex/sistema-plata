@@ -9,12 +9,13 @@ import { ROUTE_SLOTS } from '@hospiwaste/shared/lib/constants'
 import { computeSlotStatus, type SlotStatus } from '@hospiwaste/shared/lib/data/route-sessions'
 import { getActiveSession, routeAndenSessionKey, todayLocal } from '@/lib/active-session'
 import { cn } from '@hospiwaste/shared/lib/utils'
+import { INTERIM_MODE } from '@hospiwaste/shared/lib/config/interim-mode'
 
 const ACTIONS = [
-  { href: '/register/route',     label: 'Recorrido',        icon: RouteIcon, style: 'bg-accent/10 text-accent' },
-  { href: '/register/weighing',  label: 'Pesaje',           icon: Scale,     style: 'bg-amber-100 text-amber-700' },
-  { href: '/register/treatment', label: 'Tratamiento',      icon: Flame,     style: 'bg-violet-100 text-violet-700' },
-  { href: '/register/transfer',  label: 'Traslado externo', icon: Truck,     style: 'bg-emerald-100 text-emerald-700' },
+  { href: '/register/route',     label: 'Recorrido',        icon: RouteIcon, style: 'bg-accent/10 text-accent',    disabled: INTERIM_MODE },
+  { href: '/register/weighing',  label: 'Pesaje',           icon: Scale,     style: 'bg-amber-100 text-amber-700', disabled: false },
+  { href: '/register/treatment', label: 'Tratamiento',      icon: Flame,     style: 'bg-violet-100 text-violet-700', disabled: false },
+  { href: '/register/transfer',  label: 'Traslado externo', icon: Truck,     style: 'bg-emerald-100 text-emerald-700', disabled: false },
 ]
 
 const SLOT_META: Record<SlotStatus, { label: string; dot: string }> = {
@@ -69,53 +70,70 @@ export default function HomePage() {
 
       {/* Accesos directos: botones grandes, pensados para uso en campo */}
       <div className="grid grid-cols-2 gap-3">
-        {ACTIONS.map(({ href, label, icon: Icon, style }) => (
-          <Link
-            key={href}
-            href={href}
-            className="flex flex-col items-center justify-center gap-3 rounded-xl bg-card p-6 ring-1 ring-foreground/10 transition-all active:scale-[0.98] hover:shadow-md"
-          >
-            <span className={cn('flex size-14 items-center justify-center rounded-2xl', style)}>
-              <Icon className="size-7" />
-            </span>
-            <span className="text-sm font-semibold text-foreground">{label}</span>
-          </Link>
-        ))}
+        {ACTIONS.map(({ href, label, icon: Icon, style, disabled }) => {
+          const inner = (
+            <>
+              <span className={cn(
+                'flex size-14 items-center justify-center rounded-2xl',
+                disabled ? 'bg-muted text-muted-foreground' : style,
+              )}>
+                <Icon className="size-7" />
+              </span>
+              <span className={cn(
+                'text-sm font-semibold',
+                disabled ? 'text-muted-foreground' : 'text-foreground',
+              )}>{label}</span>
+              {disabled && (
+                <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                  En mantenimiento
+                </span>
+              )}
+            </>
+          )
+          const base = 'flex flex-col items-center justify-center gap-3 rounded-xl bg-card p-6 ring-1 ring-foreground/10 transition-all'
+          return disabled ? (
+            <div key={href} aria-disabled className={cn(base, 'opacity-60')}>{inner}</div>
+          ) : (
+            <Link key={href} href={href} className={cn(base, 'active:scale-[0.98] hover:shadow-md')}>{inner}</Link>
+          )
+        })}
       </div>
 
       {/* Estado de los 6 horarios de recorrido del día */}
-      <section className="rounded-xl bg-card p-4 ring-1 ring-foreground/10">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground">Recorridos de hoy</h2>
-          <span className="text-xs font-medium text-muted-foreground">
-            {doneCount}/{slots.length} completados
-          </span>
-        </div>
-        <ul className="grid grid-cols-2 gap-2">
-          {slots.map(({ id, shortLabel, status }) => {
-            const meta = SLOT_META[status]
-            return (
-              <li
-                key={id}
-                className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2"
-              >
-                {status === 'completed' ? (
-                  <CheckCircle2 className="size-4 text-green-600" />
-                ) : status === 'in_progress' ? (
-                  <Timer className="size-4 text-amber-500" />
-                ) : (
-                  <CircleDashed className="size-4 text-slate-400" />
-                )}
-                <span className="text-sm font-semibold tabular-nums text-foreground">{shortLabel}</span>
-                <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span className={cn('size-1.5 rounded-full', meta.dot)} />
-                  {meta.label}
-                </span>
-              </li>
-            )
-          })}
-        </ul>
-      </section>
+      {!INTERIM_MODE && (
+        <section className="rounded-xl bg-card p-4 ring-1 ring-foreground/10">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground">Recorridos de hoy</h2>
+            <span className="text-xs font-medium text-muted-foreground">
+              {doneCount}/{slots.length} completados
+            </span>
+          </div>
+          <ul className="grid grid-cols-2 gap-2">
+            {slots.map(({ id, shortLabel, status }) => {
+              const meta = SLOT_META[status]
+              return (
+                <li
+                  key={id}
+                  className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2"
+                >
+                  {status === 'completed' ? (
+                    <CheckCircle2 className="size-4 text-green-600" />
+                  ) : status === 'in_progress' ? (
+                    <Timer className="size-4 text-amber-500" />
+                  ) : (
+                    <CircleDashed className="size-4 text-slate-400" />
+                  )}
+                  <span className="text-sm font-semibold tabular-nums text-foreground">{shortLabel}</span>
+                  <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span className={cn('size-1.5 rounded-full', meta.dot)} />
+                    {meta.label}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
     </div>
   )
 }
