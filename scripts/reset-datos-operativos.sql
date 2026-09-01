@@ -2,9 +2,34 @@
 --
 -- REQUISITOS ANTES DE EJECUTAR:
 --   1. backup-datos-operativos.sql ejecutado y exportado, con conteos validados 1:1.
---   2. El APK del modo interino YA desplegado en todos los teléfonos de planta.
---      Si queda un teléfono con la versión anterior, su outbox drena encima de
---      la base vaciada y reaparecen recorridos fantasma.
+--   2. El APK del modo interino YA desplegado en todos los teléfonos de planta,
+--      en ese orden (APK primero, reset después): sigue siendo el orden
+--      correcto para que ningún operador registre un recorrido nuevo contra
+--      datos que están por desaparecer. PERO instalar el APK no es la
+--      salvaguarda contra el drenaje fantasma: el local-store (SQLite/IndexedDB)
+--      es persistente y sobrevive a la actualización de la app — más aún
+--      firmando con la misma llave para no forzar una desinstalación. `flush()`
+--      en `shared/src/lib/local-store/sync-engine.ts` recorre
+--      `getUnsyncedRows()`/`getUnsyncedPhotos()` en el próximo disparo sin
+--      importar qué versión de la app los generó.
+--   3. La salvaguarda real: en CADA teléfono de planta, con WiFi conectado,
+--      verificar que su local-store quedó en cero filas sin sincronizar
+--      ANTES de correr el truncate de abajo. Cómo comprobarlo por teléfono:
+--        a. Conectar el teléfono a WiFi y dejarlo con la app abierta unos
+--           minutos para que el sync automático drene lo pendiente (o forzar
+--           una sincronización manual si la UI la ofrece).
+--        b. Confirmar en el WebView (ver `depurar-webview-apk-cdp` en la
+--           memoria) que `getUnsyncedRows()` y `getUnsyncedPhotos()` del
+--           LocalStore devuelven arrays vacíos — o inspeccionar directamente
+--           las tablas locales (weighing_sessions, container_receptions,
+--           route_events, photos) buscando filas con `synced = false`.
+--        c. Si un teléfono no puede drenar (sin señal, con fallas) y no hay
+--           tiempo de esperar: limpiar los datos de la app en ese equipo
+--           (Ajustes → Apps → Hospiwaste → Borrar datos) para vaciar su
+--           local-store en vez de confiar en que sincronizó.
+--      Un teléfono con filas sin sincronizar que no cumple (b) o (c) va a
+--      resucitar weighing_sessions, container_receptions, photos y hasta
+--      route_events DESPUÉS del reset, apenas recupere señal.
 --
 -- Se conservan: containers, equipment, profiles, clients, companies,
 -- equipment_maintenance.
@@ -63,3 +88,11 @@ select event_type, count(*)
 from photos
 group by event_type
 order by event_type;
+
+-- RIESGO RELACIONADO (no resuelto por este script, pendiente de confirmar en
+-- el E2E de dispositivo): el reset vacía Supabase, pero el mirror local de
+-- cada teléfono guarda también las filas YA sincronizadas (no solo el
+-- outbox). Ese mirror probablemente siga mostrando recepciones y sesiones de
+-- pesaje que en Supabase ya no existen hasta que la app las reconcilie o el
+-- operador limpie datos locales. No se resuelve acá — confirmar el
+-- comportamiento real en el E2E de dispositivo pendiente.

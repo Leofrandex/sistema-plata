@@ -166,7 +166,25 @@ export function WeighingForm({
           <label className="text-sm font-medium text-foreground">
             {isMetallic ? 'Tacho metálico' : 'Número de tacho'} <span className="text-red-500">*</span>
           </label>
-          {state.container_id && !isYaris ? (
+          {isMetallic ? (
+            <Select
+              value={state.container_id}
+              onValueChange={(v) => onChange({ container_id: v ?? '' })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={
+                  metallicContainers.length === 0 ? 'No hay tachos metálicos' : 'Seleccionar tacho metálico'
+                } />
+              </SelectTrigger>
+              <SelectContent>
+                {dropdownContainers.filter((c) => !c.is_yaris_dedicated).map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {formatTachoNumber(c.id)} · {c.size_liters} L
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : state.container_id && !isYaris ? (
             <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 h-10">
               <span className="font-mono font-semibold text-foreground">
                 {formatTachoNumber(state.container_id)}

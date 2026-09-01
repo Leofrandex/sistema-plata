@@ -9,8 +9,10 @@ export function InterimModeBanner() {
       <AlertTriangle aria-hidden className="size-5 shrink-0 text-amber-600 mt-0.5" />
       <p className="text-sm text-amber-900">
         <strong className="font-semibold">Modo interino:</strong> el registro de recorridos está
-        deshabilitado mientras se rehace su arquitectura offline. Los estados de circulación y el
-        historial de recorridos <strong>no son representativos</strong>; los pesajes sí.
+        deshabilitado mientras se rehace su arquitectura offline. Los estados de circulación, el
+        historial de recorridos y las tarjetas <strong>&quot;Recorridos hoy&quot;</strong> y{' '}
+        <strong>&quot;Pendientes de pesar&quot;</strong> <strong>no son representativos</strong>{' '}
+        (van a mostrar 0); los pesajes sí.
       </p>
     </div>
   )

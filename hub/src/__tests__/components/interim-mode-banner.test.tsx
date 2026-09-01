@@ -7,4 +7,10 @@ describe('InterimModeBanner', () => {
     expect(screen.getByText(/modo interino/i)).toBeInTheDocument()
     expect(screen.getByText(/no son representativos/i)).toBeInTheDocument()
   })
+
+  it('nombra las tarjetas del dashboard que van a mostrar 0 permanente', () => {
+    render(<InterimModeBanner />)
+    expect(screen.getByText(/recorridos hoy/i)).toBeInTheDocument()
+    expect(screen.getByText(/pendientes de pesar/i)).toBeInTheDocument()
+  })
 })

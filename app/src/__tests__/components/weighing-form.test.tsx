@@ -111,6 +111,38 @@ describe('WeighingForm — buscador de tacho', () => {
   })
 })
 
+describe('WeighingForm — tacho metálico', () => {
+  const metallicContainers: Container[] = [
+    { id: 'M1', size_liters: 100, tare_weight_kg: 8, status: 'active', registered_at: '2026-01-01T00:00:00Z', is_metallic_dedicated: true },
+    { id: 'M2', size_liters: 100, tare_weight_kg: 8, status: 'active', registered_at: '2026-01-01T00:00:00Z', is_metallic_dedicated: true },
+  ]
+
+  it('muestra el catálogo completo de metálicos sin necesidad de escribir', async () => {
+    const user = userEvent.setup()
+    render(
+      <WeighingForm
+        state={{ ...EMPTY_WEIGHING_FORM, waste_type: 'metallic' }}
+        onChange={() => {}}
+        availableContainers={containers}
+        yarisContainers={[]}
+        metallicContainers={metallicContainers}
+        allContainers={metallicContainers}
+        companies={companies}
+        locked={false}
+        mode="create"
+        onSubmit={() => {}}
+      />,
+    )
+    // No hay buscador para metálicos: el Select se abre y muestra el catálogo
+    // completo sin escribir nada.
+    expect(screen.queryByPlaceholderText(/número de tacho/i)).not.toBeInTheDocument()
+    const tachoGroup = screen.getByText('Tacho metálico').closest('div')!
+    await user.click(within(tachoGroup).getByRole('combobox'))
+    expect(await screen.findByRole('option', { name: /M1/ })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: /M2/ })).toBeInTheDocument()
+  })
+})
+
 describe('WeighingForm — aviso de duplicado', () => {
   it('muestra el aviso cuando se pasa duplicateWarning', () => {
     render(
