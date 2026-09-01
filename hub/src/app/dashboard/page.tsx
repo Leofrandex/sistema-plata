@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { DashboardHero } from '@/components/dashboard/dashboard-hero'
+import { InterimModeBanner } from '@/components/dashboard/interim-mode-banner'
 import { MetricsCards, computeDashboardMetrics } from '@/components/dashboard/metrics-cards'
 import { CirculationPieChart } from '@/components/dashboard/circulation-pie-chart'
 import { DailyKgDonut } from '@/components/dashboard/daily-kg-donut'
@@ -162,6 +163,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 pb-8">
       <DashboardHero name={firstName} />
+      <InterimModeBanner />
       <MetricsCards metrics={metrics} />
 
       {/* Hoy: circulación + kg del día */}
