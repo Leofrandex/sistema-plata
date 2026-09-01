@@ -1,10 +1,12 @@
 'use client'
 
+import { useState } from 'react'
 import { Button } from '@hospiwaste/shared/components/ui/button'
 import { Input } from '@hospiwaste/shared/components/ui/input'
 import { Badge } from '@hospiwaste/shared/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@hospiwaste/shared/components/ui/select'
 import { PhotoCapture } from '@/components/register/photo-capture'
+import { filterContainers } from '@/components/register/container-selector'
 import { cn } from '@hospiwaste/shared/lib/utils'
 import { computeNetWeight, formatTachoNumber } from '@hospiwaste/shared/lib/data/containers'
 import { CheckSquare, Square } from 'lucide-react'
@@ -130,6 +132,7 @@ export function WeighingForm({
 
   function toggleYaris() {
     const turningOn = !isYaris
+    setTachoSearch('')
     onChange({
       is_yaris_weighing: turningOn,
       container_id: '',
@@ -138,6 +141,12 @@ export function WeighingForm({
         : {}),
     })
   }
+
+  const [tachoSearch, setTachoSearch] = useState('')
+  const tachoResults = filterContainers(
+    dropdownContainers.filter((c) => !c.is_yaris_dedicated),
+    tachoSearch,
+  ).slice(0, 8)
 
   return (
     <div
@@ -153,30 +162,51 @@ export function WeighingForm({
           <label className="text-sm font-medium text-foreground">
             {isMetallic ? 'Tacho metálico' : 'Número de tacho'} <span className="text-red-500">*</span>
           </label>
-          <Select
-            value={!isYaris ? state.container_id : ''}
-            onValueChange={(v) => !isYaris && onChange({ container_id: v ?? '' })}
-            disabled={isYaris}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={
-                isYaris
-                  ? 'Modo Yaris activo'
-                  : isMetallic
-                    ? (metallicContainers.length === 0 ? 'No hay tachos metálicos' : 'Seleccionar tacho metálico')
-                    : normalCatalog.length === 0
-                      ? 'No hay tachos pendientes'
-                      : 'Seleccionar tacho'
-              } />
-            </SelectTrigger>
-            <SelectContent>
-              {dropdownContainers.filter((c) => !c.is_yaris_dedicated).map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {formatTachoNumber(c.id)} · {c.size_liters} L
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {state.container_id && !isYaris ? (
+            <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 h-10">
+              <span className="font-mono font-semibold text-foreground">
+                {formatTachoNumber(state.container_id)}
+              </span>
+              <button
+                type="button"
+                onClick={() => { setTachoSearch(''); onChange({ container_id: '' }) }}
+                className="ml-auto text-xs underline text-muted-foreground"
+              >
+                Cambiar
+              </button>
+            </div>
+          ) : (
+            <>
+              <Input
+                value={tachoSearch}
+                onChange={(e) => setTachoSearch(e.target.value)}
+                placeholder="Número de tacho (ej: 145)"
+                disabled={isYaris}
+                inputMode="numeric"
+                className="h-10"
+              />
+              {tachoSearch.length > 0 && (
+                <div className="space-y-1 max-h-48 overflow-y-auto">
+                  {tachoResults.length === 0 && (
+                    <p className="text-xs text-muted-foreground py-2">
+                      No se encontró ningún tacho con ese número.
+                    </p>
+                  )}
+                  {tachoResults.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => { setTachoSearch(''); onChange({ container_id: c.id }) }}
+                      className="w-full text-left rounded-md border border-border px-3 py-2 text-sm hover:border-accent/40 hover:bg-accent/5"
+                    >
+                      <span className="font-mono font-semibold">{formatTachoNumber(c.id)}</span>
+                      <span className="text-muted-foreground"> · {c.size_liters} L</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         <div className="space-y-1.5">
@@ -214,7 +244,7 @@ export function WeighingForm({
             ? 'No hay tachos Yaris configurados. Marcá un tacho como dedicado a Yaris desde Admin → Tachos.'
             : isMetallic
               ? 'No hay tachos metálicos configurados. Marcá un tacho como dedicado a metálico desde Admin → Tachos.'
-              : 'No hay tachos sucios recogidos pendientes de pesar. Registrá un recorrido primero.'}
+              : 'No hay tachos activos disponibles.'}
         </p>
       )}
       {selectedContainer && (

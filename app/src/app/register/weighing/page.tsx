@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Play, StopCircle, AlertCircle, X, History } from 'lucide-react'
-import { cn } from '@hospiwaste/shared/lib/utils'
 import { Button } from '@hospiwaste/shared/components/ui/button'
 import { Card, CardContent } from '@hospiwaste/shared/components/ui/card'
 import {
@@ -24,7 +23,8 @@ import {
   todayLocal,
   type ActiveSession,
 } from '@/lib/active-session'
-import { getPendingWeighingContainerIds, getContainerCurrentCompanyId, formatTachoNumber, getMetallicContainers } from '@hospiwaste/shared/lib/data/containers'
+import { INTERIM_MODE } from '@hospiwaste/shared/lib/config/interim-mode'
+import { getPendingWeighingContainerIds, getWeighableContainerIds, getContainerCurrentCompanyId, getMetallicContainers } from '@hospiwaste/shared/lib/data/containers'
 import { saveEventPhotosLocal } from '@hospiwaste/shared/lib/data/photos'
 import { submitWeighingSession, submitReception, submitTreatmentRun, submitStorageEvent, submitContainerLocation } from '@/lib/data/field-writes'
 import { applyFieldEdit } from '@/lib/data/field-edits'
@@ -89,7 +89,13 @@ export default function WeighingPage() {
 
   // Tachos disponibles para pesar = cola de trabajo del pesador (helper compartido con dashboard).
   // Excluimos los dedicados a Yaris: éstos viven en una lista aparte y solo se eligen cuando el operador activa el modo Yaris.
-  const pendingIds = new Set(getPendingWeighingContainerIds(containers, routeEvents, receptions))
+  // Modo interino: todos los tachos activos son pesables (no hay recorridos que
+  // llenen la cola). Con recorridos activos vuelve la cola real.
+  const pendingIds = new Set(
+    INTERIM_MODE
+      ? getWeighableContainerIds(containers)
+      : getPendingWeighingContainerIds(containers, routeEvents, receptions),
+  )
   const availableContainers = containers.filter(
     (c) => pendingIds.has(c.id) && !c.is_yaris_dedicated && !c.is_metallic_dedicated,
   )
@@ -101,13 +107,6 @@ export default function WeighingPage() {
   const inheritedCompanyId = formState.container_id
     ? getContainerCurrentCompanyId(formState.container_id, routeEvents, treatmentRuns, externalTransfers)
     : null
-
-  const skipped = activeSession?.context.type === 'weighing' ? (activeSession.context.skipped ?? []) : []
-  const skippedIds = new Set(skipped.map((s) => s.container_id))
-  const pendingList = availableContainers
-    .map((c) => c.id)
-    .filter((id) => !sessionReceptions.some((r) => r.container_id === id))
-  const pendingNotSkipped = pendingList.filter((id) => !skippedIds.has(id))
 
   function updateForm(updates: Partial<WeighingFormState>) {
     setFormState((prev) => {
@@ -125,23 +124,6 @@ export default function WeighingPage() {
   function resetForm() {
     setFormState(EMPTY_WEIGHING_FORM)
     setEditingReceptionId(null)
-  }
-
-  async function markAbsent(containerId: string) {
-    if (!activeSession || activeSession.context.type !== 'weighing') return
-    const note = window.prompt('Nota (opcional) — por qué este tacho no se pesa:') ?? ''
-    const next: ActiveSession = {
-      ...activeSession,
-      context: {
-        ...activeSession.context,
-        skipped: [
-          ...(activeSession.context.skipped ?? []).filter((s) => s.container_id !== containerId),
-          { container_id: containerId, note },
-        ],
-      },
-    }
-    await startSession(next)
-    setActiveSession(next)
   }
 
   async function handleStart() {
@@ -420,19 +402,6 @@ export default function WeighingPage() {
                   <p className="text-xs text-muted-foreground mt-1">
                     {sessionReceptions.length} tacho{sessionReceptions.length !== 1 ? 's' : ''} registrado{sessionReceptions.length !== 1 ? 's' : ''}
                   </p>
-                  {pendingList.length > 0 && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Pendientes por pesar ({pendingNotSkipped.length}):{' '}
-                      {pendingList.map((id) => (
-                        <span key={id} className={cn('font-mono mr-1', skippedIds.has(id) && 'line-through opacity-60')}>
-                          {formatTachoNumber(id)}
-                          {!skippedIds.has(id) && (
-                            <button type="button" onClick={() => markAbsent(id)} className="ml-0.5 text-[10px] underline">ausente</button>
-                          )}
-                        </span>
-                      ))}
-                    </p>
-                  )}
                 </div>
                 <div className="flex gap-2 shrink-0 flex-wrap justify-end">
                   <Button
@@ -509,7 +478,6 @@ export default function WeighingPage() {
           {confirmingFinish && (
             <ConfirmFinishDialog
               count={sessionReceptions.length}
-              pendingCount={pendingNotSkipped.length}
               elapsed={elapsed}
               onCancel={() => setConfirmingFinish(false)}
               onConfirm={async () => {
@@ -547,8 +515,6 @@ export default function WeighingPage() {
 
 interface DialogProps {
   count: number
-  /** Tachos de la cola que quedan sin pesar ni marcar ausentes al finalizar. */
-  pendingCount: number
   elapsed: number
   onCancel: () => void
   onConfirm: () => void
@@ -596,7 +562,7 @@ function ConfirmCancelDialog({ count, onCancel, onConfirm }: CancelDialogProps) 
   )
 }
 
-function ConfirmFinishDialog({ count, pendingCount, elapsed, onCancel, onConfirm }: DialogProps) {
+function ConfirmFinishDialog({ count, elapsed, onCancel, onConfirm }: DialogProps) {
   return (
     <div
       role="dialog"
@@ -624,12 +590,6 @@ function ConfirmFinishDialog({ count, pendingCount, elapsed, onCancel, onConfirm
           <p>Duración: <strong className="font-mono">{formatElapsed(elapsed)}</strong></p>
           <p>Tachos pesados: <strong>{count}</strong></p>
         </div>
-        {pendingCount > 0 && (
-          <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
-            Quedan <strong>{pendingCount}</strong> tacho{pendingCount !== 1 ? 's' : ''} pendiente{pendingCount !== 1 ? 's' : ''} por
-            pesar. Seguirá{pendingCount !== 1 ? 'n' : ''} en la cola para la próxima sesión.
-          </div>
-        )}
         <div className="flex gap-3 justify-end">
           <Button variant="outline" onClick={onCancel}>Seguir pesando</Button>
           <Button onClick={onConfirm}>Sí, finalizar</Button>
