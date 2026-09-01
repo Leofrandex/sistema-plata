@@ -8,7 +8,7 @@ import { PhotoCapture } from '@/components/register/photo-capture'
 import { cn } from '@hospiwaste/shared/lib/utils'
 import { computeNetWeight, formatTachoNumber } from '@hospiwaste/shared/lib/data/containers'
 import { CheckSquare, Square } from 'lucide-react'
-import type { Container, WasteType } from '@hospiwaste/shared/lib/types'
+import type { Container, Company, WasteType } from '@hospiwaste/shared/lib/types'
 
 const WASTE_LABELS: Record<WasteType, string> = {
   infectious: 'Peligroso infeccioso',
@@ -21,6 +21,9 @@ const WASTE_LABELS: Record<WasteType, string> = {
 
 export interface WeighingFormState {
   container_id: string
+  /** Empresa a la que se atribuye este pesaje. En modo interino la elige el
+   *  operador; con recorridos activos se precarga con la empresa heredada. */
+  company_id: string
   photo_container: string | null
   photo_scale: string | null
   gross_weight: string
@@ -34,6 +37,7 @@ export interface WeighingFormState {
 
 export const EMPTY_WEIGHING_FORM: WeighingFormState = {
   container_id: '',
+  company_id: '',
   photo_container: null,
   photo_scale: null,
   gross_weight: '',
@@ -54,7 +58,8 @@ interface Props {
   metallicContainers: Container[]
   /** Lista completa para resolver datos del tacho si se está editando uno ya pesado. */
   allContainers: Container[]
-  inheritedCompanyName?: string | null
+  /** Empresas disponibles para atribuir el pesaje. */
+  companies: Company[]
   locked: boolean
   mode: 'create' | 'edit'
   onSubmit: () => void
@@ -69,7 +74,7 @@ export function WeighingForm({
   yarisContainers,
   metallicContainers,
   allContainers,
-  inheritedCompanyName,
+  companies,
   locked,
   mode,
   onSubmit,
@@ -108,6 +113,7 @@ export function WeighingForm({
 
   const canSubmit =
     !!state.container_id &&
+    !!state.company_id &&
     !!state.photo_container &&
     !!state.photo_scale &&
     hasValidWeight
@@ -245,9 +251,27 @@ export function WeighingForm({
             ))}
           </SelectContent>
         </Select>
-        {inheritedCompanyName && (
-          <p className="text-xs text-muted-foreground">Empresa del tacho: <strong>{inheritedCompanyName}</strong></p>
-        )}
+      </div>
+
+      {/* Empresa — en modo interino la elige el operador (no hay recorrido del
+          que heredarla). Con recorridos activos llega precargada. */}
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-foreground">
+          Empresa <span className="text-red-500">*</span>
+        </label>
+        <Select
+          value={state.company_id}
+          onValueChange={(v) => onChange({ company_id: v ?? '' })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Seleccionar empresa" />
+          </SelectTrigger>
+          <SelectContent>
+            {companies.map((co) => (
+              <SelectItem key={co.id} value={co.id}>{co.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Peso bruto + peso neto destacado */}

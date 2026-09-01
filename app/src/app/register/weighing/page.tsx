@@ -101,9 +101,6 @@ export default function WeighingPage() {
   const inheritedCompanyId = formState.container_id
     ? getContainerCurrentCompanyId(formState.container_id, routeEvents, treatmentRuns, externalTransfers)
     : null
-  const inheritedCompanyName = inheritedCompanyId
-    ? companies.find((c) => c.id === inheritedCompanyId)?.name ?? null
-    : null
 
   const skipped = activeSession?.context.type === 'weighing' ? (activeSession.context.skipped ?? []) : []
   const skippedIds = new Set(skipped.map((s) => s.container_id))
@@ -113,7 +110,16 @@ export default function WeighingPage() {
   const pendingNotSkipped = pendingList.filter((id) => !skippedIds.has(id))
 
   function updateForm(updates: Partial<WeighingFormState>) {
-    setFormState((prev) => ({ ...prev, ...updates }))
+    setFormState((prev) => {
+      const next = { ...prev, ...updates }
+      if (updates.container_id && updates.container_id !== prev.container_id) {
+        const heredada = getContainerCurrentCompanyId(
+          updates.container_id, routeEvents, treatmentRuns, externalTransfers,
+        )
+        if (heredada) next.company_id = heredada
+      }
+      return next
+    })
   }
 
   function resetForm() {
@@ -194,7 +200,7 @@ export default function WeighingPage() {
     await submitReception({
       id: receptionId, container_id: formState.container_id, weighing_session_id: currentSessionId,
       arrived_at: now, gross_weight_kg: gross, operator_id: currentProfileId,
-      observations: formState.observations, company_id: inheritedCompanyId,
+      observations: formState.observations, company_id: formState.company_id || inheritedCompanyId,
       waste_type: formState.waste_type, treat_immediately: formState.treat_immediately,
     })
 
@@ -205,7 +211,7 @@ export default function WeighingPage() {
     addReception({
       id: receptionId, container_id: formState.container_id, weighing_session_id: currentSessionId,
       arrived_at: now, gross_weight_kg: gross, operator_id: currentProfileId, photo_ids: photoIds,
-      observations: formState.observations, company_id: inheritedCompanyId,
+      observations: formState.observations, company_id: formState.company_id || inheritedCompanyId,
       waste_type: formState.waste_type, treat_immediately: formState.treat_immediately,
     })
     updateWeighingSession(currentSessionId, {
@@ -232,7 +238,7 @@ export default function WeighingPage() {
         gross_weight_kg: gross,
         operator_id: existing.operator_id,
         observations: formState.observations,
-        company_id: existing.company_id,
+        company_id: formState.company_id || existing.company_id,
         waste_type: formState.waste_type,
         treat_immediately: formState.treat_immediately,
       }, async () => {
@@ -241,6 +247,7 @@ export default function WeighingPage() {
           container_id: formState.container_id,
           gross_weight_kg: gross,
           observations: formState.observations,
+          company_id: formState.company_id || existing.company_id,
           waste_type: formState.waste_type,
           treat_immediately: formState.treat_immediately,
         })
@@ -261,6 +268,7 @@ export default function WeighingPage() {
       gross_weight_kg: gross,
       photo_ids: photoIds,
       observations: formState.observations,
+      company_id: formState.company_id || existing.company_id,
       waste_type: formState.waste_type,
       treat_immediately: formState.treat_immediately,
     })
@@ -279,6 +287,7 @@ export default function WeighingPage() {
     const container = containers.find((c) => c.id === r.container_id)
     setFormState({
       container_id: r.container_id,
+      company_id: r.company_id ?? '',
       photo_container: containerPhoto,
       photo_scale: scalePhoto,
       gross_weight: String(r.gross_weight_kg),
@@ -478,7 +487,7 @@ export default function WeighingPage() {
             yarisContainers={yarisContainers}
             metallicContainers={metallicContainers}
             allContainers={containers}
-            inheritedCompanyName={inheritedCompanyName}
+            companies={companies}
             locked={!isRunning}
             mode={isEditing ? 'edit' : 'create'}
             onSubmit={handleSubmitForm}
