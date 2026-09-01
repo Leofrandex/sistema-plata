@@ -6,6 +6,7 @@ import {
   getContainerCurrentCompanyId,
   getMetallicContainers,
   getPendingWeighingContainerIds,
+  getWeighableContainerIds,
   deriveContainerCompanyId,
 } from '@hospiwaste/shared/lib/data/containers'
 import type {
@@ -346,6 +347,39 @@ describe('deriveContainerCompanyId', () => {
     const routes = [route({ id: 'r1', started_at: '2026-06-13T06:30:00Z', company_id: 'company-airkem', containers_clean_delivered: ['001'] })]
     const recs = [rec({ id: 'rec1', arrived_at: '2026-06-14T09:00:00Z', company_id: 'company-ion', voided_at: '2026-06-15T00:00:00Z' })]
     expect(deriveContainerCompanyId('001', routes, recs)).toBe('company-airkem')
+  })
+})
+
+describe('getWeighableContainerIds', () => {
+  const c = (id: string, over: Partial<Container> = {}): Container => ({
+    id, size_liters: 240, tare_weight_kg: 14,
+    status: 'active', registered_at: '2026-01-01T00:00:00Z', ...over,
+  })
+
+  it('incluye todos los tachos activos sin exigir recorrido previo', () => {
+    expect(getWeighableContainerIds([c('001'), c('002')])).toEqual(['001', '002'])
+  })
+
+  it('excluye tachos que no están activos', () => {
+    expect(getWeighableContainerIds([c('001'), c('002', { status: 'retired' })])).toEqual(['001'])
+  })
+
+  it('excluye contenedores de la flota Yaris (no se pesan directamente)', () => {
+    const containers = [c('001'), c('Y1', { is_yaris_container: true, tare_weight_kg: 0 })]
+    expect(getWeighableContainerIds(containers)).toEqual(['001'])
+  })
+
+  it('incluye dedicados Yaris y metálicos (la pantalla los separa en su propio selector)', () => {
+    const containers = [
+      c('001'),
+      c('YD1', { is_yaris_dedicated: true }),
+      c('M1', { is_metallic_dedicated: true }),
+    ]
+    expect(getWeighableContainerIds(containers)).toEqual(['001', 'YD1', 'M1'])
+  })
+
+  it('lista vacía → []', () => {
+    expect(getWeighableContainerIds([])).toEqual([])
   })
 })
 
