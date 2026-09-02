@@ -16,18 +16,48 @@
 --      verificar que su local-store quedó en cero filas sin sincronizar
 --      ANTES de correr el truncate de abajo. Cómo comprobarlo por teléfono:
 --        a. Conectar el teléfono a WiFi y dejarlo con la app abierta unos
---           minutos para que el sync automático drene lo pendiente (o forzar
---           una sincronización manual si la UI la ofrece).
---        b. Confirmar en el WebView (ver `depurar-webview-apk-cdp` en la
---           memoria) que `getUnsyncedRows()` y `getUnsyncedPhotos()` del
---           LocalStore devuelven arrays vacíos — o inspeccionar directamente
---           las tablas locales (weighing_sessions, container_receptions,
---           route_events, photos) buscando filas con `synced = false`.
---        c. Si un teléfono no puede drenar (sin señal, con fallas) y no hay
+--           minutos para que el sync automático drene lo pendiente (dispara
+--           solo: al conectar, al volver a foreground y cada 30s — ver
+--           `app/src/hooks/use-offline-sync.ts`). No hay botón de "sincronizar
+--           ahora" en la UI.
+--        b. Camino práctico — mirar la pantalla: la app ya muestra un
+--           indicador flotante (`SyncIndicator`, esquina inferior derecha,
+--           `app/src/components/layout/sync-indicator.tsx`) cuando hay algo
+--           pendiente o rechazado. Con WiFi conectado y la app en foreground,
+--           esperar a que el indicador DESAPAREZCA por completo: eso ocurre
+--           únicamente cuando `pendingCounts()` devuelve `records = 0`,
+--           `photos = 0` y `rejected = 0` (ver `pendingCounts()` en
+--           `shared/src/lib/local-store/sqlite-store.ts`). Si el indicador
+--           sigue visible en rojo ("elemento(s) rechazado(s) — revisar"),
+--           hay filas con `sync_error` que no se van a drenar solas: requieren
+--           intervención antes de continuar.
+--        c. Camino de respaldo, para el caso dudoso — inspeccionar la base
+--           SQLite directamente. El LocalStore NO tiene tablas por dominio:
+--           todo registro vive en la tabla genérica `local_rows` (columna
+--           `tbl` con el nombre de tabla como dato, columna `synced` INTEGER
+--           0/1) y las fotos en `local_photos` (mismo esquema de `synced`) —
+--           ver `SCHEMA_SQL` en `shared/src/lib/local-store/sqlite-store.ts`.
+--           Las consultas son:
+--             SELECT tbl, COUNT(*) FROM local_rows WHERE synced = 0 GROUP BY tbl;
+--             SELECT COUNT(*) FROM local_photos WHERE synced = 0;
+--           El archivo de base en el dispositivo es
+--           `/data/data/com.hospiwaste.app/databases/hospiwasteSQLite.db`
+--           (ver `docs/superpowers/plans/2026-07-22-offline-sqlite-B-nativo.md`;
+--           confirmar el sufijo real con
+--           `adb shell run-as com.hospiwaste.app ls databases/`, el plugin
+--           agrega `SQLite.db` al nombre lógico `hospiwaste`). Sacarlo con
+--           `adb shell run-as com.hospiwaste.app cat databases/hospiwasteSQLite.db > hospiwaste.db`
+--           (o `adb pull` si el teléfono está rooteado) y abrirlo con
+--           cualquier cliente SQLite. Requiere depuración USB habilitada y
+--           `adb`, así que en la práctica es un camino de escritorio para
+--           casos dudosos, no algo que un operador de planta pueda hacer con
+--           el teléfono en la mano — el indicador en pantalla (b) es la
+--           verificación de rutina.
+--        d. Si un teléfono no puede drenar (sin señal, con fallas) y no hay
 --           tiempo de esperar: limpiar los datos de la app en ese equipo
 --           (Ajustes → Apps → Hospiwaste → Borrar datos) para vaciar su
 --           local-store en vez de confiar en que sincronizó.
---      Un teléfono con filas sin sincronizar que no cumple (b) o (c) va a
+--      Un teléfono con filas sin sincronizar que no cumple (b)/(c) o (d) va a
 --      resucitar weighing_sessions, container_receptions, photos y hasta
 --      route_events DESPUÉS del reset, apenas recupere señal.
 --
