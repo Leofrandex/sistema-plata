@@ -75,17 +75,17 @@ export interface Container {
   tare_weight_kg: number
   status: ContainerStatus
   registered_at: string  // ISO 8601 datetime
-  /** true: tacho reservado para pesaje de cargas Yaris/Picanto. Solo aparece
-   *  como opción en /register/weighing cuando el operador activa el modo Yaris.
-   *  Opcional para compat con data histórica/mocks; undefined === false. */
+  /** @deprecated Desde 2026-09-07 la flota Yaris tiene pesa dedicada y se pesa
+   *  directamente, así que ya no existen tachos alternativos para su carga.
+   *  La columna sobrevive en la BD por el histórico; nada la lee. */
   is_yaris_dedicated?: boolean
   /** true: tacho dedicado a "Metálicos No reutilizables". Siempre disponible en
    *  pesaje (sin recorrido) y solo visible cuando el tipo elegido es 'metallic'. */
   is_metallic_dedicated?: boolean
-  /** true: contenedor físico de la flota Yaris. Siempre disponible en recorrido,
-   *  sin tara (se pesa con los tachos alternativos is_yaris_dedicated). Excluido
-   *  de la cola de pesaje y del dashboard de circulación. Distinto de
-   *  is_yaris_dedicated. Opcional para compat con data histórica/mocks. */
+  /** true: contenedor físico de la flota Yaris (Y1..Y26, 1100 L). Desde
+   *  2026-09-07 se pesa directamente en su propia pesa, así que entra en la
+   *  cola de pesaje y en el dashboard de circulación como cualquier tacho; la
+   *  bandera solo lo identifica. Opcional para compat con mocks/histórico. */
   is_yaris_container?: boolean
   /** Perfil que registró el tacho. Null para históricos importados. */
   created_by?: string | null

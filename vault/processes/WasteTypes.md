@@ -38,8 +38,8 @@ Cada contenedor está **casado con un tipo de desecho**. Un mismo contenedor no 
 
 Los tachos `M1`…`M15` (120 L) están dedicados al tipo **Metálicos No reutilizables**. No
 pertenecen a ninguna empresa (`company_id = null`) ni pasan por recorrido: están siempre
-disponibles en pesaje y solo aparecen cuando el operador elige ese tipo. Espejo operativo de
-los tachos Yaris, pero disparados por el tipo de desecho en vez de un toggle.
+disponibles en pesaje y solo aparecen cuando el operador elige ese tipo. Son el único catálogo
+aparte que queda en el formulario de pesaje: el modo Yaris se eliminó el 2026-09-07.
 
 ## Impacto en el reporte
 

@@ -125,7 +125,6 @@ export function getPendingWeighingContainerIds(
   return containers
     .filter((c) => {
       if (c.status !== 'active') return false
-      if (c.is_yaris_container) return false
       const recogidasSucias = routeEvents.filter(
         (r) => !r.voided_at && r.containers_dirty_received.includes(c.id),
       )
@@ -143,15 +142,9 @@ export function getPendingWeighingContainerIds(
  * un recorrido los haya recogido sucios. Hermana de
  * `getPendingWeighingContainerIds`, que sigue siendo la cola real y vuelve
  * cuando el registro de recorridos se reactive.
- *
- * Excluye `is_yaris_container` por el mismo motivo que la función original:
- * los contenedores de la flota Yaris no se pesan directamente, se vuelcan en
- * un tacho `is_yaris_dedicated`.
  */
 export function getWeighableContainerIds(containers: Container[]): string[] {
-  return containers
-    .filter((c) => c.status === 'active' && !c.is_yaris_container)
-    .map((c) => c.id)
+  return containers.filter((c) => c.status === 'active').map((c) => c.id)
 }
 
 /**
@@ -183,8 +176,8 @@ export function findTodayReceptionForContainer(
 
 /**
  * Tachos dedicados a "Metálicos No reutilizables" disponibles para pesar.
- * Siempre disponibles (no requieren recorrido), igual que los Yaris. Solo se
- * ofrecen en el formulario cuando el tipo de desecho elegido es 'metallic'.
+ * Siempre disponibles (no requieren recorrido). Solo se ofrecen en el
+ * formulario cuando el tipo de desecho elegido es 'metallic'.
  */
 export function getMetallicContainers(containers: Container[]): Container[] {
   return containers.filter((c) => c.is_metallic_dedicated && c.status === 'active')

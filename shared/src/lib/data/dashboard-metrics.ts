@@ -125,9 +125,7 @@ export function computeCirculationBreakdown(store: CirculationStoreSlice): Circu
   const counts: Record<CirculationBucket, number> = {
     en_planta: 0, en_cliente: 0, pendiente_pesar: 0, pendiente_tratar: 0,
   }
-  const activeContainers = store.containers.filter(
-    (c) => c.status === 'active' && !c.is_yaris_container,
-  )
+  const activeContainers = store.containers.filter((c) => c.status === 'active')
   for (const container of activeContainers) {
     counts[computeCirculationBucket(container, store)] += 1
   }

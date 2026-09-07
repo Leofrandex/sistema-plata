@@ -30,9 +30,6 @@ export interface WeighingFormState {
   photo_scale: string | null
   gross_weight: string
   observations: string
-  /** Pesaje proveniente de carga Yaris/Picanto. Cuando true, el tacho elegido
-   *  debe ser uno marcado como `is_yaris_dedicated`. */
-  is_yaris_weighing: boolean
   waste_type: WasteType
   treat_immediately: boolean
 }
@@ -44,7 +41,6 @@ export const EMPTY_WEIGHING_FORM: WeighingFormState = {
   photo_scale: null,
   gross_weight: '',
   observations: '',
-  is_yaris_weighing: false,
   waste_type: 'infectious',
   treat_immediately: false,
 }
@@ -52,10 +48,8 @@ export const EMPTY_WEIGHING_FORM: WeighingFormState = {
 interface Props {
   state: WeighingFormState
   onChange: (updates: Partial<WeighingFormState>) => void
-  /** Tachos pendientes de pesar (no yaris). */
+  /** Tachos pendientes de pesar (incluye la flota Yaris Y1..Y26). */
   availableContainers: Container[]
-  /** Tachos dedicados a Yaris disponibles (siempre disponibles, no requieren recorrido previo). */
-  yarisContainers: Container[]
   /** Tachos dedicados a metálico (siempre disponibles; solo se ofrecen con tipo 'metallic'). */
   metallicContainers: Container[]
   /** Lista completa para resolver datos del tacho si se está editando uno ya pesado. */
@@ -75,7 +69,6 @@ export function WeighingForm({
   state,
   onChange,
   availableContainers,
-  yarisContainers,
   metallicContainers,
   allContainers,
   companies,
@@ -88,17 +81,13 @@ export function WeighingForm({
 }: Props) {
   const selectedContainer = allContainers.find((c) => c.id === state.container_id) ?? null
 
-  const isYaris = state.is_yaris_weighing
   const isMetallic = state.waste_type === 'metallic'
 
   // En modo edit, el tacho actualmente cargado puede no estar en
   // availableContainers (porque ya tiene reception). Lo agregamos al inicio
   // para que siga visible y editable.
-  const normalCatalog = isYaris ? [] : isMetallic ? metallicContainers : availableContainers
-  const yarisCatalog = isYaris ? yarisContainers : []
-
   const dropdownContainers = (() => {
-    const base = isYaris ? yarisCatalog : normalCatalog
+    const base = isMetallic ? metallicContainers : availableContainers
     if (mode === 'edit' && selectedContainer && !base.some((c) => c.id === selectedContainer.id)) {
       return [selectedContainer, ...base]
     }
@@ -130,27 +119,11 @@ export function WeighingForm({
     onChange({
       waste_type: next,
       ...(crossingMetallic ? { container_id: '' } : {}),
-      ...(next === 'metallic' ? { is_yaris_weighing: false } : {}),
-    })
-  }
-
-  function toggleYaris() {
-    const turningOn = !isYaris
-    setTachoSearch('')
-    onChange({
-      is_yaris_weighing: turningOn,
-      container_id: '',
-      ...(turningOn && state.waste_type === 'metallic'
-        ? { waste_type: 'infectious' as WasteType }
-        : {}),
     })
   }
 
   const [tachoSearch, setTachoSearch] = useState('')
-  const tachoResults = filterContainers(
-    dropdownContainers.filter((c) => !c.is_yaris_dedicated),
-    tachoSearch,
-  ).slice(0, 8)
+  const tachoResults = filterContainers(dropdownContainers, tachoSearch).slice(0, 8)
 
   return (
     <div
@@ -160,8 +133,8 @@ export function WeighingForm({
       )}
       aria-disabled={locked}
     >
-      {/* Tacho: número normal | tacho Yaris */}
-      <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr] gap-3">
+      {/* Tacho: buscador por número (la flota Yaris Y1..Y26 vive en la misma lista) */}
+      <div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-foreground">
             {isMetallic ? 'Tacho metálico' : 'Número de tacho'} <span className="text-red-500">*</span>
@@ -177,14 +150,14 @@ export function WeighingForm({
                 } />
               </SelectTrigger>
               <SelectContent>
-                {dropdownContainers.filter((c) => !c.is_yaris_dedicated).map((c) => (
+                {dropdownContainers.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {formatTachoNumber(c.id)} · {c.size_liters} L
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-          ) : state.container_id && !isYaris ? (
+          ) : state.container_id ? (
             <div className="flex items-center gap-2 rounded-md border border-input bg-background px-3 h-10">
               <span className="font-mono font-semibold text-foreground">
                 {formatTachoNumber(state.container_id)}
@@ -202,9 +175,8 @@ export function WeighingForm({
               <Input
                 value={tachoSearch}
                 onChange={(e) => setTachoSearch(e.target.value)}
-                placeholder="Número de tacho (ej: 145)"
-                disabled={isYaris}
-                inputMode="numeric"
+                placeholder="Número de tacho (ej: 145 o Y3)"
+                inputMode="text"
                 className="h-10"
               />
               {tachoSearch.length > 0 && (
@@ -230,43 +202,13 @@ export function WeighingForm({
             </>
           )}
         </div>
-
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-foreground">
-            Tacho Yaris {isYaris && <span className="text-red-500">*</span>}
-          </label>
-          <Select
-            value={isYaris ? state.container_id : ''}
-            onValueChange={(v) => isYaris && onChange({ container_id: v ?? '' })}
-            disabled={!isYaris}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={
-                !isYaris
-                  ? 'Activá "Pesaje de Yaris" abajo'
-                  : yarisCatalog.length === 0
-                    ? 'No hay tachos Yaris configurados'
-                    : 'Seleccionar tacho Yaris'
-              } />
-            </SelectTrigger>
-            <SelectContent>
-              {dropdownContainers.filter((c) => c.is_yaris_dedicated).map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {formatTachoNumber(c.id)} — {c.size_liters} L
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
       {dropdownContainers.length === 0 && mode === 'create' && (
         <p className="text-xs text-amber-700">
-          {isYaris
-            ? 'No hay tachos Yaris configurados. Marcá un tacho como dedicado a Yaris desde Admin → Tachos.'
-            : isMetallic
-              ? 'No hay tachos metálicos configurados. Marcá un tacho como dedicado a metálico desde Admin → Tachos.'
-              : 'No hay tachos activos disponibles.'}
+          {isMetallic
+            ? 'No hay tachos metálicos configurados. Marcá un tacho como dedicado a metálico desde Admin → Tachos.'
+            : 'No hay tachos activos disponibles.'}
         </p>
       )}
       {selectedContainer && (
@@ -277,9 +219,9 @@ export function WeighingForm({
           <Badge variant="outline" className="font-normal">
             Tamaño: <strong className="ml-1 font-semibold">{selectedContainer.size_liters} L</strong>
           </Badge>
-          {selectedContainer.is_yaris_dedicated && (
+          {selectedContainer.is_yaris_container && (
             <Badge variant="outline" className="font-normal bg-amber-50 border-amber-300 text-amber-900">
-              Dedicado a Yaris
+              Flota Yaris
             </Badge>
           )}
           {selectedContainer.is_metallic_dedicated && (
@@ -376,37 +318,6 @@ export function WeighingForm({
         )}
       </div>
 
-      {/* Toggle "Pesaje de Yaris" estilo checklist */}
-      {!isMetallic && (
-        <button
-          type="button"
-          onClick={toggleYaris}
-          aria-pressed={isYaris}
-          className={cn(
-            'w-full flex items-center gap-3 rounded-lg border p-3 text-left transition-colors',
-            isYaris
-              ? 'border-amber-300 bg-amber-50 hover:bg-amber-100'
-              : 'border-border bg-card hover:bg-muted/40',
-          )}
-        >
-          {isYaris ? (
-            <CheckSquare className="h-5 w-5 shrink-0 text-amber-700" />
-          ) : (
-            <Square className="h-5 w-5 shrink-0 text-muted-foreground" />
-          )}
-          <div className="flex-1">
-            <p className={cn('text-sm font-semibold', isYaris ? 'text-amber-900' : 'text-foreground')}>
-              ¿Es un pesaje de Yaris?
-            </p>
-            <p className={cn('text-xs', isYaris ? 'text-amber-800/80' : 'text-muted-foreground')}>
-              {isYaris
-                ? 'Activado. Seleccioná un tacho dedicado a Yaris arriba.'
-                : 'Marcá esta opción si la carga viene de un tacho Yaris.'}
-            </p>
-          </div>
-        </button>
-      )}
-
       {/* Observaciones */}
       <div className="space-y-1.5">
         <label htmlFor="weighing-observations" className="text-sm font-medium text-foreground">
@@ -416,7 +327,7 @@ export function WeighingForm({
           id="weighing-observations"
           value={state.observations}
           onChange={(e) => onChange({ observations: e.target.value })}
-          placeholder="Ej: Yaris #3, Picanto rojo, tacho con daño en tapa…"
+          placeholder="Ej: tacho con daño en tapa, carga mixta…"
           rows={2}
           className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
         />

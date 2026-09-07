@@ -3,7 +3,7 @@ title: Índice del Vault — Hospimed Waste Tracking
 tags:
   - index
   - meta
-updated: 2026-09-01
+updated: 2026-09-07
 ---
 
 > [!info] Nota de marca (2026-05-12)
@@ -22,7 +22,7 @@ updated: 2026-09-01
 **Fase:** Preparación lanzamiento PTDP — ajustes post-piloto; lanzamiento oficial 2026-06-01
 **Última reunión:** 2026-05-18 (Francesca + Karolyne + Marely + Sebastián) — ver `logs/2026-05-18-reunion-ptdp-demo-piloto.md`
 **Hito crítico:** lanzamiento oficial lunes 2026-06-01
-**Última actualización del vault:** 2026-09-01
+**Última actualización del vault:** 2026-09-07
 
 | Área | Estado | Archivo |
 |------|--------|---------|
@@ -55,6 +55,10 @@ updated: 2026-09-01
 | Fix: cola de pesaje excluía para siempre a todo tacho ya pesado (41 tachos invisibles) | 🟢 Completado (APK v2 compilado; E2E en dispositivo pendiente) | `logs/2026-07-28-fix-cola-pesaje-ciclo-reabierto.md` · `decisions/2026-07-28-cola-pesaje-por-fecha.md` |
 | Equipos: frecuencia de mantenimiento libre (valor + unidad días/meses/años) | 🟢 Completado (en producción; E2E manual pendiente) | `logs/2026-08-08-frecuencia-mantenimiento-libre.md` |
 | Modo interino solo-pesaje (recorridos deshabilitados) | 🟢 Completado (reset y rollout de APK pendientes) | logs/2026-09-01-modo-interino-solo-pesaje.md |
+| Fix: sesión del APK colgada (thenable de Capacitor) + LocalStore SQLite muerto | 🟢 Completado (APK v1.2 verificado en dispositivo) | `logs/2026-08-25-fix-sesion-apk-preferences-sqlite.md` · `logs/2026-08-25-instalacion-apk-firma-debug-vs-release.md` |
+| Fix: "Sin conexión con el servidor" al cancelar/finalizar pesaje (ruta `/dashboard` del hub) | 🟢 Completado (APK v1.4; E2E en dispositivo pendiente) | `logs/2026-09-04-fix-banner-sin-conexion-tras-cancelar-pesaje.md` |
+| Auditoría APK: crash por excepción de plugin nativo, banner con causa, pantalla `/diagnostico`, flush sin compuerta | 🟢 Completado (APK v1.5 compilado; captura de `/diagnostico` desde planta pendiente) | `logs/2026-09-06-auditoria-apk-crash-nativo-y-diagnostico.md` |
+| Flota Yaris con pesa dedicada: pesaje directo, taras reales, fin del modo Yaris | 🟢 Completado (migración aplicada; APK sin recompilar) | `logs/2026-09-07-yaris-pesaje-directo.md` · `decisions/2026-09-07-yaris-pesaje-directo.md` |
 
 **Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completo · ⚠️ Tiene incoherencias
 
@@ -84,6 +88,7 @@ updated: 2026-09-01
 - `decisions/2026-06-01-roles-acceso.md` — roles coordinador/operador; control en UI + middleware + RLS
 - `decisions/2026-06-01-ids-tachos-supabase-vs-mock.md` — ⚠️ IDs en Supabase son numéricos sin prefijo (`020`), no `A-020`; el prefijo es solo del mock
 - `decisions/2026-07-28-cola-pesaje-por-fecha.md` — la cola de pesaje se reabre con cada recogida sucia posterior al último pesaje; no exige tratamiento intermedio
+- `decisions/2026-09-07-yaris-pesaje-directo.md` — la flota Yaris estrena balanza: se pesa directo, entra al dashboard y muere el modo Yaris del formulario; revierte `logs/2026-06-03-contenedores-yaris-recorrido.md`
 - `decisions/2026-09-01-modo-interino-solo-pesaje.md` — flag `INTERIM_MODE`: recorridos congelados, cola de pesaje abierta a todos los tachos, temporal hasta el rediseño offline
 
 ### Credenciales (sensible)
@@ -91,6 +96,8 @@ updated: 2026-09-01
 - `credenciales/2026-06-23-passwords-temporales.md` — ⚠️ contraseñas temporales en texto plano (operadores nuevos); revierte el criterio de no versionar
 
 ### Logs de cambios
+- `logs/2026-09-07-yaris-pesaje-directo.md` — ⚠️ taras reales de `Y1`…`Y26` cargadas (estaban en 0) y migración aplicada al piloto; el APK de planta sigue en v1.5, sin este cambio
+- `logs/2026-09-06-auditoria-apk-crash-nativo-y-diagnostico.md` — ⚠️ toda excepción en un `@PluginMethod` mata el APK (Capacitor 8); v1.5 blinda el plugin nativo, captura el último crash y agrega `/diagnostico`; servidor y RLS verificados sanos desde planta y con cuenta operador; la franja ámbar apunta al arranque del LocalStore (conexión SQLite duplicada / rechazo cacheado), corregido
 - `logs/2026-09-01-modo-interino-solo-pesaje.md` — ⚠️ recorridos deshabilitados en el APK, cola de pesaje abierta a todos los tachos, empresa obligatoria en el pesaje; reset de datos y compilación del APK v1.3 pendientes
 - `logs/2026-08-25-fix-sesion-apk-preferences-sqlite.md` — el objeto de plugin de Capacitor es thenable: la sesión del APK y el LocalStore SQLite estaban muertos desde el 2026-07-23
 - `logs/2026-08-25-instalacion-apk-firma-debug-vs-release.md` — el APK no instalaba en planta por firma debug vs release, no por la versión de Android
@@ -139,6 +146,22 @@ updated: 2026-09-01
 *(Vacío)*
 
 ## Notas del último procesamiento
+
+**2026-09-07** — La flota Yaris (`Y1`…`Y26`) estrenó **pesa dedicada**, así que se elimina el
+rodeo que existía desde el 2026-06-03: ya no se vuelca su carga en un tacho
+`is_yaris_dedicated` para pesarla. Los Yaris entran a la cola de pesaje y al dashboard de
+circulación como cualquier tacho, se cargan sus taras reales (50.9–52.6 kg; estaban en 0
+justamente porque nunca se pesaban directo), y del formulario de pesaje desaparecen el toggle
+"¿Es un pesaje de Yaris?", el segundo selector y el estado `is_yaris_weighing` (que nunca se
+persistió en la BD). Los tachos que estaban marcados como dedicados vuelven a la operación
+normal; la columna `is_yaris_dedicated` queda deprecada pero no se dropea. Hallazgo al
+implementar: el buscador de tacho tenía `inputMode="numeric"`, así que con el teclado de
+Android no se podía escribir la `Y` de `Y3` — pasó a `text`. jest 264/264, `build:hub` y
+`build:app` verdes. Migración **aplicada al piloto** (remota `20260907171846`): 26 taras
+cargadas (0 quedan en cero) y los 17 tachos dedicados devueltos al pool normal de 246 activos.
+**Pendiente:** recompilar y desplegar el APK — hasta entonces la BD va adelante del código de
+planta.
+ADR `decisions/2026-09-07-yaris-pesaje-directo.md`, log `logs/2026-09-07-yaris-pesaje-directo.md`.
 
 **2026-09-01** — Modo interino solo-pesaje (rama `feat/modo-interino-solo-pesaje`, 9 commits,
 `7d40e82`..`6f8b831`): con la capa offline de recorridos rota en campo, se congela el registro

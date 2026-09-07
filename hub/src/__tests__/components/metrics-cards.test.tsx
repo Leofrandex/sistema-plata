@@ -14,8 +14,9 @@ describe('computeDashboardMetrics', () => {
       MOCK_RECEPTIONS,
       MOCK_TREATMENT_RUNS
     )
-    // 189 tachos Airkem histórico + 15 tachos metálicos M1-M15 = 204 activos
-    expect(metrics.containersInCirculation).toBe(204)
+    // 189 tachos Airkem histórico + 15 metálicos M1-M15 + 26 Yaris Y1-Y26 = 230 activos
+    // (desde 2026-09-07 los Yaris se pesan directo y cuentan en circulación)
+    expect(metrics.containersInCirculation).toBe(230)
   })
 
   it('counts containers pending weighing (recogidos sucios sin reception)', () => {

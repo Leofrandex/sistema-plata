@@ -33,6 +33,17 @@ import { createClient } from '@hospiwaste/shared/lib/supabase/client'
 import * as q from '@hospiwaste/shared/lib/supabase/queries'
 import { ConfirmVoidDialog } from '@hospiwaste/shared/components/ui/confirm-void-dialog'
 
+/**
+ * Pantalla a la que se vuelve al cerrar o cancelar el pesaje: el Home del
+ * operador. Acá decía `/dashboard`, que quedó de antes de la separación
+ * hub/app (ver ADR `2026-07-22-separacion-hub-app.md`): esa ruta vive en `hub`
+ * y **no existe en el APK**. Al navegar ahí, el export estático no encuentra la
+ * página, el WebView hace una carga dura contra el server local de Capacitor y
+ * la app se reinicia entera — de ahí el "Sin conexión con el servidor" que
+ * aparecía justo después de cancelar o finalizar un pesaje.
+ */
+const HOME = '/'
+
 export default function WeighingPage() {
   const router = useRouter()
   const {
@@ -88,7 +99,6 @@ export default function WeighingPage() {
   const elapsed = useElapsed(activeSession?.started_at ?? null)
 
   // Tachos disponibles para pesar = cola de trabajo del pesador (helper compartido con dashboard).
-  // Excluimos los dedicados a Yaris: éstos viven en una lista aparte y solo se eligen cuando el operador activa el modo Yaris.
   // Modo interino: todos los tachos activos son pesables (no hay recorridos que
   // llenen la cola). Con recorridos activos vuelve la cola real.
   const pendingIds = new Set(
@@ -97,10 +107,7 @@ export default function WeighingPage() {
       : getPendingWeighingContainerIds(containers, routeEvents, receptions),
   )
   const availableContainers = containers.filter(
-    (c) => pendingIds.has(c.id) && !c.is_yaris_dedicated && !c.is_metallic_dedicated,
-  )
-  const yarisContainers = containers.filter(
-    (c) => c.is_yaris_dedicated && c.status === 'active',
+    (c) => pendingIds.has(c.id) && !c.is_metallic_dedicated,
   )
   const metallicContainers = getMetallicContainers(containers)
 
@@ -280,7 +287,6 @@ export default function WeighingPage() {
     const containerPhoto = photos.find((p) => p.id === r.photo_ids[0])?.url ?? null
     const scalePhoto = photos.find((p) => p.id === r.photo_ids[1])?.url ?? null
 
-    const container = containers.find((c) => c.id === r.container_id)
     setFormState({
       container_id: r.container_id,
       company_id: r.company_id ?? '',
@@ -288,7 +294,6 @@ export default function WeighingPage() {
       photo_scale: scalePhoto,
       gross_weight: String(r.gross_weight_kg),
       observations: r.observations,
-      is_yaris_weighing: container?.is_yaris_dedicated === true,
       waste_type: r.waste_type ?? 'infectious',
       treat_immediately: r.treat_immediately ?? false,
     })
@@ -340,7 +345,7 @@ export default function WeighingPage() {
     await endSession(activeSession.key)
     setActiveSession(null)
     resetForm()
-    router.push('/dashboard')
+    router.push(HOME)
   }
 
   async function handleFinish() {
@@ -378,7 +383,7 @@ export default function WeighingPage() {
 
     await endSession(activeSession.key)
     setActiveSession(null)
-    router.push('/dashboard')
+    router.push(HOME)
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -467,7 +472,6 @@ export default function WeighingPage() {
             state={formState}
             onChange={updateForm}
             availableContainers={availableContainers}
-            yarisContainers={yarisContainers}
             metallicContainers={metallicContainers}
             allContainers={containers}
             companies={companies}

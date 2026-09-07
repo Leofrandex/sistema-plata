@@ -17,7 +17,6 @@ function renderForm(state = EMPTY_WEIGHING_FORM) {
       state={state}
       onChange={() => {}}
       availableContainers={containers}
-      yarisContainers={[]}
       metallicContainers={[]}
       allContainers={containers}
       companies={companies}
@@ -72,8 +71,7 @@ describe('WeighingForm — buscador de tacho', () => {
         state={EMPTY_WEIGHING_FORM}
         onChange={onChange}
         availableContainers={muchos}
-        yarisContainers={[]}
-        metallicContainers={[]}
+          metallicContainers={[]}
         allContainers={muchos}
         companies={companies}
         locked={false}
@@ -124,8 +122,7 @@ describe('WeighingForm — tacho metálico', () => {
         state={{ ...EMPTY_WEIGHING_FORM, waste_type: 'metallic' }}
         onChange={() => {}}
         availableContainers={containers}
-        yarisContainers={[]}
-        metallicContainers={metallicContainers}
+          metallicContainers={metallicContainers}
         allContainers={metallicContainers}
         companies={companies}
         locked={false}
@@ -150,8 +147,7 @@ describe('WeighingForm — aviso de duplicado', () => {
         state={{ ...EMPTY_WEIGHING_FORM, container_id: '001', company_id: 'company-ion' }}
         onChange={() => {}}
         availableContainers={containers}
-        yarisContainers={[]}
-        metallicContainers={[]}
+          metallicContainers={[]}
         allContainers={containers}
         companies={companies}
         duplicateWarning="Este tacho ya se pesó hoy a las 09:15."
@@ -175,8 +171,7 @@ describe('WeighingForm — aviso de duplicado', () => {
         }}
         onChange={() => {}}
         availableContainers={containers}
-        yarisContainers={[]}
-        metallicContainers={[]}
+          metallicContainers={[]}
         allContainers={containers}
         companies={companies}
         duplicateWarning="Este tacho ya se pesó hoy a las 09:15."

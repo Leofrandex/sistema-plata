@@ -231,7 +231,7 @@ export function computeStagnantContainers(
 ): StagnantContainer[] {
   const rows: StagnantContainer[] = []
   for (const container of slice.containers) {
-    if (container.status !== 'active' || container.is_yaris_container) continue
+    if (container.status !== 'active') continue
     const { bucket, sinceMs } = computeCirculationStatus(container, slice)
     if (bucket === 'en_planta' || sinceMs === null) continue
     rows.push({ id: container.id, bucket, sinceMs, durationMs: nowMs - sinceMs })
@@ -467,8 +467,7 @@ interface FleetSlice {
 }
 
 export function computeFleetBreakdown(slice: FleetSlice, today: string): FleetBreakdown {
-  const pool = slice.containers.filter((c) => !c.is_yaris_container)
-  const active = pool.filter((c) => c.status === 'active')
+  const active = slice.containers.filter((c) => c.status === 'active')
 
   const sizeCounts = new Map<number, number>()
   for (const c of active) sizeCounts.set(c.size_liters, (sizeCounts.get(c.size_liters) ?? 0) + 1)
@@ -497,7 +496,7 @@ export function computeFleetBreakdown(slice: FleetSlice, today: string): FleetBr
 
   return {
     activeCount: active.length,
-    decommissionedCount: pool.length - active.length,
+    decommissionedCount: slice.containers.length - active.length,
     bySize: [...sizeCounts.entries()]
       .map(([size, count]) => ({ size, count }))
       .sort((a, b) => a.size - b.size),

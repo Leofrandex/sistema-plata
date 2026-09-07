@@ -276,7 +276,8 @@ describe('computeFleetBreakdown', () => {
       makeContainer('001'),
       makeContainer('002', { size_liters: 750 }),
       makeContainer('003', { status: 'decommissioned' }),
-      makeContainer('Y1', { is_yaris_container: true }), // fuera del pool
+      // Desde 2026-09-07 la flota Yaris cuenta en el pool (se pesa directo).
+      makeContainer('Y1', { size_liters: 1100, is_yaris_container: true }),
     ]
     const routeEvents = [
       makeRoute({ id: 'e1', date: '2026-07-22', company_id: 'c-a', containers_dirty_received: ['001'] }),
@@ -293,11 +294,12 @@ describe('computeFleetBreakdown', () => {
       { companies, containers, routeEvents, receptions: [], treatmentRuns, externalTransfers },
       '2026-07-22',
     )
-    expect(f.activeCount).toBe(2)
+    expect(f.activeCount).toBe(3)
     expect(f.decommissionedCount).toBe(1)
     expect(f.bySize).toEqual([
       { size: 240, count: 1 },
       { size: 750, count: 1 },
+      { size: 1100, count: 1 },
     ])
     const airkem = f.byCompany.find((c) => c.companyId === 'c-a')
     expect(airkem?.count).toBe(1)

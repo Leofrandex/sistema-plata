@@ -222,8 +222,8 @@ describe('getMetallicContainers', () => {
     const list = [
       mk('M1', { is_metallic_dedicated: true }),
       mk('M2', { is_metallic_dedicated: true, status: 'decommissioned' }),
-      mk('A-020', { size_liters: 240, is_yaris_dedicated: true }),
       mk('A-001', { size_liters: 240 }),
+      mk('Y1', { size_liters: 1100, tare_weight_kg: 51.4, is_yaris_container: true }),
     ]
     expect(getMetallicContainers(list).map((c) => c.id)).toEqual(['M1'])
   })
@@ -269,10 +269,12 @@ describe('getPendingWeighingContainerIds', () => {
     expect(result).toEqual(['001'])
   })
 
-  it('excluye contenedores Yaris recogidos sucios (no se pesan directamente)', () => {
-    const containers = [c('001'), c('Y1', { is_yaris_container: true, tare_weight_kg: 0 })]
+  // 2026-09-07: con pesa dedicada, los Yaris se pesan directamente y entran a
+  // la cola como cualquier otro tacho.
+  it('incluye contenedores Yaris recogidos sucios', () => {
+    const containers = [c('001'), c('Y1', { is_yaris_container: true, tare_weight_kg: 51.4 })]
     const result = getPendingWeighingContainerIds(containers, [routeWith('001', 'Y1')], [])
-    expect(result).toEqual(['001'])
+    expect(result).toEqual(['001', 'Y1'])
   })
 
   it('un recorrido anulado devuelve el tacho fuera de pendientes', () => {
@@ -365,18 +367,14 @@ describe('getWeighableContainerIds', () => {
     expect(getWeighableContainerIds([c('001'), c('002', { status: 'retired' })])).toEqual(['001'])
   })
 
-  it('excluye contenedores de la flota Yaris (no se pesan directamente)', () => {
-    const containers = [c('001'), c('Y1', { is_yaris_container: true, tare_weight_kg: 0 })]
-    expect(getWeighableContainerIds(containers)).toEqual(['001'])
+  it('incluye los contenedores de la flota Yaris (se pesan directamente)', () => {
+    const containers = [c('001'), c('Y1', { is_yaris_container: true, tare_weight_kg: 51.4 })]
+    expect(getWeighableContainerIds(containers)).toEqual(['001', 'Y1'])
   })
 
-  it('incluye dedicados Yaris y metálicos (la pantalla los separa en su propio selector)', () => {
-    const containers = [
-      c('001'),
-      c('YD1', { is_yaris_dedicated: true }),
-      c('M1', { is_metallic_dedicated: true }),
-    ]
-    expect(getWeighableContainerIds(containers)).toEqual(['001', 'YD1', 'M1'])
+  it('incluye los metálicos (la pantalla los separa en su propio selector)', () => {
+    const containers = [c('001'), c('M1', { is_metallic_dedicated: true })]
+    expect(getWeighableContainerIds(containers)).toEqual(['001', 'M1'])
   })
 
   it('lista vacía → []', () => {

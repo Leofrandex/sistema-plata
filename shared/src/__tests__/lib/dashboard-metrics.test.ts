@@ -32,8 +32,9 @@ describe('computeCirculationBreakdown', () => {
       externalTransfers: MOCK_EXTERNAL_TRANSFERS,
       locations: MOCK_LOCATIONS,
     })
-    // 189 Airkem del histórico Excel (tachos ION eliminados) + 15 tachos metálicos M1-M15
-    expect(result.total).toBe(204)
+    // 189 Airkem del histórico Excel (tachos ION eliminados) + 15 metálicos
+    // M1-M15 + 26 Yaris Y1-Y26 (desde 2026-09-07 estos últimos entran al pool)
+    expect(result.total).toBe(230)
     expect(result.buckets.map((b) => b.key)).toEqual([
       'en_planta', 'en_cliente', 'pendiente_pesar', 'pendiente_tratar',
     ])
@@ -56,9 +57,9 @@ describe('computeCirculationBreakdown', () => {
     expect(enPlanta.count).toBeGreaterThanOrEqual(0)
   })
 
-  it('excluye los contenedores Yaris del pool activo', () => {
-    // Partimos de una base SIN Yaris y agregamos uno sintético: si el filtro
-    // funciona, el total es el de la base; si se quitara el filtro, sería base+1.
+  // 2026-09-07: con pesa dedicada los Yaris recorren el ciclo de planta como
+  // cualquier tacho, así que cuentan en el pool activo.
+  it('incluye los contenedores Yaris en el pool activo', () => {
     const base = MOCK_CONTAINERS.filter((c) => !c.is_yaris_container)
     const activeNonYaris = base.filter((c) => c.status === 'active').length
     const result = computeCirculationBreakdown({
@@ -74,8 +75,8 @@ describe('computeCirculationBreakdown', () => {
       externalTransfers: MOCK_EXTERNAL_TRANSFERS,
       locations: MOCK_LOCATIONS,
     })
-    // El Yaris sintético (Y99) NO cuenta en el pool activo.
-    expect(result.total).toBe(activeNonYaris)
+    // El Yaris sintético (Y99) SÍ cuenta en el pool activo.
+    expect(result.total).toBe(activeNonYaris + 1)
   })
 })
 

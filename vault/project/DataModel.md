@@ -33,9 +33,9 @@ tacho pasa por distintas empresas a lo largo de su vida. Ver
 | waste_type | enum | Ver [[WasteTypes]] |
 | status | enum | `active` / `decommissioned` |
 | registered_at | datetime | Fecha de alta en el sistema |
-| is_yaris_dedicated | boolean | Tacho con el que se **pesa** una carga Yaris/Picanto (aparece en Pesaje en modo Yaris) |
+| is_yaris_dedicated | boolean | ⚠️ **Deprecado 2026-09-07**. Marcaba el tacho con el que se pesaba una carga Yaris cuando la flota no tenía balanza. Hoy siempre `false`; la columna sobrevive por el histórico y nada la lee. Ver `logs/2026-09-07-yaris-pesaje-directo.md` |
 | is_metallic_dedicated | boolean | Tacho dedicado a "Metálicos No reutilizables" |
-| is_yaris_container | boolean | **Contenedor físico** de la flota Yaris (`Y1`…`Y26`): sin empresa, sin tara, siempre disponible en recorrido, EXCLUIDO de la cola de pesaje y del dashboard. Distinto de `is_yaris_dedicated`. Ver `logs/2026-06-03-contenedores-yaris-recorrido.md` |
+| is_yaris_container | boolean | **Contenedor físico** de la flota Yaris (`Y1`…`Y26`, 1100 L): sin empresa, con tara real desde 2026-09-07. Desde esa fecha se pesa directamente y entra en la cola de pesaje y en el dashboard como cualquier tacho; la bandera solo lo identifica. Ver `logs/2026-09-07-yaris-pesaje-directo.md` |
 | created_by | FK → Profile / null | Quién registró el tacho. Null para históricos importados. Ver `logs/2026-06-10-recorrido-fotos-persistencia-traza.md` |
 
 > [!note] Desactualizado en esta tabla: `waste_type` ya **no** es columna de `containers`

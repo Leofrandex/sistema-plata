@@ -22,7 +22,6 @@ export function ContainerForm({ onSubmit, onCancel }: Props) {
   const [containerNumber, setContainerNumber] = useState('')
   const [size, setSize] = useState<ContainerSize | ''>('')
   const [tare, setTare] = useState('')
-  const [isYaris, setIsYaris] = useState(false)
   const [isMetallic, setIsMetallic] = useState(false)
   const [isYarisContainer, setIsYarisContainer] = useState(false)
 
@@ -37,7 +36,6 @@ export function ContainerForm({ onSubmit, onCancel }: Props) {
       id: computedId,
       size_liters: size as ContainerSize,
       tare_weight_kg: parseFloat(tare),
-      is_yaris_dedicated: isYaris,
       is_metallic_dedicated: isMetallic,
       is_yaris_container: isYarisContainer,
     })
@@ -87,23 +85,8 @@ export function ContainerForm({ onSubmit, onCancel }: Props) {
       <label className="flex items-start gap-3 rounded-lg border border-border bg-card p-3 cursor-pointer hover:bg-muted/30">
         <input
           type="checkbox"
-          checked={isYaris}
-          onChange={(e) => { setIsYaris(e.target.checked); if (e.target.checked) { setIsMetallic(false); setIsYarisContainer(false) } }}
-          className="mt-0.5 h-4 w-4"
-        />
-        <div className="flex-1">
-          <p className="text-sm font-medium">Tacho dedicado a Yaris</p>
-          <p className="text-xs text-muted-foreground">
-            Marcalo si este tacho se usa solo para pesaje de cargas Yaris/Picanto. Aparece en una lista aparte en el formulario de pesaje.
-          </p>
-        </div>
-      </label>
-
-      <label className="flex items-start gap-3 rounded-lg border border-border bg-card p-3 cursor-pointer hover:bg-muted/30">
-        <input
-          type="checkbox"
           checked={isMetallic}
-          onChange={(e) => { setIsMetallic(e.target.checked); if (e.target.checked) { setIsYaris(false); setIsYarisContainer(false) } }}
+          onChange={(e) => { setIsMetallic(e.target.checked); if (e.target.checked) setIsYarisContainer(false) }}
           className="mt-0.5 h-4 w-4"
         />
         <div className="flex-1">
@@ -118,7 +101,7 @@ export function ContainerForm({ onSubmit, onCancel }: Props) {
         <input
           type="checkbox"
           checked={isYarisContainer}
-          onChange={(e) => { setIsYarisContainer(e.target.checked); if (e.target.checked) { setIsYaris(false); setIsMetallic(false) } }}
+          onChange={(e) => { setIsYarisContainer(e.target.checked); if (e.target.checked) setIsMetallic(false) }}
           className="mt-0.5 h-4 w-4"
         />
         <div className="flex-1">

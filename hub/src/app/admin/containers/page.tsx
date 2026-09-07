@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Car, Wrench, Truck } from 'lucide-react'
+import { Plus, Wrench, Truck } from 'lucide-react'
 import { Button } from '@hospiwaste/shared/components/ui/button'
 import { Badge } from '@hospiwaste/shared/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@hospiwaste/shared/components/ui/card'
@@ -25,7 +25,6 @@ export default function AdminContainersPage() {
         size_liters: String(data.size_liters) as '120' | '240' | '750' | '1100',
         tare_weight_kg: data.tare_weight_kg,
         status: 'active',
-        is_yaris_dedicated: data.is_yaris_dedicated ?? false,
         is_metallic_dedicated: data.is_metallic_dedicated ?? false,
         is_yaris_container: data.is_yaris_container ?? false,
         created_by: currentProfileId,
@@ -47,18 +46,6 @@ export default function AdminContainersPage() {
       return
     }
     updateContainer(id, { status: 'decommissioned' })
-  }
-
-  async function toggleYaris(c: Container) {
-    const next = !c.is_yaris_dedicated
-    try {
-      const supabase = createClient()
-      await q.updateContainer(supabase, c.id, { is_yaris_dedicated: next })
-    } catch (err) {
-      console.error('[admin/containers] toggle Yaris falló:', err)
-      return
-    }
-    updateContainer(c.id, { is_yaris_dedicated: next })
   }
 
   async function toggleMetallic(c: Container) {
@@ -112,7 +99,6 @@ export default function AdminContainersPage() {
               <th className="px-4 py-3 font-medium">Tamaño</th>
               <th className="px-4 py-3 font-medium">Tara</th>
               <th className="px-4 py-3 font-medium">Estado</th>
-              <th className="px-4 py-3 font-medium">Yaris</th>
               <th className="px-4 py-3 font-medium">Metálico</th>
               <th className="px-4 py-3 font-medium">Contenedor Yaris</th>
               <th className="px-4 py-3 font-medium">Registrado por</th>
@@ -130,20 +116,6 @@ export default function AdminContainersPage() {
                     <Badge variant={c.status === 'active' ? 'default' : 'secondary'}>
                       {c.status === 'active' ? 'Activo' : 'Dado de baja'}
                     </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleYaris(c)}
-                      disabled={c.status !== 'active'}
-                      className={c.is_yaris_dedicated
-                        ? 'gap-1 bg-amber-50 text-amber-900 hover:bg-amber-100'
-                        : 'gap-1 text-muted-foreground hover:text-foreground'}
-                    >
-                      <Car className="h-3.5 w-3.5" />
-                      {c.is_yaris_dedicated ? 'Sí' : 'No'}
-                    </Button>
                   </td>
                   <td className="px-4 py-3">
                     <Button

@@ -57,12 +57,6 @@ export const MOCK_COMPANIES: Company[] = [
   { id: 'company-airkem', client_id: 'client-1', name: 'Airkem', code_letter: 'A' },
 ]
 
-// IDs Airkem dedicados a Yaris (provistos por operaciones).
-const YARIS_IDS = new Set([
-  'A-020', 'A-042', 'A-044', 'A-046', 'A-048', 'A-051', 'A-064', 'A-065',
-  'A-068', 'A-069', 'A-072', 'A-076', 'A-078', 'A-105', 'A-154', 'A-175', 'A-187',
-])
-
 // Tachos metálicos M1..M15 (120 L, sin empresa, taras reales).
 const METALLIC_TARES: Record<string, number> = {
   M1: 8.7, M2: 8.7, M3: 8.9, M4: 8.9, M5: 9.1, M6: 9.0, M7: 9.0, M8: 8.8,
@@ -78,23 +72,29 @@ const METALLIC_CONTAINERS: Container[] = Object.entries(METALLIC_TARES).map(([id
   is_metallic_dedicated: true,
 }))
 
-// Flota Yaris Y1..Y26 (1100 L, sin empresa, sin tara: se pesan con los tachos
-// alternativos is_yaris_dedicated). Siempre disponibles en recorrido.
-const YARIS_ROUTE_CONTAINERS: Container[] = Array.from({ length: 26 }, (_, i) => ({
-  id: `Y${i + 1}`,
+// Flota Yaris Y1..Y26 (1100 L, sin empresa, taras reales provistas por
+// operaciones el 2026-09-07, cuando la flota estrenó pesa dedicada y pasó a
+// pesarse directamente).
+const YARIS_TARES: Record<string, number> = {
+  Y1: 51.4, Y2: 52.6, Y3: 51.7, Y4: 51.7, Y5: 51.3, Y6: 51.7, Y7: 51.7,
+  Y8: 51.7, Y9: 51.7, Y10: 51.4, Y11: 50.9, Y12: 51.4, Y13: 51.6, Y14: 51.3,
+  Y15: 52.4, Y16: 51.9, Y17: 52.1, Y18: 51.4, Y19: 52.0, Y20: 51.1, Y21: 51.2,
+  Y22: 51.2, Y23: 51.8, Y24: 51.7, Y25: 51.4, Y26: 51.8,
+}
+
+const YARIS_ROUTE_CONTAINERS: Container[] = Object.entries(YARIS_TARES).map(([id, tare]) => ({
+  id,
   size_liters: 1100,
-  tare_weight_kg: 0,
+  tare_weight_kg: tare,
   status: 'active',
   registered_at: '2026-06-03T00:00:00Z',
   is_yaris_container: true,
 }))
 
 // Pool real: 189 tachos Airkem del histórico Excel (2026-01-01 → 2026-05-11),
-// con los 17 Yaris marcados, + 15 metálicos M1..M15.
+// + 15 metálicos M1..M15 + 26 Yaris Y1..Y26.
 export const MOCK_CONTAINERS: Container[] = [
-  ...HISTORICAL_CONTAINERS.map((c) =>
-    YARIS_IDS.has(c.id) ? { ...c, is_yaris_dedicated: true } : c,
-  ),
+  ...HISTORICAL_CONTAINERS,
   ...METALLIC_CONTAINERS,
   ...YARIS_ROUTE_CONTAINERS,
 ]
