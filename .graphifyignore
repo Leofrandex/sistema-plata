@@ -1,0 +1,39 @@
+# Qué NO entra al grafo de código.
+# Sintaxis de .gitignore, con negación via "!".
+
+# El vault es el second brain: memoria escrita a mano, no estructura derivable.
+# Mezclarlo con el grafo de código rompe la separación que sostiene todo el diseño.
+vault/
+
+# Documentación y binarios de origen — no son código.
+docs/
+*.xlsx
+*.xls
+*.pdf
+
+# Artefactos de build y dependencias.
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+app/android/app/build/
+app/android/build/
+app/android/.gradle/
+app/android/gradle/
+
+# Assets estáticos.
+**/public/
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.svg
+*.ico
+
+# Salida del propio graphify.
+graphify-out/
+
+# Respaldos de datos del piloto.
+backups/

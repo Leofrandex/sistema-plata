@@ -57,7 +57,7 @@ Cualquier frecuencia es expresable: 45 días, 2 meses, 18 meses, 3 años.
 ## Ver también
 
 - Módulo: [[EquipmentMaintenance]]
-- Log original de la tab: `logs/2026-07-16-equipos-mantenimiento-preventivo.md`
+- Log original de la tab: [[2026-07-16-equipos-mantenimiento-preventivo]]
 
 ## Pendiente
 

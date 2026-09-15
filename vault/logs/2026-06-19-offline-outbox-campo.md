@@ -10,7 +10,7 @@ updated: 2026-06-19
 
 > [!info] Reemplazado (2026-07-23)
 > Este outbox de IndexedDB fue reemplazado por el motor SQLite local-first (backend dual
-> IndexedDB/SQLite detrás del contrato `LocalStore`). Ver `logs/2026-07-23-offline-sqlite-local-first.md`.
+> IndexedDB/SQLite detrás del contrato `LocalStore`). Ver [[2026-07-23-offline-sqlite-local-first]].
 
 # Log 2026-06-19 — Resiliencia offline: outbox de campo
 
@@ -91,5 +91,5 @@ Planes: `docs/superpowers/plans/2026-06-19-offline-outbox-A-infraestructura.md` 
 
 ## Relacionado
 
-- `decisions/2026-06-01-roles-acceso.md` — RLS (tablas operativas abiertas a `authenticated`).
-- `logs/2026-05-25-fotos-supabase-storage.md`, `logs/2026-05-25-recorridos-supabase-writethrough.md`.
+- [[2026-06-01-roles-acceso]] — RLS (tablas operativas abiertas a `authenticated`).
+- [[2026-05-25-fotos-supabase-storage]], [[2026-05-25-recorridos-supabase-writethrough]].

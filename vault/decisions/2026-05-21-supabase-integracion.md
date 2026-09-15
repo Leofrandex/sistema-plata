@@ -41,7 +41,7 @@ updated: 2026-05-21
 - La tabla `public.photos` guarda `storage_path` (para el bucket) y/o `url` (para fotos externas/legacy).
 
 ### 5. Modelo de datos
-- 1:1 con `vault/project/DataModel.md` (revision 2026-05-17).
+- 1:1 con `vault/[[DataModel]] (revision 2026-05-17).
 - Container IDs son `text` (`'I-001'`, `'A-042'`) — coinciden con el negocio y son legibles en URLs.
 - `route_event_containers_dirty` y `route_event_containers_clean` reemplazan los arrays JSON del mock (`containers_dirty_received`, `containers_clean_delivered`).
 - Vista `container_receptions_with_net` (security_invoker) computa `net_weight = gross - tare` server-side.

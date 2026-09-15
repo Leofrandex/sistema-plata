@@ -59,4 +59,4 @@ recorrido → pesaje → recorrido, y el tratamiento se registra de forma irregu
   intencional; si se quiere forzar el paso por tratamiento, es un cambio de proceso
   operativo, no de esta función.
 
-Ver log: `logs/2026-07-28-fix-cola-pesaje-ciclo-reabierto.md`
+Ver log: [[2026-07-28-fix-cola-pesaje-ciclo-reabierto]]

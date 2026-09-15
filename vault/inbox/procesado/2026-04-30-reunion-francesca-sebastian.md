@@ -1,3 +1,11 @@
+---
+title: Transcript: reunión fundacional Francesca + Sebastián
+tags:
+  - inbox
+  - transcript
+date: 2026-04-30
+---
+
 # Transcript: Waste Management System - 30 de Abril 2026
 
 **Fecha:** 30 de Abril de 2026  

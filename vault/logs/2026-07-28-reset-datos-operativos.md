@@ -9,7 +9,7 @@ updated: 2026-07-28
 
 # Reset de datos operativos (2026-07-28)
 
-Segundo "empezar de cero" documentado del piloto (ver `logs/2026-07-06-reset-datos-piloto.md`).
+Segundo "empezar de cero" documentado del piloto (ver [[2026-07-06-reset-datos-piloto]]).
 Proyecto Supabase `hospiwaste` (`xqqnthyipkdkwyknbtnw`).
 
 Alcance decidido por el usuario: **solo datos operativos**, conservando master data.
@@ -70,7 +70,7 @@ Es el tercer reset que deja huérfanos sin limpiar. En plan Free (1 GB) esto ya 
 ## Después del reset
 
 - En el APK: re-sincronizar / re-login para bajar el estado vacío.
-- **Efecto sobre el fix de la cola de pesaje** (`logs/2026-07-28-fix-cola-pesaje-ciclo-reabierto.md`):
+- **Efecto sobre el fix de la cola de pesaje** ([[2026-07-28-fix-cola-pesaje-ciclo-reabierto]]):
   al no quedar eventos, ya no se puede validar el fix contra los datos que lo revelaron
   (130/157/149). La verificación en dispositivo ahora exige que un tacho complete **dos
   ciclos completos** recorrido→pesaje→recorrido para comprobar que reaparece en la cola.

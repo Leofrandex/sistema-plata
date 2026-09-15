@@ -31,7 +31,7 @@ Aplicación del branding de Hospimed al sistema de trazabilidad. El proyecto ya 
 
 ## Decisiones tomadas
 
-- `--radius: 0.5rem` (8px) como radio global para todos los componentes — ver `decisions/2026-05-03-border-radius-global.md`
+- `--radius: 0.5rem` (8px) como radio global para todos los componentes — ver [[2026-05-03-border-radius-global]]
 - `#2A27E9` (accent) solo para elementos de acento — cuerpo de texto usa navy `#0B1A48`
 - Logo definitivo pendiente — se descargó versión del sitio web como placeholder
 

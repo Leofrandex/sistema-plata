@@ -35,4 +35,5 @@ status: accepted | superseded | deprecated
 
 ## Índice de decisiones
 
-*(Vacío — se puebla cuando se tomen decisiones de diseño)*
+No se mantiene acá: Obsidian lista la carpeta sola, y el índice comentado vive en
+[[_index]]. Duplicarlo en un tercer lugar garantiza que los tres se desincronicen.

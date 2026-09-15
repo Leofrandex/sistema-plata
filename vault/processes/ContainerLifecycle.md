@@ -15,7 +15,7 @@ Este es el proceso central del sistema. Aplica principalmente al desecho **pelig
 > Lo que sigue describe el alta con empresa y tipo "fijos"; eso quedó **obsoleto**. Hoy el tacho
 > es del pool de Hospiwaste: la **empresa** se elige en el recorrido y se hereda al pesaje
 > (reset al tratar), y el **tipo de desecho** lo ingresa el operador en pesaje. Ver
-> `decisions/2026-05-30-empresa-tipo-dinamicos-tacho.md`. Además, el "tratar inmediatamente" en
+> [[2026-05-30-empresa-tipo-dinamicos-tacho]]. Además, el "tratar inmediatamente" en
 > pesaje permite saltar cámara fría (tipo 1).
 
 ## Registro inicial (alta del contenedor)

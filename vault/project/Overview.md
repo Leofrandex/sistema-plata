@@ -3,10 +3,10 @@ title: Project Overview
 tags:
   - project
   - business
-updated: 2026-05-02
+updated: 2026-09-14
 ---
 
-# Hospimed — Sistema de Trazabilidad de Desechos Clínicos
+# Hospiwaste — Sistema de Trazabilidad de Desechos Clínicos
 
 ## Empresa y contexto
 
@@ -30,10 +30,6 @@ El sistema reemplaza este flujo con trazabilidad completa y generación automát
 |---------|-----|---------|
 | Francesca Labella | Operaciones / experta del dominio | Planta de desechos (dentro del holding) |
 | Sebastian Castro | Desarrollador | Hospitalar |
-
-**Próximas reuniones:**
-- 2026-05-05 (martes, 3pm Panamá) — revisión del sistema Hospitalar
-- 2026-05-08 (viernes, 12pm Panamá) — revisión de avance del sistema de desechos
 
 ## Alcance del sistema
 
@@ -63,7 +59,7 @@ El modelo soporta múltiples clientes a futuro.
 
 ## Usuarios del sistema
 
-Múltiples operadores en campo (no siempre la misma persona por turno). La app debe ser fácil de usar en condiciones de campo, posiblemente desde celular. Los cronómetros de recorrido y pesaje persisten en IndexedDB, así que el operador puede cerrar la app y retomar.
+Múltiples operadores en campo (no siempre la misma persona por turno). La app corre como APK Android en los teléfonos de planta y debe ser usable en condiciones de campo. El estado local persiste entre cierres de la app: SQLite en el APK, IndexedDB en web. Ver [[2026-07-23-offline-sqlite-local-first]].
 
 ## Contexto regulatorio
 

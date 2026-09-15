@@ -4,27 +4,55 @@
 
 Sistema web para gestionar la trazabilidad completa del proceso de manejo de desechos clínicos de Hospiwaste. El detalle del negocio, los módulos y el modelo de datos viven en el vault. (El proyecto se llamaba originalmente "Hospimed" — el vault conserva esa denominación como historial.)
 
-## Base de conocimiento (Obsidian Vault)
+## Dos memorias separadas
 
-Toda la memoria del proyecto vive en `vault/`. **Leer `vault/_index.md` antes de tocar código o responder preguntas de diseño.**
+El proyecto tiene dos fuentes de contexto con vidas distintas. No mezclarlas.
+
+| | Vault (`vault/`) | Grafo de código (`graphify-out/`) |
+|---|---|---|
+| Qué es | el **por qué**: decisiones, procesos, historia | el **qué llama a qué**: símbolos y aristas |
+| Quién lo escribe | humano y Claude, a mano | derivado del AST, sin LLM |
+| Formato | solo `.md` | `graph.json` + HTML + reporte |
+| En git | sí | no — se regenera en ~40 s |
+
+### Vault — la memoria escrita
+
+**Leer `vault/_index.md` antes de tocar código o responder preguntas de diseño.**
 
 ```
 vault/
-├── _index.md               ← LEER PRIMERO — tabla de contenidos + estado actual
+├── _index.md               ← LEER PRIMERO — estado actual + pendientes abiertos
 ├── inbox/                  ← zona de aterrizaje para información cruda
-│   └── YYYY-MM-DD-nombre.md
+│   └── procesado/          ← ya distribuido al vault
 ├── project/
-│   ├── Overview.md         ← descripción del negocio, objetivos, stakeholders
-│   ├── Architecture.md     ← stack, patrones, convenciones, estructura de carpetas
-│   ├── DataModel.md        ← modelo de datos central y relaciones
-│   └── Roadmap.md          ← módulos pendientes y su estado
-├── processes/              ← flujos de negocio: tipos de desecho, regulaciones, trazabilidad
-├── modules/                ← un archivo por módulo funcional del sistema
-├── types/                  ← interfaces y tipos documentados
-├── components/             ← API de componentes compartidos
-├── decisions/              ← ADRs: decisiones de diseño no obvias y su razón
-└── logs/                   ← un archivo por feature/cambio mayor (YYYY-MM-DD-nombre.md)
+│   ├── Overview.md         ← negocio, objetivos, stakeholders
+│   ├── Architecture.md     ← stack, patrones, convenciones, integraciones
+│   ├── DataModel.md        ← modelo de datos y relaciones
+│   ├── Roadmap.md          ← módulos y su estado
+│   ├── CodeMap.md          ← cómo consultar el grafo de código
+│   └── Branding.md         ← colores, tipografía, tokens
+├── processes/              ← flujos de negocio y reglas del dominio
+├── decisions/              ← ADRs: decisiones no obvias y su razón
+└── logs/                   ← uno por feature/cambio mayor (YYYY-MM-DD-nombre.md)
 ```
+
+**El vault es solo markdown.** Sin binarios (van a `docs/fuentes/`), sin credenciales
+(viven fuera del repo), sin estructura de código (la deriva graphify).
+
+### Grafo de código — la estructura derivada
+
+Antes de explorar el código a ciegas, preguntarle al grafo:
+
+```bash
+python -m graphify update .                          # regenerar (~40 s, costo cero)
+python -m graphify explain "getLocalStore()"         # un símbolo y sus vecinos
+python -m graphify path "SyncEngine" "LocalStore"    # cómo se conectan dos cosas
+python -m graphify query "¿cómo drena el outbox?"    # traversal en lenguaje natural
+```
+
+El reporte anota el commit de construcción: si no coincide con `git rev-parse HEAD`, el
+grafo está viejo — regenerarlo. Alcance en `.graphifyignore`. Detalle en
+`vault/project/CodeMap.md`.
 
 ---
 
@@ -46,8 +74,8 @@ El inbox es la zona de aterrizaje para información cruda: transcripts de reunio
 
 | Evento | Acción |
 |--------|--------|
-| Se define un nuevo tipo o modelo de datos | Actualizar o crear en `types/` |
-| Se especifica un módulo funcional | Actualizar o crear en `modules/` |
+| Se define un nuevo tipo o modelo de datos | Actualizar `project/DataModel.md` **solo si cambia el negocio**; las interfaces TypeScript no se documentan a mano |
+| Se especifica un flujo o regla de negocio | Actualizar o crear en `processes/` |
 | Se instala una dependencia | Agregar entrada en `project/Architecture.md` |
 | Se completa un feature o cambio estructural | Crear `logs/YYYY-MM-DD-nombre.md` |
 | Se toma una decisión de diseño no obvia | Crear entrada en `decisions/` |
@@ -69,7 +97,8 @@ El inbox es la zona de aterrizaje para información cruda: transcripts de reunio
 
 - **Wikilinks** para referencias internas: `[[Overview]]`, `[[DataModel]]`
 - **Fechas ISO**: `2026-05-02`
-- **Rutas de código** con backticks: `src/modules/waste-tracking/`
+- **Rutas de código** con backticks: `shared/src/lib/local-store/` — nunca como wikilink
+- **Referencias a otras notas** con wikilinks: `[[DataModel]]`, `[[2026-09-07-yaris-pesaje-directo]]` — nunca como ruta en backticks
 - **Frontmatter** en cada archivo (título, tags, fecha de última actualización)
 - Los logs siguen el formato: `YYYY-MM-DD-nombre-del-feature.md`
 - Documentar el **por qué** y las **decisiones**, no lo que ya se lee en el código

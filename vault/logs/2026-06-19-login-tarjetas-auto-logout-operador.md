@@ -84,6 +84,6 @@ Vía SQL admin sobre el piloto (mismo patrón del ADR de roles, tokens en `''`):
 
 ## Relacionado
 
-- `decisions/2026-06-01-roles-acceso.md` — roles coordinador/operador (UI + middleware + RLS).
-- `decisions/2026-05-21-supabase-integracion.md` — RLS del piloto.
+- [[2026-06-01-roles-acceso]] — roles coordinador/operador (UI + middleware + RLS).
+- [[2026-05-21-supabase-integracion]] — RLS del piloto.
 - Pendiente: spec hermana de resiliencia offline ("Situación 2").

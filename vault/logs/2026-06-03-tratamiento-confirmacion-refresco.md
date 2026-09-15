@@ -50,7 +50,7 @@ un tacho tratado se mostraba `cold_storage` en vez de `clean`) y en
 `src/app/containers/[id]/page.tsx` (un `find` sin orden que podía tomar un tratamiento
 de un ciclo anterior). Ambas se alinearon a la misma lógica: tratamiento/traslado más
 reciente **posterior a la recepción actual**, incluyendo completados.
-Relacionado: `decisions/2026-05-21-estado-envase-derivado.md` ("tratamiento completado → clean").
+Relacionado: [[2026-05-21-estado-envase-derivado]] ("tratamiento completado → clean").
 
 ## Verificación
 

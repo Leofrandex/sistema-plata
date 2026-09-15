@@ -32,7 +32,7 @@ Se sincronizó contra `public.containers` en Supabase (piloto) con un upsert ide
   junio con tara **13.6** — la BD ya la tenía.
 - No se crearon filas para los tachos retirados (52.1/76.1 del Excel): el ID en el
   sistema identifica la posición del inventario, no la unidad física
-  (ver `decisions/2026-06-01-ids-tachos-supabase-vs-mock.md`).
+  (ver [[2026-06-01-ids-tachos-supabase-vs-mock]]).
 
 Sin migración: cambio de datos aplicado directo con `execute_sql` (mismo criterio que
-`logs/2026-07-06-reset-datos-piloto.md`).
+[[2026-07-06-reset-datos-piloto]]).

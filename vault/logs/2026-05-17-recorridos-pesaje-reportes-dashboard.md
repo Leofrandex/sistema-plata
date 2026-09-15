@@ -11,7 +11,7 @@ date: 2026-05-17
 
 ## Resumen
 
-Plan de cambios en cinco fases secuenciales sobre la rama `feat/recorridos-pesaje-reportes-dashboard`. Spec/plan completo en `bubbly-wandering-lighthouse.md`. ADR de las decisiones de modelo: `decisions/2026-05-17-cliente-empresa-recorrido.md`.
+Plan de cambios en cinco fases secuenciales sobre la rama `feat/recorridos-pesaje-reportes-dashboard`. Spec/plan completo en `bubbly-wandering-lighthouse.md`. ADR de las decisiones de modelo: [[2026-05-17-cliente-empresa-recorrido]].
 
 ## Fases
 

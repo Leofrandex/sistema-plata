@@ -10,7 +10,7 @@ updated: 2026-09-07
 
 # ADR 2026-09-07 — La flota Yaris se pesa directamente
 
-**Estado:** aceptada · **Revierte:** `logs/2026-06-03-contenedores-yaris-recorrido.md`
+**Estado:** aceptada · **Revierte:** [[2026-06-03-contenedores-yaris-recorrido]]
 
 ## Contexto
 

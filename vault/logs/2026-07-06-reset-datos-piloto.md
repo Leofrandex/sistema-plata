@@ -32,7 +32,7 @@ estado "recién dado de alta", ya que el estado se **deriva** de eventos y ya no
 Decisión del usuario: **reset total incluyendo los pesos** (se evaluó conservarlos, pero en el
 modelo derivado una recepción posiciona al tacho en su ciclo → conservarlas dejaría tachos como
 "pesados/en planta"; además sin fotos los reportes quedan inservibles). Ver la discusión del
-tradeoff en `decisions/2026-05-21-estado-envase-derivado.md`.
+tradeoff en [[2026-05-21-estado-envase-derivado]].
 
 ## Respaldo previo
 

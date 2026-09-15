@@ -99,7 +99,7 @@ vez de ocultarlo. Mantener la lógica intacta es lo que hace la reversión trivi
 ## Scripts de reset — el hallazgo del bucket `photos`
 
 `scripts/backup-datos-operativos.sql` y `scripts/reset-datos-operativos.sql` son el espejo del
-procedimiento de `logs/2026-07-28-reset-datos-operativos.md`, con un hallazgo nuevo:
+procedimiento de [[2026-07-28-reset-datos-operativos]], con un hallazgo nuevo:
 
 El spec original copiaba el `TRUNCATE` de 10 tablas del reset de julio, `photos` incluida. Pero
 `public.photos` es una tabla **compartida**: el enum `photo_event_type` incluye

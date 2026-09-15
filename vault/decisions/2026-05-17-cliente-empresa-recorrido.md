@@ -74,4 +74,4 @@ Si en el futuro hay más clientes/empresas, cada empresa nueva trae su propia le
 ## Referencias
 
 - Plan de implementación: `bubbly-wandering-lighthouse.md`
-- Log de ejecución: `logs/2026-05-17-recorridos-pesaje-reportes-dashboard.md`
+- Log de ejecución: [[2026-05-17-recorridos-pesaje-reportes-dashboard]]

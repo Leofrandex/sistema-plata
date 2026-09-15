@@ -26,7 +26,7 @@ Preparativos para integrar la app con Supabase antes del piloto (todavía no se 
 
 ### Seguridad
 - RLS habilitado en las 14 tablas + `storage.objects` (bucket `photos`).
-- Policies: `authenticated` con acceso full a tablas operativas (decisión piloto — ver ADR `decisions/2026-05-21-supabase-integracion.md`).
+- Policies: `authenticated` con acceso full a tablas operativas (decisión piloto — ver ADR [[2026-05-21-supabase-integracion]]).
 - `handle_new_user()` con `EXECUTE` revocado de `public/anon/authenticated` (solo el trigger la invoca).
 
 ### Storage
@@ -42,8 +42,8 @@ Preparativos para integrar la app con Supabase antes del piloto (todavía no se 
 - `.gitignore` permite `.env.local.example` y `.env.example`.
 
 ### Vault
-- `vault/project/Architecture.md` — Supabase agregado al stack e integraciones.
-- `vault/decisions/2026-05-21-supabase-integracion.md` — ADR completo de las decisiones.
+- `vault/[[Architecture]] — Supabase agregado al stack e integraciones.
+- `vault/[[2026-05-21-supabase-integracion]] — ADR completo de las decisiones.
 
 ## Lo que NO se hizo (y por qué)
 

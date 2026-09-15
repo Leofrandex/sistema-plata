@@ -55,5 +55,5 @@ escrita por el browser en el login seguiría viva 400 días.
 - El `autoRefreshToken` del browser sigue activo mientras la app está abierta:
   refresca el token y lo reescribe como cookie de sesión, no persistente.
 
-Relacionado: `logs/2026-06-01-roles-coordinador-operador.md`,
-`decisions/2026-06-01-roles-acceso.md`.
+Relacionado: [[2026-06-01-roles-coordinador-operador]],
+[[2026-06-01-roles-acceso]].

@@ -58,7 +58,7 @@ recorrido. Son una flota aparte sin ciclo de planta.
 La idea de una columna `current_phase` materializada en `containers` se discutió y se decidió
 **no acoplarla** a este cambio. Queda como próximo proyecto: caché mantenida por triggers
 (eventos = fuente de verdad) + job de auditoría. Ver
-`decisions/2026-05-21-estado-envase-derivado.md` y [[Roadmap]].
+[[2026-05-21-estado-envase-derivado]] y [[Roadmap]].
 
 Spec: `docs/superpowers/specs/2026-06-03-contenedores-yaris-recorrido-design.md`.
 Plan: `docs/superpowers/plans/2026-06-03-contenedores-yaris-recorrido.md`.

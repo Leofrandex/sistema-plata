@@ -25,7 +25,7 @@ de pesaje**, así que el operador no podía seleccionarlos. No era falta de señ
 ## Causa raíz
 
 `getPendingWeighingContainerIds` comparaba existencia en vez de fechas — ver ADR
-`decisions/2026-07-28-cola-pesaje-por-fecha.md` para el detalle y las alternativas.
+[[2026-07-28-cola-pesaje-por-fecha]] para el detalle y las alternativas.
 
 Los tachos 130 y 157 se habían pesado el 2026-07-23 y el 149 el 2026-07-24. Desde
 entonces eran invisibles para el pesador, aunque el dashboard los siguiera mostrando

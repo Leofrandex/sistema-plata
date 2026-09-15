@@ -39,7 +39,7 @@ Existe el enum `container_phase` (`route, weighing, cold_storage, treatment, tra
 > La rama "en curso" del código queda como soporte futuro si el tratamiento se modela en dos
 > pasos (inicio/fin). Esto fue la causa raíz del bug 2026-06-03: un filtro buscaba
 > tratamientos con `!completed_at` (en curso), que con este flujo nunca matchea.
-> Ver `logs/2026-06-03-tratamiento-confirmacion-refresco.md`.
+> Ver [[2026-06-03-tratamiento-confirmacion-refresco]].
 
 > [!warning] INCOHERENCIA DETECTADA — la cola de pesaje NO es consciente del ciclo
 > **Fecha:** 2026-07-04 (detectado en pruebas de campo del APK)
@@ -87,7 +87,7 @@ Mantener el modelo derivado **para el piloto**. La trazabilidad regulatoria exig
 > la hidratación. **Una columna `current_phase` habría tenido el mismo bug** si olvidábamos
 > persistir el evento que dispara el trigger. Conclusión: eventos como fuente de verdad,
 > siempre; y el **próximo paso de escala es la vista de Postgres (modelo B)**, no la columna
-> cacheada. Ver `logs/2026-06-10-recorrido-fotos-persistencia-traza.md`.
+> cacheada. Ver [[2026-06-10-recorrido-fotos-persistencia-traza]].
 
 ## Plan de evolución (orden de prioridad)
 
@@ -110,7 +110,7 @@ Mantener el modelo derivado **para el piloto**. La trazabilidad regulatoria exig
   > fuente de verdad), nunca un campo que la app escriba a mano — eso reintroduciría el
   > problema de doble fuente de verdad y rompería la trazabilidad. Acompañar con job de
   > auditoría que valide la columna contra los eventos.
-  > Ver `logs/2026-06-03-contenedores-yaris-recorrido.md`.
+  > Ver [[2026-06-03-contenedores-yaris-recorrido]].
 - **[P2] Vista materializada** (`mv_container_current_state`) refrescada por trigger o cron para dashboards de alto tráfico.
 - **[P3] Política de retención / particionado** de `container_receptions` y `route_events` por año cuando crucemos > 100k filas.
 

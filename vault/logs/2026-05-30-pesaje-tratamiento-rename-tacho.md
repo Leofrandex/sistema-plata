@@ -22,7 +22,7 @@ Lote grande post-piloto. Spec y plan:
 > Antes: cada `Container` tenía `company_id` (empresa dueña) y `waste_type` fijos.
 > Ahora: el tacho es del **pool de Hospiwaste** y tanto la **empresa** (ION/Airkem) como
 > el **tipo de desecho** son **dinámicos por ciclo**. Ver ADR
-> `decisions/2026-05-30-empresa-tipo-dinamicos-tacho.md`.
+> [[2026-05-30-empresa-tipo-dinamicos-tacho]].
 
 - **Empresa**: se elige en el **recorrido** y se hereda al pesaje (derivada del recorrido
   abierto vía `getContainerCurrentCompanyId`); vuelve a `null` al completarse el tratamiento.

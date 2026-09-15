@@ -13,7 +13,7 @@ updated: 2026-09-07
 
 Operaciones informó que los contenedores Yaris (`Y1`…`Y26`) ya tienen **pesa dedicada**, así
 que se pesan tal cual y desaparecen los tachos alternativos sobre los que se volcaba su carga.
-ADR: `decisions/2026-09-07-yaris-pesaje-directo.md`.
+ADR: [[2026-09-07-yaris-pesaje-directo]].
 
 ## Cambios
 
@@ -84,4 +84,4 @@ cambia con cada actualización).
 Con recorridos congelados, los 26 Yaris ahora cuentan en el dashboard y tienden a quedarse en
 *Pendiente por tratar* tras cada pesaje, igual que el resto de la flota. Se decidió aceptarlo:
 es consistente con lo que ya pasa hoy y se resuelve cuando vuelvan los recorridos.
-Ver `logs/2026-09-01-modo-interino-solo-pesaje.md`.
+Ver [[2026-09-01-modo-interino-solo-pesaje]].

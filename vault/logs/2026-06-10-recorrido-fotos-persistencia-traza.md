@@ -82,7 +82,7 @@ tacho quedaba atascado en `weighing` y nunca aparecía en tratamiento.
 Los **eventos siguen siendo la fuente de verdad** (no se agregó columna `current_phase`).
 El bug cross-device NO era del modelo derivado sino de persistencia/hidratación incompleta.
 Próximo paso de escala = **vista de Postgres** (no la columna cacheada). Ver ADR
-`decisions/2026-05-21-estado-envase-derivado.md`.
+[[2026-05-21-estado-envase-derivado]].
 
 ## Estado de tablas
 

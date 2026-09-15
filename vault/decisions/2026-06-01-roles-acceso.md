@@ -12,7 +12,7 @@ updated: 2026-06-01
 
 **Fecha:** 2026-06-01
 **Estado:** Aceptado
-**Contexto:** El piloto arrancó con todos los usuarios equivalentes (cualquier `authenticated` lee/escribe todo, ver `decisions/2026-05-21-supabase-integracion.md` §3). Tras el lanzamiento surge la necesidad de distinguir **coordinadores** (Karolyne, Marelys — oficina) de **operadores** (ayudantes de planta/recorrido).
+**Contexto:** El piloto arrancó con todos los usuarios equivalentes (cualquier `authenticated` lee/escribe todo, ver [[2026-05-21-supabase-integracion]] §3). Tras el lanzamiento surge la necesidad de distinguir **coordinadores** (Karolyne, Marelys — oficina) de **operadores** (ayudantes de planta/recorrido).
 
 ## Decisión
 
@@ -42,6 +42,6 @@ El rol es la **fuente de verdad en `profiles.role`** (no en `user_metadata`, que
 
 ## Relacionado
 
-- `decisions/2026-05-21-supabase-integracion.md` (RLS piloto "authenticated full")
-- `logs/2026-06-01-roles-coordinador-operador.md`
+- [[2026-05-21-supabase-integracion]] (RLS piloto "authenticated full")
+- [[2026-06-01-roles-coordinador-operador]]
 - Spec: `docs/superpowers/specs/2026-06-01-roles-acceso-supabase-design.md`

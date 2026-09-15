@@ -63,6 +63,6 @@ recibió sucio). Sigue siendo un snapshot por registro.
 
 ## Relacionado
 
-- `logs/2026-06-10-empresa-por-registro-tacho-independiente.md`
-- `decisions/2026-06-01-ids-tachos-supabase-vs-mock.md`
+- [[2026-06-10-empresa-por-registro-tacho-independiente]]
+- [[2026-06-01-ids-tachos-supabase-vs-mock]]
 - [[DataModel]]

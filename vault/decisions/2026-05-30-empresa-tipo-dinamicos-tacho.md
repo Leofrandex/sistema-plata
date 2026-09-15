@@ -51,4 +51,4 @@ que limpiar manualmente y mantiene una sola fuente de verdad (los eventos).
 - El display de tachos es por número pelado (`formatTachoNumber`). El renumerado físico real ya
   está en la BD (`001..189`); el renumerado del **mock** offline quedó pendiente (no afecta prod).
 
-Ver log `logs/2026-05-30-pesaje-tratamiento-rename-tacho.md`.
+Ver log [[2026-05-30-pesaje-tratamiento-rename-tacho]].

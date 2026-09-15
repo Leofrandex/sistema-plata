@@ -45,5 +45,5 @@ UI elige según el flag. Revertir es apagar el flag.
 - Los pesajes del interino quedan **sin recorrido asociado para siempre**; la trazabilidad
   regulatoria de esos días depende del respaldo en papel.
 
-Ver log: `logs/2026-09-01-modo-interino-solo-pesaje.md`
+Ver log: [[2026-09-01-modo-interino-solo-pesaje]]
 Spec: `docs/superpowers/specs/2026-09-01-modo-interino-solo-pesaje-design.md`

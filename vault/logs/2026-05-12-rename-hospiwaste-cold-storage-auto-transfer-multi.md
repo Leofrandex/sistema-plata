@@ -69,5 +69,5 @@ Tres cambios en paralelo sobre la aplicación:
 ## Pendientes / capacidades futuras
 
 - **Foto opcional de cámara fría** desde el detalle del envase si el regulador la pide eventualmente.
-- **Actualizar `vault/processes/ContainerLifecycle.md`** y `vault/processes/PhotoDocumentation.md` para reflejar que la entrada a cámara fría dejó de tener foto obligatoria — pendiente de confirmar con Francesca si el proceso regulatorio lo acepta.
+- **Actualizar `vault/[[ContainerLifecycle]]** y `vault/[[PhotoDocumentation]] para reflejar que la entrada a cámara fría dejó de tener foto obligatoria — pendiente de confirmar con Francesca si el proceso regulatorio lo acepta.
 - **Migración de IndexedDB**: si en algún momento se quiere preservar datos offline históricos al cambiar nombres de DB, agregar lógica de copia. Hoy no aplica.

@@ -59,7 +59,7 @@ indefinidamente. La página de slot tenía el mismo problema vía `getActiveSess
 
 La fuente de verdad de "recorrido cerrado" son los `route_events` de Supabase. IndexedDB
 solo sostiene el cronómetro (elapsed); deja de poder "ganarle" al estado real. Ver ADR
-`decisions/2026-05-21-estado-envase-derivado.md` (eventos = fuente de verdad).
+[[2026-05-21-estado-envase-derivado]] (eventos = fuente de verdad).
 
 ## Alcance del dato perdido
 

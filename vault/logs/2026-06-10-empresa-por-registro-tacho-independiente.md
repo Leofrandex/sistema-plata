@@ -20,7 +20,7 @@ updated: 2026-06-10
 2. El tacho no debe tener empresa: es independiente. La empresa vive en el registro
    (recorrido / pesaje). En el reporte, cada registro se atribuye a su empresa.
 
-Decisión de diseño: `decisions/2026-06-10-empresa-por-registro.md`.
+Decisión de diseño: [[2026-06-10-empresa-por-registro]].
 
 ## Qué se hizo
 
@@ -62,5 +62,5 @@ Decisión de diseño: `decisions/2026-06-10-empresa-por-registro.md`.
   reportes por empresa. Todos los route_events (8/8) sí tienen empresa.
 - El histórico mock se asume Airkem (el periodo capturado era íntegramente Airkem).
 
-Relacionado: `decisions/2026-06-10-empresa-por-registro.md`,
-`logs/2026-06-10-sesion-no-persistente-cookies-de-sesion.md`, [[DataModel]].
+Relacionado: [[2026-06-10-empresa-por-registro]],
+[[2026-06-10-sesion-no-persistente-cookies-de-sesion]], [[DataModel]].

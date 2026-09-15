@@ -43,4 +43,4 @@ Se introdujeron dos roles (**coordinador** / **operador**) con control de acceso
 - No hay pantalla de cambio de contraseña en la app: las temporales son las de trabajo. Cambios de rol o password se hacen por Supabase (service_role/SQL).
 - Considerar activar "Leaked Password Protection" en Auth si se endurece el acceso.
 
-Decisión: `decisions/2026-06-01-roles-acceso.md`. Spec: `docs/superpowers/specs/2026-06-01-roles-acceso-supabase-design.md`.
+Decisión: [[2026-06-01-roles-acceso]]. Spec: `docs/superpowers/specs/2026-06-01-roles-acceso-supabase-design.md`.

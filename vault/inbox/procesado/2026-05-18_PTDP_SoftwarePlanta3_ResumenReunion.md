@@ -1,3 +1,11 @@
+---
+title: Reunión: Software Planta 3 (demo + seguimiento)
+tags:
+  - inbox
+  - transcript
+date: 2026-05-18
+---
+
 # Reunión: Software Planta 3 (Demo + Seguimiento)
 
 **Fecha:** 18 de mayo de 2026

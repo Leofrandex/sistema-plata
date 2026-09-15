@@ -43,7 +43,7 @@ pero la carga real de los 189 tachos Airkem en Supabase se hizo con IDs numéric
 - Tachos metálicos (15): `M1`…`M15` (esos sí conservan su ID literal en ambas fuentes).
 - Contenedores Yaris de recorrido (26): `Y1`…`Y26` — **IDs literales en mayúscula sin
   prefijo** en Supabase (igual que `M1`…`M15`), sin padding. Ver
-  `logs/2026-06-03-contenedores-yaris-recorrido.md`.
+  [[2026-06-03-contenedores-yaris-recorrido]].
 
 ## Cómo evitar que se repita
 

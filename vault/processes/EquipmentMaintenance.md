@@ -1,9 +1,9 @@
 ---
 title: Equipos — Mantenimiento preventivo
 tags:
-  - module
+  - processes
   - equipos
-updated: 2026-07-16
+updated: 2026-09-14
 ---
 
 # Equipos — Mantenimiento preventivo
@@ -19,15 +19,20 @@ base instalada de la PTDP. Spec completo:
 - `equipment_maintenance` — historial; anulación lógica (`voided_*`, espejo de
   `route_events`). Fotos en `photos` con `event_type = 'maintenance'`.
 - Semilla: 60 equipos del Excel `BASE INSTALADA PTDP HOSPIMED ST SOFTWARE.xlsx`
-  (en `inbox/procesado/`) vía `scripts/seed-equipment-supabase.py`.
+  (en `docs/fuentes/`) vía `scripts/seed-equipment-supabase.py`.
   La columna "COMENTARIOS" del Excel es el **dueño** (CSS/HOSPIMED/HOSPIWASTE)
   → `equipment.owner`.
 
-## Semáforo (lógica en `src/lib/data/equipment-status.ts`)
+## Semáforo
 
 `próximo = último mantenimiento no anulado + frecuencia`. Estados:
 🔴 vencido (< 0 días) · 🟡 próximo (≤ 15) · 🟢 al día (> 15) ·
 ⚪ sin configurar (sin frecuencia o sin mantenimiento). Umbral fijo 15 días.
+
+La frecuencia se captura como valor libre + unidad (días/meses/años) pero se persiste
+siempre en días, con 1 mes = 30 y 1 año = 365. Sobre un año el desfase contra el
+calendario real ronda los 5 días — queda por decidir con el coordinador si el
+vencimiento debe ser por calendario. Ver [[2026-08-08-frecuencia-mantenimiento-libre]].
 
 ## Decisiones
 
@@ -38,3 +43,8 @@ base instalada de la PTDP. Spec completo:
   extra es marginal y se aceptó.
 - Solo coordinador: `/equipment` no está en `OPERATOR_PATHS` → AuthGuard bloquea.
 - Detalle vía `/equipment/detail?id=` (export estático, sin rutas dinámicas).
+
+> [!warning] `photos` es una tabla compartida
+> Las fotos de mantenimiento viven en `photos` con `event_type = 'maintenance'`, junto a las
+> de recorrido y pesaje. Cualquier reset de datos operativos debe borrar selectivamente, no
+> truncar, o se pierde el historial de equipos. Ver [[2026-09-01-modo-interino-solo-pesaje]].

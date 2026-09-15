@@ -13,9 +13,9 @@ updated: 2026-07-23
 
 ## Contexto
 
-El outbox de IndexedDB (`logs/2026-06-19-offline-outbox-campo.md`) resolvía la pérdida de señal en
+El outbox de IndexedDB ([[2026-06-19-offline-outbox-campo]]) resolvía la pérdida de señal en
 la PWA web, pero la app pasó a distribuirse como APK (Capacitor, ver
-`logs/2026-07-22-monorepo-hub-app-dashboard.md`) y el operador puede pasar tramos largos sin red en
+[[2026-07-22-monorepo-hub-app-dashboard]]) y el operador puede pasar tramos largos sin red en
 sitios reales. Se diseñó un motor local-first nuevo con backend dual: IndexedDB en web/dev y SQLite
 + Filesystem en el APK, detrás de un mismo contrato `LocalStore`.
 
@@ -98,7 +98,7 @@ subagente (spec + calidad). Rama `feat/offline-sqlite-local-first`, base `85f3ab
 
 - **Plan B (nativo, Kotlin)** — `docs/superpowers/plans/2026-07-22-offline-sqlite-B-nativo.md`:
   bloqueado por falta de JDK en la máquina de desarrollo (mismo bloqueo que el APK de
-  `logs/2026-07-22-monorepo-hub-app-dashboard.md`). Cuando se ejecute, el mapeo `drainPhotos` debe
+  [[2026-07-22-monorepo-hub-app-dashboard]]). Cuando se ejecute, el mapeo `drainPhotos` debe
   usar `route`/`weighing` (ver decisión arriba), no los nombres del plan original.
 - **E2E en dispositivo real**: modo avión completo (SQLite + Filesystem + Preferences) sin poder
   compilar el APK localmente — queda pendiente hasta resolver el JDK.
@@ -107,11 +107,11 @@ subagente (spec + calidad). Rama `feat/offline-sqlite-local-first`, base `85f3ab
 
 ## Relacionado
 
-- `logs/2026-06-19-offline-outbox-campo.md` — outbox anterior, reemplazado por este motor (ver nota
+- [[2026-06-19-offline-outbox-campo]] — outbox anterior, reemplazado por este motor (ver nota
   al tope de ese log).
-- `logs/2026-07-22-monorepo-hub-app-dashboard.md` · `decisions/2026-07-22-separacion-hub-app.md` —
+- [[2026-07-22-monorepo-hub-app-dashboard]] · [[2026-07-22-separacion-hub-app]] —
   monorepo hub/app/shared sobre el que corre este motor.
-- `logs/2026-06-19-login-tarjetas-auto-logout-operador.md` — mecanismo de sesión web que la sesión
+- [[2026-06-19-login-tarjetas-auto-logout-operador]] — mecanismo de sesión web que la sesión
   APK complementa (no reemplaza).
 
 ---

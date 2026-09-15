@@ -43,7 +43,7 @@ Contador por recorrido (no resumen global), por decisión del usuario.
 - La empresa para el filtro se deriva con `deriveContainerCompanyId`: el `company_id` del
   registro NO anulado más reciente (recepción por `arrived_at` o recorrido por `started_at`)
   que referencia al tacho y tiene empresa. Coherente con
-  `decisions/2026-06-10-empresa-por-registro.md` (la empresa es del registro, no del tacho).
+  [[2026-06-10-empresa-por-registro]] (la empresa es del registro, no del tacho).
 
 ### 4. Reportes: sin firmas, peso arriba / tacho abajo
 - Se excluyen las fotos de **firma** del recorrido. Como el tipo `Photo` del app no expone
