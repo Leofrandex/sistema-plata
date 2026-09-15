@@ -49,6 +49,13 @@ vault/secrets/
 # claude code local config
 .claude/
 
+# salidas derivadas de scripts/extract-kilos-historicos.py — se regeneran desde
+# los Excel de docs/fuentes/ y no aportan nada versionadas
+/scripts/out/
+
+# temporales del CLI de Supabase (guarda la versión descargada, no es del proyecto)
+/supabase/.temp/
+
 # next-pwa generated artifacts (legado)
 **/public/sw.js
 **/public/sw.js.map
@@ -66,6 +73,11 @@ vault/secrets/
 
 # respaldos de datos del piloto (dumps JSON pre-reset) — NUNCA versionar
 /backups/
+
+# grafo de código (graphify) — derivado del código, se regenera en ~40s sin costo
+# con `python -m graphify update .`. graph.json pesa ~2 MB y cambia en cada commit.
+# Sin anclar a la raíz: graphify deja cache en el workspace que se le pase como path.
+graphify-out/
 
 # Android release signing — NUNCA versionar el keystore ni las credenciales reales
 *.keystore
