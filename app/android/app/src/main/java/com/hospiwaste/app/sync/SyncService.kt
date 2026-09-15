@@ -23,7 +23,15 @@ class SyncService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startForeground(NOTIF_ID, buildNotification("Sincronizando registros pendientes…"))
+        // Android 12+ lanza ForegroundServiceStartNotAllowedException si el
+        // arranque cae fuera de la ventana permitida desde background; sin
+        // captura, eso mata el proceso. Sin foreground el drain igual corre
+        // mientras el sistema lo deje.
+        try {
+            startForeground(NOTIF_ID, buildNotification("Sincronizando registros pendientes…"))
+        } catch (e: Exception) {
+            Log.w(TAG, "startForeground rechazado; se drena sin foreground", e)
+        }
         thread {
             try {
                 SyncEngine.drain(this)
@@ -92,7 +100,12 @@ class SyncService : Service() {
             if (SyncCredentials.load(ctx) == null) return
             if (!hasPendingWork(ctx)) return
             val intent = Intent(ctx, SyncService::class.java)
-            if (Build.VERSION.SDK_INT >= 26) ctx.startForegroundService(intent) else ctx.startService(intent)
+            try {
+                if (Build.VERSION.SDK_INT >= 26) ctx.startForegroundService(intent) else ctx.startService(intent)
+            } catch (e: Exception) {
+                // Restricciones de background (Android 12+): el worker periódico lo cubre.
+                Log.w(TAG, "no se pudo arrancar SyncService", e)
+            }
         }
     }
 }

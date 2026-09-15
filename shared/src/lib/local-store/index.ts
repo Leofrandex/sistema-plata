@@ -4,7 +4,14 @@ export * from './types'
 
 let instance: Promise<LocalStore> | null = null
 
-/** LocalStore de la plataforma: SQLite+Filesystem en APK, IndexedDB en web/dev. */
+/**
+ * LocalStore de la plataforma: SQLite+Filesystem en APK, IndexedDB en web/dev.
+ *
+ * Singleton, pero **no cachea un rechazo**: si `init()` falla (plugin nativo,
+ * base corrupta, conexión duplicada), la siguiente llamada vuelve a intentar.
+ * Antes, un fallo al arrancar dejaba la promesa rechazada cacheada y el botón
+ * "Reintentar" del banner fallaba para siempre sin decir por qué.
+ */
 export function getLocalStore(): Promise<LocalStore> {
   if (!instance) {
     instance = (async () => {
@@ -19,6 +26,7 @@ export function getLocalStore(): Promise<LocalStore> {
       await store.init()
       return store
     })()
+    instance.catch(() => { instance = null })
   }
   return instance
 }

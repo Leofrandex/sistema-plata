@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { Button } from '@hospiwaste/shared/components/ui/button'
 import { Input } from '@hospiwaste/shared/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@hospiwaste/shared/components/ui/card'
@@ -90,7 +91,8 @@ function LoginForm() {
                 <p className="text-sm text-slate-500 text-center py-4">Cargando usuarios…</p>
               ) : directoryError ? (
                 <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2.5 text-center">
-                  Sin conexión con el servidor. Iniciá sesión con tu correo cuando tengas internet.
+                  Sin conexión con el servidor. Iniciá sesión con tu correo cuando tengas internet.{' '}
+                  <Link href="/diagnostico" className="underline font-semibold">Ver diagnóstico</Link>
                 </p>
               ) : (
                 <>

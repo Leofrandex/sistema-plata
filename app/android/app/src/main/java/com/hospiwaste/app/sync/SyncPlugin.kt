@@ -1,16 +1,37 @@
 package com.hospiwaste.app.sync
 
+import android.util.Log
 import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
 
+/**
+ * Regla de la casa: **ningún método de plugin puede lanzar**. Capacitor 8
+ * envuelve cualquier excepción de un `@PluginMethod` en `RuntimeException`
+ * y la relanza en el hilo del bridge (`Bridge.callPluginMethod`, línea
+ * `throw new RuntimeException(ex)`), lo que mata el proceso entero: la app
+ * "se cierra sola". Y estos métodos se llaman solos al arrancar
+ * (`checkExpiry` → `clearCredentials`) y al ir a background (`kick`), así que
+ * un fallo del Keystore en `EncryptedSharedPreferences` —habitual en
+ * Huawei/Honor y garantizado tras restaurar un backup— dejaba el teléfono en
+ * un bucle de crash al abrir. Todo va en try/catch → `call.reject`.
+ */
 @CapacitorPlugin(name = "NativeSync")
 class SyncPlugin : Plugin() {
 
+    private inline fun guarded(call: PluginCall, name: String, body: () -> Unit) {
+        try {
+            body()
+        } catch (e: Exception) {
+            Log.w(TAG, "$name falló", e)
+            call.reject("$name falló: ${e.javaClass.simpleName}: ${e.message}")
+        }
+    }
+
     @PluginMethod
-    fun setCredentials(call: PluginCall) {
+    fun setCredentials(call: PluginCall) = guarded(call, "setCredentials") {
         val url = call.getString("url"); val anon = call.getString("anonKey")
         val rt = call.getString("refreshToken")
         if (url == null || anon == null || rt == null) { call.reject("faltan campos"); return }
@@ -27,7 +48,7 @@ class SyncPlugin : Plugin() {
      * WebView, nunca loguearlo).
      */
     @PluginMethod
-    fun getCredentials(call: PluginCall) {
+    fun getCredentials(call: PluginCall) = guarded(call, "getCredentials") {
         val creds = SyncCredentials.load(context)
         val ret = JSObject()
         ret.put("hasCredentials", creds != null)
@@ -37,7 +58,7 @@ class SyncPlugin : Plugin() {
     }
 
     @PluginMethod
-    fun clearCredentials(call: PluginCall) {
+    fun clearCredentials(call: PluginCall) = guarded(call, "clearCredentials") {
         SyncCredentials.clear(context)
         // Sin credenciales el worker periódico solo quema batería: cancelarlo (I4).
         SyncWork.cancel(context)
@@ -45,8 +66,12 @@ class SyncPlugin : Plugin() {
     }
 
     @PluginMethod
-    fun kick(call: PluginCall) {
+    fun kick(call: PluginCall) = guarded(call, "kick") {
         SyncService.startIfPending(context)
         call.resolve()
+    }
+
+    companion object {
+        private const val TAG = "SyncPlugin"
     }
 }

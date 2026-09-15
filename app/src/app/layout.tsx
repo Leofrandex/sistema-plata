@@ -37,7 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="flex min-h-screen bg-background">
             <div className="flex-1 flex flex-col">
               <MobileHeader />
-              <ConnectionBanner />
+              <ConnectionBanner detailHref="/diagnostico" />
               <main className="flex-1 p-4 md:p-6 pb-24">{children}</main>
               <SyncIndicator />
             </div>

@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { describeError } from './describe-error'
 import type {
   Client,
   Company,
@@ -58,7 +59,10 @@ interface HospiwasteStore {
    * - 'error': la última hidratación falló → la UI puede estar mostrando mocks.
    */
   connectionStatus: 'connecting' | 'online' | 'error'
-  setConnectionStatus: (status: 'connecting' | 'online' | 'error') => void
+  /** Causa técnica del último 'error' (mensaje del fetch/plugin), para que el
+   *  banner pueda decir *por qué* y no solo "sin conexión". null si no hay error. */
+  connectionError: string | null
+  setConnectionStatus: (status: 'connecting' | 'online' | 'error', error?: unknown) => void
 
   /**
    * Reemplaza N campos del store de una vez (post-hidratación desde Supabase).
@@ -120,7 +124,9 @@ export const useStore = create<HospiwasteStore>((set) => ({
   setCurrentRole: (role) => set({ currentRole: role }),
 
   connectionStatus: 'connecting',
-  setConnectionStatus: (status) => set({ connectionStatus: status }),
+  connectionError: null,
+  setConnectionStatus: (status, error) =>
+    set({ connectionStatus: status, connectionError: status === 'error' ? describeError(error) : null }),
 
   hydrate: (patch) => set(patch),
 

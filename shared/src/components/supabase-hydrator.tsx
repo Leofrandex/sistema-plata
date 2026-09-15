@@ -8,6 +8,7 @@ import { mergeById, unionById } from '@hospiwaste/shared/lib/data/hydrate-merge'
 import { getLocalStore } from '@hospiwaste/shared/lib/local-store'
 import { hydrateFromLocal, localPendingIds, type LocalSnapshot } from '@hospiwaste/shared/lib/local-store/hydrate-local'
 import { migrateOutboxToLocalStore } from '@hospiwaste/shared/lib/local-store/migrate-outbox'
+import { onConnectivityRestored } from '@hospiwaste/shared/lib/net-status'
 import type {
   Container,
   WeighingSession,
@@ -45,16 +46,51 @@ export function SupabaseHydrator() {
     // sin necesitar useRef: el efecto solo corre una vez (deps []).
     let localHydrated = false
 
+    // Generación de la corrida vigente. `load()` se dispara desde cinco fuentes
+    // (mount, onAuthStateChange, conectividad, visibilitychange, "Reintentar")
+    // y en el APK varias se solapan: abrir la cámara para una foto de pesaje
+    // manda el WebView a background —Android puede abortar los fetch en vuelo—
+    // y al volver dispara visibilitychange, que arranca otra corrida encima de
+    // la anterior. Sin este contador, la corrida vieja resolvía *después* de la
+    // nueva y pisaba su resultado: el rechazo tardío ponía
+    // `connectionStatus: 'error'` sobre un 'online' recién escrito (banner "Sin
+    // conexión con el servidor" con red perfecta, que "Reintentar" no quitaba
+    // porque el reintento sí funcionaba y era la corrida zombi la que volvía a
+    // marcar error), y su `setCurrentProfileId(null)` con datos viejos dejaba
+    // Pesaje en "Cargando tu sesión…". Solo la última corrida escribe estado.
+    let generation = 0
+
     async function load() {
+      const myGen = ++generation
+      /** ¿Esta corrida quedó obsoleta (desmontada o superada por otra)? */
+      const stale = () => cancelled || myGen !== generation
       // ID del operador desde la sesión LOCAL (sin red). Clave para offline:
       // `getCurrentProfile` usa `auth.getUser()`, que valida contra el servidor y
       // offline devuelve null → currentProfileId quedaba en null y el guardado de
       // andén/pesaje se bloqueaba (`if (!currentProfileId) return`). `getSession()`
       // lee el id del JWT guardado, sin red, así el id existe offline.
-      const { data: sessionData } = await supabase.auth.getSession()
-      const localUserId = sessionData.session?.user.id ?? null
-      if (cancelled) return
-      if (localUserId) useStore.getState().setCurrentProfileId(localUserId)
+      //
+      // Este arranque va dentro de un try: `getSession()` pasa por el storage
+      // nativo y `getLocalStore()` abre SQLite, así que ambos pueden fallar por
+      // el plugin y no solo por red. Sin el guard el rechazo quedaba mudo —
+      // `currentProfileId` en null para siempre, sin banner y con un
+      // "Reintentar" que volvía a fallar igual: la pantalla de Pesaje se
+      // quedaba en "Cargando tu sesión…" sin decir por qué (bug 2026-08-24).
+      let localUserId: string | null
+      let localStore: Awaited<ReturnType<typeof getLocalStore>>
+      try {
+        const { data: sessionData } = await supabase.auth.getSession()
+        localUserId = sessionData.session?.user.id ?? null
+        if (stale()) return
+        if (localUserId) useStore.getState().setCurrentProfileId(localUserId)
+        localStore = await getLocalStore()
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('[SupabaseHydrator] arranque falló:', err)
+        if (!stale()) useStore.getState().setConnectionStatus('error', err)
+        return
+      }
+      if (stale()) return
 
       // Hidratación local-first: SOLO en la primera corrida de este mount
       // (antes del primer fetch), para que un reinicio de la app offline
@@ -68,7 +104,6 @@ export function SupabaseHydrator() {
       // En hub el LocalStore (IndexedDB) queda vacío porque hub no escribe
       // ahí — el snapshot local es un no-op. `migrateOutboxToLocalStore` es
       // idempotente (flag en meta) y barata en hub por la misma razón.
-      const localStore = await getLocalStore()
       if (!localHydrated) {
         try {
           await migrateOutboxToLocalStore(localStore)
@@ -81,13 +116,13 @@ export function SupabaseHydrator() {
         }
         localHydrated = true
       }
-      if (cancelled) return
+      if (stale()) return
 
       try {
         // Profile del usuario actual (puede ser null si no hay sesión o si estamos
         // offline). Solo pisa id/rol cuando trae algo; offline conserva lo local.
         const profile = await q.getCurrentProfile(supabase)
-        if (cancelled) return
+        if (stale()) return
         if (profile) {
           useStore.getState().setCurrentProfileId(profile.id)
           useStore.getState().setCurrentRole(profile.role)
@@ -117,14 +152,14 @@ export function SupabaseHydrator() {
             q.listContainerLocations(supabase),
             q.listProfiles(supabase),
           ])
-        if (cancelled) return
+        if (stale()) return
 
         const containers = containersRaw.map(rowToContainer)
 
         // Fotos: URLs firmadas + índice event_id → photo_ids[] para reconstruir
         // los `photo_ids` inline de recepciones y recorridos.
         const urlMap = await q.getPhotoUrls(supabase, photosRaw)
-        if (cancelled) return
+        if (stale()) return
         const photos: Photo[] = photosRaw.map((p) => ({
           id: p.id,
           url: urlMap.get(p.id) ?? p.url ?? '',
@@ -158,7 +193,7 @@ export function SupabaseHydrator() {
           sessionIds.length === 0
             ? []
             : await q.listReceptionsBySessionIds(supabase, sessionIds)
-        if (cancelled) return
+        if (stale()) return
 
         const receptionIdsBySession = buildReceptionIdsBySession(receptionsRaw)
         const weighingSessions: WeighingSession[] = sessionsRaw.map((s) =>
@@ -198,7 +233,7 @@ export function SupabaseHydrator() {
         // avisamos al usuario vía banner.
         // eslint-disable-next-line no-console
         console.error('[SupabaseHydrator] hydration failed:', err)
-        if (!cancelled) useStore.getState().setConnectionStatus('error')
+        if (!stale()) useStore.getState().setConnectionStatus('error', err)
       }
     }
 
@@ -213,16 +248,32 @@ export function SupabaseHydrator() {
 
     // Reintentar cuando vuelve la conexión, cuando la pestaña vuelve a foco,
     // o cuando el usuario toca "Reintentar" en el banner.
+    //
+    // La conectividad va por `onConnectivityRestored`, no por el evento `online`
+    // del window: en el WebView del APK ese evento sigue el estado de la
+    // interfaz, no el de internet, así que pasar de WiFi a datos móviles podía
+    // no dispararlo nunca y el banner se quedaba puesto hasta que el operador
+    // tocara "Reintentar". En web el helper cae igual a online/offline.
+    //
+    // Y es la variante *Restored* (solo la transición sin red → con red), no
+    // cada evento `connected: true`: el plugin nativo reemite ese evento en
+    // cada onCapabilitiesChanged de Android, que en celular es frecuente, y
+    // cada uno arrancaba una corrida completa de `load()` que dejaba obsoleta
+    // a la anterior — con señal débil ninguna llegaba a terminar.
     function retry() { load() }
     function onVisible() { if (document.visibilityState === 'visible') load() }
-    window.addEventListener('online', retry)
+    let offConnectivity: (() => void) | undefined
+    onConnectivityRestored(() => load()).then((off) => {
+      if (cancelled) off()
+      else offConnectivity = off
+    })
     window.addEventListener('hospiwaste:retry-hydration', retry)
     document.addEventListener('visibilitychange', onVisible)
 
     return () => {
       cancelled = true
       sub.subscription.unsubscribe()
-      window.removeEventListener('online', retry)
+      offConnectivity?.()
       window.removeEventListener('hospiwaste:retry-hydration', retry)
       document.removeEventListener('visibilitychange', onVisible)
     }
