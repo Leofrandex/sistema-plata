@@ -1,373 +1,179 @@
 ---
-title: Índice del Vault — Hospimed Waste Tracking
+title: Índice del Vault — Hospiwaste
 tags:
   - index
   - meta
-updated: 2026-09-07
+updated: 2026-09-14
 ---
+
+# Vault — Hospiwaste
+
+Punto de entrada. Leer al inicio de cada sesión, antes de tocar código.
+
+> [!info] Qué vive acá y qué no
+> Este vault es memoria de negocio y de decisiones: **solo `.md`**, escrito a mano.
+> La estructura del código (carpetas, tipos, dependencias, quién llama a qué) **no se
+> documenta acá** — se deriva del código. Los binarios de origen (Excel, JSON de marca)
+> viven en `docs/fuentes/`, fuera del vault.
 
 > [!info] Nota de marca (2026-05-12)
-> El **producto** pasó a llamarse **Hospiwaste**. Este vault conserva la denominación original "Hospimed" como historial; el código, PWA, login y reportes ya reflejan "Hospiwaste". Ver log `2026-05-12-rename-hospiwaste-cold-storage-auto-transfer-multi.md`.
-
-> [!info] Nota de modelo (2026-05-17)
-> Rediseño operativo en curso: rename **intercambio → recorrido**, jerarquía **Cliente → Empresa**, nomenclatura **`{letra_empresa}-NNN`** (`I-`/`A-`). Se elimina la entidad `Batch`. Ver log `2026-05-17-recorridos-pesaje-reportes-dashboard.md` y ADR `decisions/2026-05-17-cliente-empresa-recorrido.md`.
-
-# Vault Index — Sistema de Trazabilidad de Desechos Clínicos
-
-> [!info] Cómo usar este archivo
-> Punto de entrada obligatorio. Leerlo al inicio de cada sesión para tener el estado actual del proyecto antes de tocar cualquier otra cosa.
-
-## Estado actual del proyecto
-
-**Fase:** Preparación lanzamiento PTDP — ajustes post-piloto; lanzamiento oficial 2026-06-01
-**Última reunión:** 2026-05-18 (Francesca + Karolyne + Marely + Sebastián) — ver `logs/2026-05-18-reunion-ptdp-demo-piloto.md`
-**Hito crítico:** lanzamiento oficial lunes 2026-06-01
-**Última actualización del vault:** 2026-09-07
-
-| Área | Estado | Archivo |
-|------|--------|---------|
-| Descripción del negocio y stakeholders | 🟢 | [[Overview]] |
-| Stack y arquitectura | 🟢 | [[Architecture]] |
-| Modelo de datos | 🟢 | [[DataModel]] |
-| Roadmap de módulos | 🟢 | [[Roadmap]] |
-| Tipos de desecho | 🟢 | [[WasteTypes]] |
-| Ciclo de vida del contenedor | 🟢 | [[ContainerLifecycle]] |
-| Memoria fotográfica | 🟢 | [[PhotoDocumentation]] |
-| Branding y sistema de diseño | 🟢 | [[Branding]] |
-| Cliente / Empresa / Recorrido | 🟢 | `decisions/2026-05-17-cliente-empresa-recorrido.md` |
-| Rediseño operativo (5 fases) | 🟢 Completado | `logs/2026-05-17-recorridos-pesaje-reportes-dashboard.md` |
-| Integración Supabase (schema + auth + storage) | 🟢 Provisionado | `decisions/2026-05-21-supabase-integracion.md` · `logs/2026-05-21-supabase-bootstrap.md` |
-| Recorridos → Supabase (write-through + hidratación) | 🟢 Completado | `logs/2026-05-25-recorridos-supabase-writethrough.md` |
-| Fotos → Supabase Storage (upload + URLs firmadas) | 🟢 Completado | `logs/2026-05-25-fotos-supabase-storage.md` |
-| Empresa y tipo de desecho **dinámicos** del tacho | 🟢 Completado | `decisions/2026-05-30-empresa-tipo-dinamicos-tacho.md` |
-| Pesaje (pendientes+bloqueo, tipo input, tratar inmediato) + Tratamiento activo + rename "tacho" | 🟢 Completado | `logs/2026-05-30-pesaje-tratamiento-rename-tacho.md` |
-| Tachos metálicos M1-M15 + tipo "Metálicos No reutilizables" | 🟢 Completado | `logs/2026-06-01-tachos-metalicos.md` |
-| Roles coordinador/operador (UI + middleware + RLS) + cuentas reales | 🟢 Completado | `logs/2026-06-01-roles-coordinador-operador.md` · `decisions/2026-06-01-roles-acceso.md` |
-| Firma por recorrido (andén+morgue) + saludo dashboard + redacción pesaje | 🟢 Completado | `logs/2026-06-16-firma-recorrido-saludo-dashboard-redaccion-pesaje.md` |
-| Fix: área del andén no persistía al crear + recorrido "activo" fantasma | 🟢 Completado | `logs/2026-06-16-fix-area-anden-y-activo-fantasma.md` |
-| Historial editable (recorridos+pesajes) + rediseño 4 estados dashboard | 🟢 Completado (E2E manual pendiente; migración sin aplicar) | `logs/2026-06-17-historial-editable-y-rediseno-estados-dashboard.md` |
-| Login por tarjetas + auto-logout de operador (1h) | 🟢 Completado (roster + E2E manual pendientes) | `logs/2026-06-19-login-tarjetas-auto-logout-operador.md` |
-| Offline: outbox de campo (local-first, datos + fotos) | 🟢 Completado (E2E manual en modo avión pendiente) | `logs/2026-06-19-offline-outbox-campo.md` |
-| Recolor 4 estados + historial 2 líneas + tab tachos (filtros/fase/tiempo) + fotos reporte | 🟢 Completado (E2E manual pendiente) | `logs/2026-06-22-colores-historial-tachos-reportes.md` |
-| Tab Equipos: mantenimiento preventivo (semáforo + historial + fotos) | 🟢 Completado (E2E manual pendiente) | `logs/2026-07-16-equipos-mantenimiento-preventivo.md` |
-| Monorepo hub/app/shared + tab Historial + dashboard renovado (7 grupos de métricas) | 🟢 Completado (APK sin compilar — falta JDK; E2E manual pendiente) | `logs/2026-07-22-monorepo-hub-app-dashboard.md` · `decisions/2026-07-22-separacion-hub-app.md` |
-| Offline SQLite local-first (Plan A motor TS + Plan B background sync nativo) | 🟢 Completado (E2E manual en dispositivo pendiente) | `logs/2026-07-23-offline-sqlite-local-first.md` |
-| Fix: cola de pesaje excluía para siempre a todo tacho ya pesado (41 tachos invisibles) | 🟢 Completado (APK v2 compilado; E2E en dispositivo pendiente) | `logs/2026-07-28-fix-cola-pesaje-ciclo-reabierto.md` · `decisions/2026-07-28-cola-pesaje-por-fecha.md` |
-| Equipos: frecuencia de mantenimiento libre (valor + unidad días/meses/años) | 🟢 Completado (en producción; E2E manual pendiente) | `logs/2026-08-08-frecuencia-mantenimiento-libre.md` |
-| Modo interino solo-pesaje (recorridos deshabilitados) | 🟢 Completado (reset y rollout de APK pendientes) | logs/2026-09-01-modo-interino-solo-pesaje.md |
-| Fix: sesión del APK colgada (thenable de Capacitor) + LocalStore SQLite muerto | 🟢 Completado (APK v1.2 verificado en dispositivo) | `logs/2026-08-25-fix-sesion-apk-preferences-sqlite.md` · `logs/2026-08-25-instalacion-apk-firma-debug-vs-release.md` |
-| Fix: "Sin conexión con el servidor" al cancelar/finalizar pesaje (ruta `/dashboard` del hub) | 🟢 Completado (APK v1.4; E2E en dispositivo pendiente) | `logs/2026-09-04-fix-banner-sin-conexion-tras-cancelar-pesaje.md` |
-| Auditoría APK: crash por excepción de plugin nativo, banner con causa, pantalla `/diagnostico`, flush sin compuerta | 🟢 Completado (APK v1.5 compilado; captura de `/diagnostico` desde planta pendiente) | `logs/2026-09-06-auditoria-apk-crash-nativo-y-diagnostico.md` |
-| Flota Yaris con pesa dedicada: pesaje directo, taras reales, fin del modo Yaris | 🟢 Completado (migración aplicada; APK sin recompilar) | `logs/2026-09-07-yaris-pesaje-directo.md` · `decisions/2026-09-07-yaris-pesaje-directo.md` |
-
-**Leyenda:** 🔴 Pendiente · 🟡 En progreso · 🟢 Completo · ⚠️ Tiene incoherencias
+> El producto se llamaba **Hospimed** y pasó a llamarse **Hospiwaste**. Algunas notas
+> anteriores a esa fecha conservan el nombre viejo como historial. Ver [[2026-05-12-rename-hospiwaste-cold-storage-auto-transfer-multi]].
 
 ---
 
-## Mapa del vault
+## Estado actual
+
+**Fase:** producción — piloto PTDP en planta, operando en **modo interino solo-pesaje**
+(recorridos congelados mientras se rehace la capa offline). Ver [[2026-09-01-modo-interino-solo-pesaje]].
+
+**Rama de trabajo:** `feat/modo-interino-solo-pesaje` · último commit `32add8c`
+**APK:** v1.6 compilado · **los teléfonos de planta siguen en v1.5**
+
+### Pendientes abiertos
+
+| Pendiente | Origen |
+|---|---|
+| Desplegar el APK v1.6 en los dos teléfonos de planta | [[2026-09-07-yaris-pesaje-directo]] |
+| Aclarar con planta qué es `ION - Airkem` en el histórico (390 pesajes de 2026) | [[2026-09-14-historico-kilos-2024-2026]] |
+| Revisar dashboard y `/reports/comparativo` en el navegador con sesión de coordinador | [[2026-09-14-historico-kilos-dashboard-y-reporte]] |
+| Verificar el estado de error del histórico cortando la red (nunca se vio funcionando) | [[2026-09-14-historico-kilos-dashboard-y-reporte]] |
+| Investigar por qué una pestaña sin sesión no hidrata ni redirige al login | [[2026-09-14-historico-kilos-dashboard-y-reporte]] |
+| Captura de `/diagnostico` desde planta — cierra el diagnóstico del crash nativo | [[2026-09-06-auditoria-apk-crash-nativo-y-diagnostico]] |
+| Correr el reset de datos operativos (después del rollout del APK, no antes) | [[2026-09-01-modo-interino-solo-pesaje]] |
+| E2E manual: pesar un `Y*` de punta a punta contra la balanza nueva | [[2026-09-07-yaris-pesaje-directo]] |
+| Decidir custom domain de Supabase — el DNS de Movistar VE no resuelve el subdominio | [[2026-08-25-fix-sesion-apk-preferences-sqlite]] |
+| Rediseño de la capa offline de recorridos (levanta el modo interino) | [[2026-09-01-modo-interino-solo-pesaje]] |
+| Ciclo del compactador — módulo nunca empezado | [[Roadmap]] |
+| GPS en tiempo real — pendiente de cotización formal (~$2,000 + mensual) | [[Overview]] |
+
+> [!warning] Ventana abierta
+> La migración de taras Yaris ya está aplicada en el piloto, pero planta corre el APK v1.5.
+> Hasta el rollout, esos teléfonos ven los `Y1`…`Y26` con tara real sin poder pesarlos.
+> No corrompe datos. Detalle en [[2026-09-07-yaris-pesaje-directo]].
+
+> [!warning] El reset de datos operativos ahora abriría un hueco
+> **Fecha:** 2026-09-14
+> **Problema:** desde la carga del histórico, el sistema es dueño de los kilos
+> del **2026-09-07 en adelante** y el histórico termina el 2026-09-06 (ver
+> [[2026-09-14-historico-kilos-2024-2026]]). El reset pendiente borra
+> `container_receptions`, así que dejaría los kilos de septiembre en cero desde
+> el día 7 — y el dashboard y el reporte comparativo mostrarían esa caída como
+> si fuera real.
+> **Acción requerida:** antes de correr `scripts/reset-datos-operativos.sql`,
+> decidir qué pasa con esos kilos. O se exportan y se pasan a
+> `historical_daily_kg` moviendo el corte, o se asume el hueco a conciencia.
+
+---
+
+## Notas ancla
 
 ### Proyecto
 - [[Overview]] — empresa, problema, stakeholders, alcance, contexto regulatorio
-- [[Architecture]] — stack técnico, patrones, convenciones
-- [[DataModel]] — entidades principales, relaciones, campos clave (Cliente/Empresa/Recorrido)
-- [[Roadmap]] — módulos planificados, prioridades, estado
-- [[Branding]] — colores, tipografía, componentes base, tokens CSS
+- [[DataModel]] — entidades, relaciones y campos clave (Cliente → Empresa → Recorrido)
+- [[Roadmap]] — módulos, prioridades y estado
+- [[Architecture]] — stack, convenciones e integraciones
+- [[CodeMap]] — dónde vive el grafo de código y cómo consultarlo
+- [[Branding]] — colores, tipografía, tokens
 
 ### Procesos de negocio
 - [[WasteTypes]] — los 5 tipos de desecho y su tratamiento diferenciado
-- [[ContainerLifecycle]] — ciclo completo del contenedor desde alta hasta lavado
-- [[PhotoDocumentation]] — requisito regulatorio: registro fotográfico semanal por cliente
-
-### Decisiones de diseño
-- `decisions/2026-05-03-border-radius-global.md`
-- `decisions/2026-05-17-cliente-empresa-recorrido.md`
-- `decisions/2026-05-21-supabase-integracion.md`
-- `decisions/2026-05-21-estado-envase-derivado.md` — estado derivado de eventos; P1 avanzado (tratamiento completado → clean)
-- `decisions/2026-05-30-empresa-tipo-dinamicos-tacho.md` — empresa y tipo de desecho dinámicos del tacho
-- `decisions/2026-06-10-empresa-por-registro.md` — la empresa es del registro (recorrido/pesaje), no del tacho; `containers.company_id` eliminado
-- `decisions/2026-06-01-roles-acceso.md` — roles coordinador/operador; control en UI + middleware + RLS
-- `decisions/2026-06-01-ids-tachos-supabase-vs-mock.md` — ⚠️ IDs en Supabase son numéricos sin prefijo (`020`), no `A-020`; el prefijo es solo del mock
-- `decisions/2026-07-28-cola-pesaje-por-fecha.md` — la cola de pesaje se reabre con cada recogida sucia posterior al último pesaje; no exige tratamiento intermedio
-- `decisions/2026-09-07-yaris-pesaje-directo.md` — la flota Yaris estrena balanza: se pesa directo, entra al dashboard y muere el modo Yaris del formulario; revierte `logs/2026-06-03-contenedores-yaris-recorrido.md`
-- `decisions/2026-09-01-modo-interino-solo-pesaje.md` — flag `INTERIM_MODE`: recorridos congelados, cola de pesaje abierta a todos los tachos, temporal hasta el rediseño offline
-
-### Credenciales (sensible)
-- `credenciales/2026-07-06-credenciales-completas.md` — ⚠️ TODAS las contraseñas (12 usuarios) en texto plano; 9 reseteadas el 2026-07-06 para consolidar
-- `credenciales/2026-06-23-passwords-temporales.md` — ⚠️ contraseñas temporales en texto plano (operadores nuevos); revierte el criterio de no versionar
-
-### Logs de cambios
-- `logs/2026-09-07-yaris-pesaje-directo.md` — ⚠️ taras reales de `Y1`…`Y26` cargadas (estaban en 0) y migración aplicada al piloto; el APK de planta sigue en v1.5, sin este cambio
-- `logs/2026-09-06-auditoria-apk-crash-nativo-y-diagnostico.md` — ⚠️ toda excepción en un `@PluginMethod` mata el APK (Capacitor 8); v1.5 blinda el plugin nativo, captura el último crash y agrega `/diagnostico`; servidor y RLS verificados sanos desde planta y con cuenta operador; la franja ámbar apunta al arranque del LocalStore (conexión SQLite duplicada / rechazo cacheado), corregido
-- `logs/2026-09-01-modo-interino-solo-pesaje.md` — ⚠️ recorridos deshabilitados en el APK, cola de pesaje abierta a todos los tachos, empresa obligatoria en el pesaje; reset de datos y compilación del APK v1.3 pendientes
-- `logs/2026-08-25-fix-sesion-apk-preferences-sqlite.md` — el objeto de plugin de Capacitor es thenable: la sesión del APK y el LocalStore SQLite estaban muertos desde el 2026-07-23
-- `logs/2026-08-25-instalacion-apk-firma-debug-vs-release.md` — el APK no instalaba en planta por firma debug vs release, no por la versión de Android
-- `logs/2026-08-08-frecuencia-mantenimiento-libre.md` — Equipos: la frecuencia deja de ser cuatro atajos de meses y pasa a valor libre + unidad; sigue persistiéndose en días
-- `logs/2026-07-28-reset-datos-operativos.md` — ⚠️ reset de datos operativos (TRUNCATE 10 tablas, 246 tachos intactos); respaldo en `backups/2026-07-28-reset/`
-- `logs/2026-07-28-fix-cola-pesaje-ciclo-reabierto.md` — la cola de pesaje comparaba existencia y no fechas: todo tacho pesado una vez salía de la cola para siempre
-- `logs/2026-07-27-inventario-tachos-190-200.md` — inventario físico 240 L: altas 190–200 y M16–M20; taras existentes verificadas sin cambios
-- `logs/2026-07-23-offline-sqlite-local-first.md` — motor offline SQLite local-first (Plan A), reemplaza el outbox de IndexedDB
-- `logs/2026-07-16-equipos-mantenimiento-preventivo.md` — tab Equipos (solo coordinador): semáforo de mantenimiento preventivo, historial con fotos, seed de 60 equipos del Excel
-- `logs/2026-07-08-fotos-opcionales-recorrido.md` — fotos ya no bloquean el guardado de recorrido (andén+morgue); regla = empresa+tacho+firma; revierte parte de `f93a8bc`
-- `logs/2026-07-06-reset-datos-piloto.md` — ⚠️ reset total de datos operativos (TRUNCATE 10 tablas, 230 tachos intactos); respaldo en `backups/`
-- `logs/2026-05-03-branding-system.md`
-- `logs/2026-05-05-dashboard-containers-polish.md`
-- `logs/2026-05-12-rename-hospiwaste-cold-storage-auto-transfer-multi.md`
-- `logs/2026-05-17-recorridos-pesaje-reportes-dashboard.md`
-- `logs/2026-05-18-historico-airkem-dashboard.md`
-- `logs/2026-05-18-reunion-ptdp-demo-piloto.md`
-- `logs/2026-05-21-supabase-bootstrap.md`
-- `logs/2026-05-25-recorridos-supabase-writethrough.md`
-- `logs/2026-05-25-pesaje-ux-yaris-recorridos-modal.md`
-- `logs/2026-05-25-fotos-supabase-storage.md`
-- `logs/2026-05-27-pesaje-login-recorridos-multianden.md`
-- `logs/2026-05-30-pesaje-tratamiento-rename-tacho.md`
-- `logs/2026-06-01-reporte-logos-riga-cpch.md`
-- `logs/2026-06-01-quitar-ubicacion-traslado-en-construccion.md`
-- `logs/2026-06-01-tachos-metalicos.md`
-- `logs/2026-06-01-roles-coordinador-operador.md`
-- `logs/2026-06-03-deshacer-pesaje-vista-pendientes.md`
-- `logs/2026-06-03-tratamiento-confirmacion-refresco.md`
-- `logs/2026-06-03-fix-sesion-no-cargada-boton-iniciar.md`
-- `logs/2026-06-03-contenedores-yaris-recorrido.md`
-- `logs/2026-06-10-sesion-no-persistente-cookies-de-sesion.md`
-- `logs/2026-06-10-empresa-por-registro-tacho-independiente.md`
-- `logs/2026-06-10-recorrido-fotos-persistencia-traza.md`
-- `logs/2026-06-16-firma-recorrido-saludo-dashboard-redaccion-pesaje.md`
-- `logs/2026-06-16-fix-area-anden-y-activo-fantasma.md`
-- `logs/2026-06-17-historial-editable-y-rediseno-estados-dashboard.md`
-- `logs/2026-06-19-login-tarjetas-auto-logout-operador.md`
-- `logs/2026-06-19-offline-outbox-campo.md`
-- `logs/2026-06-22-colores-historial-tachos-reportes.md`
+- [[ContainerLifecycle]] — ciclo del tacho desde el alta hasta el lavado
+- [[PhotoDocumentation]] — memoria fotográfica: requisito regulatorio obligatorio
+- [[EquipmentMaintenance]] — semáforo de mantenimiento preventivo de la base instalada
 
 ---
 
-## Inbox — pendiente de procesar
+## Decisiones (ADR)
 
-*(Vacío)*
+Formato y plantilla en [[Formato-ADR]] (`decisions/`).
 
-## Notas del último procesamiento
+- [[2026-09-14-historico-kilos-2024-2026]] — el histórico de kilos vive en tabla aparte, agregado por día; el sistema es dueño desde el 2026-09-07
+- [[2026-09-07-yaris-pesaje-directo]] — la flota Yaris estrena balanza: se pesa directo y muere el modo Yaris del formulario
+- [[2026-09-01-modo-interino-solo-pesaje]] — flag `INTERIM_MODE`: recorridos congelados, cola de pesaje abierta a todos los tachos
+- [[2026-07-28-cola-pesaje-por-fecha]] — la cola se reabre con cada recogida sucia posterior al último pesaje; no exige tratamiento intermedio
+- [[2026-07-22-separacion-hub-app]] — monorepo: `hub/` coordinadores, `app/` operadores, `shared/` común
+- [[2026-06-10-empresa-por-registro]] — la empresa es del registro, no del tacho; `containers.company_id` eliminado
+- [[2026-06-01-roles-acceso]] — roles coordinador/operador; control en UI + middleware + RLS
+- [[2026-06-01-ids-tachos-supabase-vs-mock]] — los IDs en Supabase son numéricos sin prefijo (`020`); el prefijo `A-` es solo del mock
+- [[2026-05-30-empresa-tipo-dinamicos-tacho]] — empresa y tipo de desecho son propiedades dinámicas del tacho
+- [[2026-05-21-estado-envase-derivado]] — el estado se deriva de eventos; los eventos son la fuente de verdad
+- [[2026-05-21-supabase-integracion]] — por qué Supabase y cómo se integra
+- [[2026-05-17-cliente-empresa-recorrido]] — jerarquía Cliente → Empresa, rename a "recorrido", eliminación de `Batch`
+- [[2026-05-03-border-radius-global]] — radio global de 8px
 
-**2026-09-07** — La flota Yaris (`Y1`…`Y26`) estrenó **pesa dedicada**, así que se elimina el
-rodeo que existía desde el 2026-06-03: ya no se vuelca su carga en un tacho
-`is_yaris_dedicated` para pesarla. Los Yaris entran a la cola de pesaje y al dashboard de
-circulación como cualquier tacho, se cargan sus taras reales (50.9–52.6 kg; estaban en 0
-justamente porque nunca se pesaban directo), y del formulario de pesaje desaparecen el toggle
-"¿Es un pesaje de Yaris?", el segundo selector y el estado `is_yaris_weighing` (que nunca se
-persistió en la BD). Los tachos que estaban marcados como dedicados vuelven a la operación
-normal; la columna `is_yaris_dedicated` queda deprecada pero no se dropea. Hallazgo al
-implementar: el buscador de tacho tenía `inputMode="numeric"`, así que con el teclado de
-Android no se podía escribir la `Y` de `Y3` — pasó a `text`. jest 264/264, `build:hub` y
-`build:app` verdes. Migración **aplicada al piloto** (remota `20260907171846`): 26 taras
-cargadas (0 quedan en cero) y los 17 tachos dedicados devueltos al pool normal de 246 activos.
-**Pendiente:** recompilar y desplegar el APK — hasta entonces la BD va adelante del código de
-planta.
-ADR `decisions/2026-09-07-yaris-pesaje-directo.md`, log `logs/2026-09-07-yaris-pesaje-directo.md`.
+---
 
-**2026-09-01** — Modo interino solo-pesaje (rama `feat/modo-interino-solo-pesaje`, 9 commits,
-`7d40e82`..`6f8b831`): con la capa offline de recorridos rota en campo, se congela el registro
-de recorridos y se rediseña aparte, manteniendo la app viva solo para pesaje (+ tratamiento y
-traslado, intactos). Flag único `INTERIM_MODE` (`shared/src/lib/config/interim-mode.ts`) en
-cuatro puntos: cola de pesaje abierta a todos los tachos activos (`getWeighableContainerIds`,
-función hermana de `getPendingWeighingContainerIds` — esta última no se toca), Home del APK con
-"Recorrido" en mantenimiento (y sin el I/O de `getActiveSession` que antes corría igual en cada
-arranque), guard del subárbol `/register/route` vía layout de Next, y banner en el dashboard del
-hub. Empresa pasa a elegirse a mano en el pesaje (obligatoria) porque ya no se hereda de ningún
-recorrido; buscador de tacho por número reemplaza al `<Select>` plano (246 tachos activos); aviso
-suave de "ya se pesó hoy" por día **local** del dispositivo (no UTC, a propósito — distinto del
-corte que usa el resto de la analítica). Scripts de reset de datos operativos listos en
-`scripts/` con un hallazgo: `photos` es una tabla compartida con las fotos de mantenimiento de
-equipos (`event_type = 'maintenance'`), así que el reset pasó de `TRUNCATE` a un `DELETE`
-selectivo que las conserva. jest 243/243 (172 shared + 36 hub + 35 app), vitest 12/12,
-`build:hub` y `build:app` verdes. **Pendiente:** compilar y firmar el APK v1.3, desplegarlo en
-planta, y recién entonces correr el reset de datos operativos — ninguno de los tres se ejecutó
-en este cierre. Ver ADR `decisions/2026-09-01-modo-interino-solo-pesaje.md` y log
-`logs/2026-09-01-modo-interino-solo-pesaje.md`.
+## Logs de cambios
 
-**2026-08-08** — Equipos: la frecuencia de mantenimiento pasa de cuatro atajos fijos
-(1/3/6 meses, 1 año) a **cantidad libre + unidad** (días/meses/años). El campo numérico
-ya existía, pero pedía días y competía con los botones, así que se leía como si los meses
-predefinidos fueran las únicas opciones. Se sigue persistiendo en
-`equipment.maintenance_frequency_days` — sin migración y sin tocar el semáforo — con
-1 mes = 30 días y 1 año = 365 (la conversión que ya usaban los atajos). Al cargar, la
-unidad mostrada es la mayor que divida exacto. Queda anotado que un mes son 30 días y no
-un mes calendario: sobre un año el desfase ronda 5 días; decidir con el coordinador si el
-vencimiento debe ser por calendario. Desplegado a producción junto con el fix de la cola de
-pesaje (`sistema-ptdp`, commit `4eafb3b`). jest 212/212, `build:hub` OK. Pendiente: E2E
-manual. Log: `logs/2026-08-08-frecuencia-mantenimiento-libre.md`.
+Uno por feature o cambio mayor, en orden inverso. Obsidian lista la carpeta completa;
+acá van solo los que siguen teniendo consecuencias abiertas o reglas que aplican hoy.
 
-**2026-08-25** — Fix de dos bugs del APK vivos desde el 2026-07-23, ambos diagnosticados en
-dispositivo por `adb forward` + CDP (el release no manda la consola del WebView a logcat).
-(1) `preferences-storage.ts` devolvía el objeto `Preferences` desde una función `async`: el
-proxy de plugin de Capacitor responde a cualquier propiedad, `then` incluida, así que el
-await no resolvía nunca y **la sesión del APK estaba muerta** — Pesaje colgado en "Cargando
-tu sesión…". (2) `sqlite-store.ts` abría la conexión con `execute('PRAGMA
-journal_mode=WAL')`, que Android rechaza por devolver filas: **el LocalStore nunca se
-creó** y el outbox no drenaba nada. Se añadió guard try/catch en el arranque de
-`supabase-hydrator.tsx`, que era lo que volvía invisibles ambos fallos. El mock del plugin
-en tests pasó a ser un `Proxy` fiel. `versionCode` 3 / `1.2`. jest 213/213, APK release
-firmado y verificado en dispositivo. Aparte: el APK no instalaba en planta por la firma
-debug del build de julio, no por la versión de Android. Pendiente: **migrar los teléfonos
-de planta a v1.2** (requiere desinstalar por el cambio de llave) y decidir si conviene un
-custom domain de Supabase — el DNS de Movistar VE no resuelve el subdominio del proyecto.
-Logs: `logs/2026-08-25-fix-sesion-apk-preferences-sqlite.md`,
-`logs/2026-08-25-instalacion-apk-firma-debug-vs-release.md`.
+### Vigentes — leer antes de tocar el APK
+- [[2026-09-14-historico-kilos-dashboard-y-reporte]] — histórico 2024–2026 cargado; comparativo anual en el dashboard y reporte de kilos para directiva
+- [[2026-09-14-vault-solo-md-y-grafo-de-codigo]] — el vault queda solo-markdown; la estructura del código se deriva con graphify
+- [[2026-09-07-yaris-pesaje-directo]] — taras reales `Y1`…`Y26` cargadas y migración aplicada; planta sigue en v1.5
+- [[2026-09-06-auditoria-apk-crash-nativo-y-diagnostico]] — toda excepción en un `@PluginMethod` mata el APK (Capacitor 8); pantalla `/diagnostico`
+- [[2026-09-04-fix-banner-sin-conexion-tras-cancelar-pesaje]] — el banner "Sin conexión" salía por una ruta `/dashboard` que no existe en la app
+- [[2026-09-01-modo-interino-solo-pesaje]] — recorridos deshabilitados, empresa obligatoria en el pesaje
+- [[2026-08-25-fix-sesion-apk-preferences-sqlite]] — el objeto de plugin de Capacitor es *thenable*: sesión y LocalStore muertos desde julio
+- [[2026-08-25-instalacion-apk-firma-debug-vs-release]] — distribuir siempre el build de `release/`; cambiar de llave impide actualizar
 
-**2026-07-23** — Motor offline SQLite local-first (Plan A, rama
-`feat/offline-sqlite-local-first`). Contrato `LocalStore` con backend dual: IndexedDB
-(web/dev) y SQLite+Filesystem (APK), tabla genérica `local_rows` (payload JSON) en vez de
-DDL por entidad, `local_photos` con `synced` propio, tabla `meta`. Sync engine con fases
-registro/fotos, timeout 15s, mutex. Hidratación local-first 1×/mount con `unionById`
-(fix de un Critical: no pisar estado del server). Migración idempotente del outbox
-IndexedDB legacy (Situación 2, `logs/2026-06-19-offline-outbox-campo.md`, ahora
-reemplazado) — sin descartar operaciones silenciosamente. Sesión APK en
-`@capacitor/preferences`, expira por 1h de inactividad. `event_type` de fotos usa el
-enum real de la BD (`route`/`weighing`), no lo que decía el plan — nota dejada para
-Plan B nativo (Kotlin) sobre el mapeo `drainPhotos`. jest 204 (152+35+17), vitest 12,
-builds hub+app OK, `cap sync android` regenerado. Pendiente: Plan B nativo (bloqueado
-por JDK) y E2E en dispositivo. Log: `logs/2026-07-23-offline-sqlite-local-first.md`.
+### 2026-08 / 2026-07
+- [[2026-08-08-frecuencia-mantenimiento-libre]] — frecuencia de mantenimiento: valor libre + unidad
+- [[2026-07-28-reset-datos-operativos]] — tercer reset del piloto; `photos` es compartida con mantenimiento de equipos
+- [[2026-07-28-fix-cola-pesaje-ciclo-reabierto]] — la cola comparaba existencia y no fechas: 41 tachos invisibles
+- [[2026-07-27-inventario-tachos-190-200]] — altas 190–200 y M16–M20
+- [[2026-07-23-offline-sqlite-local-first]] — motor offline SQLite; reemplaza el outbox de IndexedDB
+- [[2026-07-22-monorepo-hub-app-dashboard]] — separación en monorepo + dashboard renovado
+- [[2026-07-20-reset-parcial-tachos]] — reset parcial hasta el 13-jul
+- [[2026-07-17-finalizar-pesaje-sin-pendientes]] — finalizar pesaje sin resolver todos los pendientes
+- [[2026-07-16-equipos-mantenimiento-preventivo]] — tab Equipos, seed de 60 equipos
+- [[2026-07-08-fotos-opcionales-recorrido]] — las fotos dejan de bloquear el guardado de recorrido
+- [[2026-07-06-reset-datos-piloto]] — reset total de datos operativos
 
-**2026-07-22** — Separación en monorepo (rama `feat/monorepo-split`): `hub/` (web
-coordinadores: Dashboard renovado con 7 grupos de métricas, Tachos, Equipos,
-**Historial** nuevo, Reportes, Admin — sin Registrar), `app/` (APK operadores: Home
-nuevo + register/**, sin dashboard), `shared/` (paquete `@hospiwaste/shared`).
-AuthGuard parametrizado por app (hub exige coordinador). Analítica nueva en
-`shared/src/lib/data/dashboard-analytics.ts` (15 tests). jest 179 + vitest 12,
-builds verdes. Pendiente: APK (sin JDK en la máquina) y E2E manual. Log:
-`logs/2026-07-22-monorepo-hub-app-dashboard.md`; ADR:
-`decisions/2026-07-22-separacion-hub-app.md`.
+### 2026-06
+- [[2026-06-22-colores-historial-tachos-reportes]] — recolor de los 4 estados, tab de tachos, fotos de reportes
+- [[2026-06-19-offline-outbox-campo]] — outbox de campo (reemplazado por SQLite en julio)
+- [[2026-06-19-login-tarjetas-auto-logout-operador]] — login por tarjetas + auto-logout 1h
+- [[2026-06-17-historial-editable-y-rediseno-estados-dashboard]] — historial editable y anulación lógica
+- [[2026-06-16-fix-area-anden-y-activo-fantasma]] — área del andén no persistía; recorrido "activo" fantasma
+- [[2026-06-16-firma-recorrido-saludo-dashboard-redaccion-pesaje]] — firma obligatoria por recorrido
+- [[2026-06-10-recorrido-fotos-persistencia-traza]] — write-through e hidratación completas
+- [[2026-06-10-empresa-por-registro-tacho-independiente]] — la empresa pasa al registro
+- [[2026-06-10-sesion-no-persistente-cookies-de-sesion]] — cookies de sesión
+- [[2026-06-03-deshacer-pesaje-vista-pendientes]] — deshacer pesaje (soft-delete) + vista de pendientes
+- [[2026-06-03-tratamiento-confirmacion-refresco]] — confirmación de envío a tratamiento
+- [[2026-06-03-fix-sesion-no-cargada-boton-iniciar]] — "Todavía no se cargó tu sesión"
+- [[2026-06-03-contenedores-yaris-recorrido]] — tachos Yaris dedicados (**revertido** en 2026-09-07)
+- [[2026-06-01-roles-coordinador-operador]] — roles en UI, middleware y RLS
+- [[2026-06-01-tachos-metalicos]] — M1-M15 y tipo "Metálicos no reutilizables"
+- [[2026-06-01-reporte-logos-riga-cpch]] — header del Registro Fotográfico
+- [[2026-06-01-quitar-ubicacion-traslado-en-construccion]] — se quita el registro de Ubicación
 
-**2026-07-16** — Excel de base instalada `BASE INSTALADA PTDP HOSPIMED ST SOFTWARE.xlsx`
-procesado: seed de 60 equipos (`scripts/seed-equipment-supabase.py`) + módulo nuevo
-**Equipos** (mantenimiento preventivo, solo coordinador). Archivo movido a
-`inbox/procesado/`. Módulo: [[EquipmentMaintenance]]. Log:
-`logs/2026-07-16-equipos-mantenimiento-preventivo.md`.
+### 2026-05
+- [[2026-05-30-pesaje-tratamiento-rename-tacho]] — rename "envase → tacho"; empresa y tipo dinámicos
+- [[2026-05-27-pesaje-login-recorridos-multianden]] — recorridos multi-andén
+- [[2026-05-25-recorridos-supabase-writethrough]] — recorridos a Supabase
+- [[2026-05-25-fotos-supabase-storage]] — fotos a Supabase Storage con URLs firmadas
+- [[2026-05-25-pesaje-ux-yaris-recorridos-modal]] — ajustes UX post-piloto
+- [[2026-05-21-supabase-bootstrap]] — bootstrap de Supabase para el piloto
+- [[2026-05-18-reunion-ptdp-demo-piloto]] — demo 2 y plan de lanzamiento
+- [[2026-05-18-historico-airkem-dashboard]] — histórico Airkem 2026 al dashboard
+- [[2026-05-17-recorridos-pesaje-reportes-dashboard]] — rediseño operativo completo
+- [[2026-05-12-rename-hospiwaste-cold-storage-auto-transfer-multi]] — rename Hospimed → Hospiwaste
+- [[2026-05-05-dashboard-containers-polish]] — pulido de dashboard y contenedores
+- [[2026-05-03-branding-system]] — implementación del branding system
 
-**2026-06-22** — Lote de UI post-lanzamiento (4 cambios, rama
-`feat/colores-estados-historial-tachos-reportes`). (1) Recolor de los 4 estados en
-`BUCKET_DEFINITIONS` (verde=En planta, naranja=En cliente, gris=Pendiente por pesar,
-rojo=Pendiente por tratar) — fuente única que alimenta pie del dashboard y badge del tab de
-Tachos. (2) Historial de recorridos: limpios (verde) y sucios (rojo) en líneas separadas con
-contador por tarjeta. (3) Tab de Tachos: filtros Empresa+Fase, la columna de fase muestra los
-**4 estados del dashboard** (no las 6 fases internas, que quedan solo en el detalle del tacho),
-y "Ubicación" → "Tiempo en fase" (`computeCirculationStatus`+`formatDuration`, refresco 60s);
-empresa del tacho vía `deriveContainerCompanyId`. (4) Reportes: se excluyen las firmas (por
-`signature_photo_id`) y cada pesaje se renderiza en columna (peso arriba / tacho abajo, 4 por
-bloque, vía `WeighingPair`). Sin migraciones. `jest` 138/138, `next build` OK. Ejecutado con
-subagent-driven-development (7 tareas, review por tarea + review final opus = listo para merge).
-Pendiente: E2E manual. Log: `logs/2026-06-22-colores-historial-tachos-reportes.md`.
+---
 
-**2026-06-17** — Historial editable de recorridos y pesajes + rediseño de los 4 estados del
-dashboard. Apartado "Historial" como pestaña dentro de `/register/route` y `/register/weighing`:
-visible para todos, editar/anular solo coordinador. "Eliminar" es **anulación lógica**
-(`voided_*` en `route_events`/`weighing_sessions`, migración `20260617000000` — espejo de
-`container_receptions`); toda derivación (fase, cola de pesaje, circulación, reportes) filtra
-`voided_at is null`. Ediciones en **modo borrador + Guardar con confirmación**; anulaciones con
-motivo obligatorio. Se corrigió que el hydrator no propagaba `voided_at` de recepciones.
-**Dashboard**: nuevos 4 estados por línea de tiempo (gana el último evento) — En planta (limpio en
-planta) / En cliente (entregado limpio) / Pendiente por pesar (recogido sucio) / Pendiente por
-tratar (pesado). `jest` 98/98, `next build` OK. Pendiente: E2E manual + **aplicar la migración al
-piloto**. Log: `logs/2026-06-17-historial-editable-y-rediseno-estados-dashboard.md`.
+## Inbox
 
-**2026-06-16** — Firma por recorrido + saludo dashboard + redacción pesaje.
-Firma dibujada **obligatoria** y distinta por registro (andén y morgue), capturada con un
-`SignaturePad` (canvas + pointer events, overlay full-screen) y persistida como foto con
-`role='signature'` — **sin migración**, reutilizando `uploadEventPhotos` y
-`groupRoutePhotosByRole` (ahora devuelve `signatureByEvent`; última gana). Campo derivado
-`RouteEvent.signature_photo_id`. Dashboard saluda con el primer nombre del usuario logueado.
-Texto de "Tratar inmediatamente" en pesaje → "Marcar para enviar el tacho directamente a
-tratamiento". `jest` 82/82, `next build` OK. Pendiente: E2E manual de firma.
-Log: `logs/2026-06-16-firma-recorrido-saludo-dashboard-redaccion-pesaje.md`.
+Zona de aterrizaje para material crudo (transcripts, notas sueltas, dumps). El flujo de
+procesamiento está en `CLAUDE.md`, en la raíz del repo.
 
-**2026-06-10/11** — Lote post-lanzamiento (rama `feat/lote-fotos-persistencia-traza`).
-Causa raíz común de varios síntomas: hidratación/persistencia incompleta — el store solo
-hidrataba 5 colecciones y `storage_events`/`container_locations` se escribían solo al store
-local (nunca a Supabase). Se completó write-through + hidratación de las 4 tablas
-posteriores → arregla tratamiento cross-device y el gráfico kg/día. Además: fotos de
-recorrido por categoría (sucios/limpios, obligatorias, visibles al editar) vía `photos.role`;
-anti doble-submit en andén (+ borrado del andén duplicado en prod); traza `containers.created_by`
-con "registrado por" en admin; drop de `route_events.floor`/`dock`. 3 migraciones aplicadas.
-Eventos siguen siendo fuente de verdad (próximo paso de escala = vista de Postgres, no columna).
-`npm run test:jest` 81/81, `next build` OK. Pendiente E2E manual cross-device.
-Log: `logs/2026-06-10-recorrido-fotos-persistencia-traza.md`.
+**Pendiente de procesar:** *(vacío)*
 
-**2026-05-30** — Lote grande: empresa y tipo de desecho pasan a ser **dinámicos** del tacho
-(empresa derivada del recorrido, reset al tratar; tipo = input en pesaje, `DROP` de
-`containers.waste_type`). Pesaje: pendientes por número + bloqueo con escape "ausente", check
-"tratar inmediatamente". Tratamiento activado en Supabase (multi-select). Empresa seleccionable
-en recorrido; reportes por empresa registrada (fallback histórico). Rename "envase → tacho" +
-display por número (`formatTachoNumber`). 3 migraciones aplicadas al piloto. `next build` OK,
-jest 61/61. Pendiente: E2E manual. Log: `logs/2026-05-30-pesaje-tratamiento-rename-tacho.md`;
-ADR: `decisions/2026-05-30-empresa-tipo-dinamicos-tacho.md`.
-
-**2026-05-27** — Lote de ajustes post-piloto (5 cambios, completos).
-(1) Pesaje: "vehículo Yaris" → "tacho Yaris" y se quita el ícono de carro.
-(2) Login: botón ojo para mostrar/ocultar contraseña.
-(3) Pesaje: foto de balanza arriba, foto del envase abajo (solo orden visual).
-(4) **Recorridos multi-andén por horario**: se replica el patrón de pesaje (sesión →
-varios andenes editables) sin tabla nueva — cada andén es un `route_event` agrupado por
-`(date, slot)`; migración `20260527010000` elimina el índice único parcial. Las fotos se
-suben al guardar cada andén (no al finalizar) para no perderlas al editar.
-(5) **Reportes rediseñados**: orden estricto día→ruta→(recorrido+pesaje), layout 4 cuadros
-2×2 / 8 fotos por cuadro, salto de página por día, selector de rango de fechas (default
-semana). Pesajes huérfanos (histórico/Yaris) agrupados por fecha. Pendiente: E2E manual.
-Specs/Plans: `docs/superpowers/{specs,plans}/2026-05-27-pesaje-login-recorridos-multianden*`
-y `…/2026-05-27-reporte-fotografico-rediseno*`.
-Log: `logs/2026-05-27-pesaje-login-recorridos-multianden.md`.
-
-**2026-05-25** — Fotos migradas a Supabase Storage (última pieza de la integración).
-Las pantallas guardaban data URLs solo en memoria (`addPhoto`); `uploadPhoto` existía
-pero no se llamaba. Ahora pesaje (`handleCreateReception`/`handleSaveEdit`) y recorridos
-(`handleFinish` andén + morgue) suben las fotos al bucket privado `photos` y registran en
-`public.photos`; el hydrator firma URLs (24 h) y reconstruye los `photo_ids` de receptions
-y routeEvents. Helper compartido `uploadEventPhotos` (`src/lib/data/photos.ts`, best-effort).
-`next.config.ts` permite `*.supabase.co` en `next/image`. Pendiente: E2E manual.
-Log: `logs/2026-05-25-fotos-supabase-storage.md`.
-
-**2026-05-25** — Fix: los envases sucios de un recorrido no aparecían en Pesaje.
-Causa: `routeEvents` salía de mocks en memoria y el flujo de recorrido nunca
-escribía a Supabase, mientras pesaje leía `containers`/`receptions` de Supabase.
-Solución: migración completa de recorridos a Supabase (write-through en andén +
-morgue, e hidratación de `route_events` + join tables en `SupabaseHydrator`).
-Log: `logs/2026-05-25-recorridos-supabase-writethrough.md`.
-
-**2026-05-21** — Bootstrap de Supabase para el piloto (sin migrar el store aún).
-Proyecto `hospiwaste` (ref `xqqnthyipkdkwyknbtnw`, us-east-2, Free). 14 tablas + 9 enums + vista `container_receptions_with_net` + trigger `on_auth_user_created`. RLS habilitado con policies "authenticated full access" (decisión piloto). Bucket Storage `photos` privado. Cliente Next.js: `@supabase/ssr` con browser/server/middleware clients y `src/middleware.ts` para refresco de sesión. Tipos TS en `src/lib/supabase/database.types.ts`. Migration en `supabase/migrations/`.
-Pendiente: reemplazar `src/lib/store.ts` (Zustand) por queries a Supabase, página `/login`, upload de fotos al bucket.
-Log: `logs/2026-05-21-supabase-bootstrap.md` · ADR: `decisions/2026-05-21-supabase-integracion.md`.
-
-**2026-05-21** — Procesado resumen de reunión PTDP del 2026-05-18 (Demo 2 + plan de lanzamiento).
-Plan acordado: piloto operador real 2026-05-21 10am Panamá, lanzamiento oficial 2026-06-01.
-Backlog de **12 cambios al software** dividido en 2 sesiones:
-- **Sesión 1 (hoy):** Pesaje (observaciones + reordenar), Recorridos (selector tipo desecho), Dashboard (quitar cámara fría + reemplazo) + integrar Supabase + push GitHub + hosting.
-- **Sesión 2:** Reportes (4 cambios), Dashboard (tendencia anual + cliente padre), Admin envases (carga masiva + edición).
-Riesgos pendientes: integración API balanza (pasiva), data oficial sin cerrar (ene–mar 2026), Morgue/envases grandes sin contemplar.
-Log: `logs/2026-05-18-reunion-ptdp-demo-piloto.md`. Archivo movido a `inbox/procesado/`.
-
-**2026-05-18** — Cargado el histórico real de Airkem 2026-01-01 → 2026-05-11 al dashboard.
-Excel `inbox/2026-05-17-historico-envases.xlsx` → `src/lib/data/historical-data.json` vía `scripts/extract-historical-data.py`.
-189 carros Airkem (`A-001..A-189`), 14,375 recepciones, 253,889 kg netos. ION queda en cero (no participaba en el histórico).
-Log: `logs/2026-05-18-historico-airkem-dashboard.md`.
-
-**2026-05-17** — Rediseño operativo completo (5 fases).
-- Fase 1: modelo Cliente→Empresa, rename `intercambio → recorrido`, eliminado `Batch`, nomenclatura `I-`/`A-`.
-- Fase 2: `/register/route` con 6 slots fijos y cronómetro persistente en IndexedDB.
-- Fase 3: `/register/weighing` multi-registro con drawer lateral editable.
-- Fase 4: `/reports` con PDF semanal por cliente (header tipo "REGISTRO FOTOGRÁFICO", grid 2-col de fotos con comentarios).
-- Fase 5: `/dashboard` con 3 gráficos Recharts (torta circulación, donut kg/día, barras kg/cliente/mes).
-Log: `logs/2026-05-17-recorridos-pesaje-reportes-dashboard.md`.
-
-**2026-05-12** — Tres cambios operativos.
-(1) Rename de marca Hospimed → Hospiwaste en código, PWA, login, reportes PDF y CLAUDE.md (vault y docs/specs|plans/ quedan como historial).
-(2) Eliminado el paso manual de cámara fría: tras pesar, el envase entra automáticamente al estado `cold_storage` sin foto ni formulario.
-(3) Traslado externo ahora acepta selección múltiple acumulativa.
-Log: `logs/2026-05-12-rename-hospiwaste-cold-storage-auto-transfer-multi.md`.
-
-**2026-05-05** — Polish de Dashboard y Inventario de Envases.
-Log: `logs/2026-05-05-dashboard-containers-polish.md`.
-
-**2026-05-03** — Procesado `inbox/branding.json` (datos de branding).
-Archivos creados: `Branding.md`. Archivo movido a `inbox/procesado/`.
-
-**2026-05-02** — Procesado transcript de reunión 2026-04-30.
-Archivos actualizados: `Overview`, `DataModel`, `Roadmap`.
-Archivos creados: `WasteTypes`, `ContainerLifecycle`, `PhotoDocumentation`.
+**Procesado:**
+- [[2026-05-18_PTDP_SoftwarePlanta3_ResumenReunion]] — reunión Software Planta 3
+- [[2026-04-30-reunion-francesca-sebastian]] — transcript fundacional del proyecto

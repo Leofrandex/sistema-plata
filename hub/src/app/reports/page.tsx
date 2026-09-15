@@ -12,6 +12,7 @@ import {
   isoDate,
 } from '@/lib/data/reports'
 import { ReportPreview } from '@/components/reports/report-preview'
+import { ReportsTabs } from '@/components/reports/reports-tabs'
 
 export default function ReportsPage() {
   const {
@@ -56,6 +57,8 @@ export default function ReportsPage() {
           ruta y etapa (recorrido y luego pesaje). Un PDF por empresa.
         </p>
       </header>
+
+      <ReportsTabs />
 
       <Card>
         <CardContent className="pt-6 space-y-4">

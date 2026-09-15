@@ -515,6 +515,56 @@ export type Database = {
           },
         ]
       }
+      historical_daily_kg: {
+        Row: {
+          company_id: string | null
+          company_name: string
+          created_at: string
+          id: number
+          received_carts: number
+          received_kg: number
+          received_records: number
+          source: string | null
+          treated_kg: number
+          treated_records: number
+          weighed_on: string
+        }
+        Insert: {
+          company_id?: string | null
+          company_name: string
+          created_at?: string
+          id?: never
+          received_carts?: number
+          received_kg?: number
+          received_records?: number
+          source?: string | null
+          treated_kg?: number
+          treated_records?: number
+          weighed_on: string
+        }
+        Update: {
+          company_id?: string | null
+          company_name?: string
+          created_at?: string
+          id?: never
+          received_carts?: number
+          received_kg?: number
+          received_records?: number
+          source?: string | null
+          treated_kg?: number
+          treated_records?: number
+          weighed_on?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historical_daily_kg_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       photos: {
         Row: {
           created_at: string

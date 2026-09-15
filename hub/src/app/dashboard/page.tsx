@@ -34,7 +34,18 @@ import {
   computeStagnantContainers,
   computeYearAccumulated,
 } from '@hospiwaste/shared/lib/data/dashboard-analytics'
+import {
+  historicalMonthlyKgByCompany,
+  unifiedDailyKg,
+  yearlyMonthlySeries,
+} from '@hospiwaste/shared/lib/data/historical-kg'
+import {
+  HISTORICAL_CUTOVER,
+  HISTORICAL_FIRST_MONTH,
+} from '@hospiwaste/shared/lib/supabase/queries/historical-kg'
 import { useStore } from '@hospiwaste/shared/lib/store'
+import { useHistoricalKg } from '@/hooks/use-historical-kg'
+import { YearComparisonSection } from '@/components/dashboard/year-comparison-section'
 
 export default function DashboardPage() {
   const {
@@ -81,9 +92,36 @@ export default function DashboardPage() {
     [containers, receptions, treatmentRuns, today],
   )
 
+  // ── Histórico de planta (2024-01-15 → 2026-09-06, tabla aparte) ─────────────
+  // Se trae aparte del store porque no es data operativa: son kilos agregados
+  // por día sin trazabilidad de tacho. Ver el ADR 2026-09-14-historico-kilos.
+  const {
+    rows: historicalRows,
+    loading: historicalLoading,
+    error: historicalError,
+  } = useHistoricalKg()
+
+  const historicalMonth = month < HISTORICAL_CUTOVER.slice(0, 7)
+
   const monthlyKg = useMemo(
-    () => computeMonthlyKgByCompany({ clients, companies, containers, receptions, treatmentRuns }, month),
-    [clients, companies, containers, receptions, treatmentRuns, month],
+    () =>
+      historicalMonth
+        ? historicalMonthlyKgByCompany(historicalRows, month)
+        : computeMonthlyKgByCompany(
+            { clients, companies, containers, receptions, treatmentRuns },
+            month,
+          ),
+    [historicalMonth, historicalRows, clients, companies, containers, receptions, treatmentRuns, month],
+  )
+
+  // Comparativo anual: una sola serie que une histórico + sistema, para que el
+  // corte del 7-sep no se note como un escalón en los kilos de septiembre.
+  const yearSeries = useMemo(
+    () =>
+      yearlyMonthlySeries(
+        unifiedDailyKg(historicalRows, { companies, containers, receptions }),
+      ),
+    [historicalRows, companies, containers, receptions],
   )
 
   // ── Métricas nuevas ─────────────────────────────────────────────────────────
@@ -203,6 +241,23 @@ export default function DashboardPage() {
         month={month}
         onMonthChange={setMonth}
         maxMonth={currentMonth}
+        minMonth={HISTORICAL_FIRST_MONTH}
+        showProcessed={!historicalMonth}
+        note={
+          !historicalMonth
+            ? undefined
+            : historicalError
+              ? 'No se pudo cargar el histórico, así que este mes se ve vacío. No significa que no haya habido actividad: recargá la página.'
+              : 'Mes histórico, tomado de las planillas de kilos diarios de planta. No incluye procesados: la fecha de tratado era opcional en ese formulario.'
+        }
+      />
+
+      {/* Comparativo año contra año (histórico + sistema) */}
+      <YearComparisonSection
+        series={yearSeries}
+        currentMonth={currentMonth}
+        loading={historicalLoading}
+        error={historicalError}
       />
 
       {/* Calidad del registro + flota/planta */}

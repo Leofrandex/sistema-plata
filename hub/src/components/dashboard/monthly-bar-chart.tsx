@@ -24,6 +24,14 @@ interface Props {
   maxMonth?: string
   /** Mes mínimo navegable. Por defecto sin límite. */
   minMonth?: string
+  /**
+   * Oculta la serie "Procesados". Los meses históricos no la tienen confiable
+   * —la fecha de tratado era opcional en el formulario de planta—, así que
+   * mostrarla sugeriría una merma que no existió.
+   */
+  showProcessed?: boolean
+  /** Aclaración al pie del gráfico, p. ej. el origen de un mes histórico. */
+  note?: string
 }
 
 const RECEIVED_COLOR = '#2A27E9' // accent
@@ -217,11 +225,19 @@ function AnimatedPanel({ contentKey, direction, children }: AnimatedPanelProps) 
 
 // ─── componente principal ──────────────────────────────────────────────────
 
-export function MonthlyBarChart({ data, month, onMonthChange, maxMonth, minMonth }: Props) {
+export function MonthlyBarChart({
+  data,
+  month,
+  onMonthChange,
+  maxMonth,
+  minMonth,
+  showProcessed = true,
+  note,
+}: Props) {
   const [direction, setDirection] = useState<'forward' | 'backward' | null>(null)
 
   const totalReceived = data.reduce((sum, d) => sum + d.receivedKg, 0)
-  const totalProcessed = data.reduce((sum, d) => sum + d.processedKg, 0)
+  const totalProcessed = showProcessed ? data.reduce((sum, d) => sum + d.processedKg, 0) : 0
   const hasData = totalReceived > 0 || totalProcessed > 0
   const chartData = hasData ? data.filter((d) => d.receivedKg > 0 || d.processedKg > 0) : data
 
@@ -245,7 +261,7 @@ export function MonthlyBarChart({ data, month, onMonthChange, maxMonth, minMonth
                   Kilogramos del mes
                 </h2>
                 <p className="text-xs text-muted-foreground/80">
-                  Recibidos vs. procesados por empresa
+                  {showProcessed ? 'Recibidos vs. procesados por empresa' : 'Recibidos por empresa'}
                 </p>
               </div>
             </div>
@@ -259,17 +275,19 @@ export function MonthlyBarChart({ data, month, onMonthChange, maxMonth, minMonth
           </header>
 
           {/* Totales agregados (no animados — son del mes actual seleccionado) */}
-          <div className="grid grid-cols-2 gap-3 mb-5">
+          <div className={cn('grid gap-3 mb-5', showProcessed ? 'grid-cols-2' : 'grid-cols-1')}>
             <TotalCard
               color={RECEIVED_COLOR}
               label="Total recibido"
               value={formatKg(totalReceived)}
             />
-            <TotalCard
-              color={PROCESSED_COLOR}
-              label="Total procesado"
-              value={formatKg(totalProcessed)}
-            />
+            {showProcessed && (
+              <TotalCard
+                color={PROCESSED_COLOR}
+                label="Total procesado"
+                value={formatKg(totalProcessed)}
+              />
+            )}
           </div>
 
           {/* Chart con animación slide */}
@@ -325,23 +343,27 @@ export function MonthlyBarChart({ data, month, onMonthChange, maxMonth, minMonth
                         <Cell key={`r-${entry.company_id}`} />
                       ))}
                     </Bar>
-                    <Bar
-                      dataKey="processedKg"
-                      name="Procesados"
-                      fill={PROCESSED_COLOR}
-                      radius={[6, 6, 0, 0]}
-                      isAnimationActive
-                      animationDuration={400}
-                    >
-                      {chartData.map((entry) => (
-                        <Cell key={`p-${entry.company_id}`} />
-                      ))}
-                    </Bar>
+                    {showProcessed && (
+                      <Bar
+                        dataKey="processedKg"
+                        name="Procesados"
+                        fill={PROCESSED_COLOR}
+                        radius={[6, 6, 0, 0]}
+                        isAnimationActive
+                        animationDuration={400}
+                      >
+                        {chartData.map((entry) => (
+                          <Cell key={`p-${entry.company_id}`} />
+                        ))}
+                      </Bar>
+                    )}
                   </BarChart>
                 </ResponsiveContainer>
               )}
             </div>
           </AnimatedPanel>
+
+          {note && <p className="mt-3 text-xs text-muted-foreground/80">{note}</p>}
         </div>
       </div>
     </section>
