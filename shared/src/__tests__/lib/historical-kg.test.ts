@@ -1,7 +1,9 @@
 import {
+  HISTORICAL_CUTOVER,
   comparePeriod,
   dailyKgFromLive,
   historicalMonthlyKgByCompany,
+  mergeMonthlyByCompany,
   monthlyComparisonPoints,
   rollupByCompany,
   rollupByMonth,
@@ -102,6 +104,23 @@ describe('dailyKgFromLive', () => {
     expect(entries).toHaveLength(1)
     expect(entries[0].kg).toBe(20)
     expect(entries[0].records).toBe(1)
+  })
+
+  it('descarta las recepciones anteriores al corte', () => {
+    // El histórico ya cubre esos días. Si un backup viejo devuelve recepciones
+    // pre-corte al store, sumarlas las contaría dos veces.
+    const entries = dailyKgFromLive({
+      companies: COMPANIES,
+      containers: [container('c1', 10)],
+      receptions: [
+        reception('r1', '2026-09-04T12:00:00Z', 30), // prueba, antes del corte
+        reception('r2', `${HISTORICAL_CUTOVER}T12:00:00Z`, 30), // primer día real
+      ],
+    })
+
+    expect(entries).toHaveLength(1)
+    expect(entries[0].date).toBe(HISTORICAL_CUTOVER)
+    expect(entries[0].kg).toBe(20)
   })
 
   it('cae en "Sin especificar" cuando la recepción no trae empresa', () => {
@@ -279,5 +298,63 @@ describe('historicalMonthlyKgByCompany', () => {
     const sicarelle = out.find((o) => o.company_name === 'Sicarelle')!
 
     expect(sicarelle.company_id).toBe('historico:Sicarelle')
+  })
+})
+
+// ─── Mes del corte: hay que sumar las dos fuentes ────────────────────────────
+
+describe('mergeMonthlyByCompany', () => {
+  const historico = [
+    {
+      company_id: 'historico:Airkem',
+      company_name: 'Airkem',
+      client_id: '',
+      receivedKg: 12983.7,
+      processedKg: 0,
+    },
+  ]
+  const vivo = [
+    {
+      company_id: 'company-airkem',
+      company_name: 'Airkem',
+      client_id: 'client-1',
+      receivedKg: 19179.7,
+      processedKg: 5000,
+    },
+  ]
+
+  it('suma el mes partido entre las dos fuentes', () => {
+    // El bug: la barra mensual mostraba solo 19,179.7 para septiembre 2026
+    // mientras el comparativo anual mostraba el mes entero.
+    const out = mergeMonthlyByCompany(historico, vivo)
+
+    expect(out).toHaveLength(1)
+    expect(out[0].receivedKg).toBe(32163.4)
+    expect(out[0].processedKg).toBe(5000)
+  })
+
+  it('se queda con la empresa real del sistema y no con el id inventado', () => {
+    const out = mergeMonthlyByCompany(historico, vivo)
+
+    expect(out[0].company_id).toBe('company-airkem')
+    expect(out[0].client_id).toBe('client-1')
+  })
+
+  it('conserva las empresas que solo aparecen en una de las dos fuentes', () => {
+    const soloHistorico = [
+      { company_id: 'historico:Sicarelle', company_name: 'Sicarelle', client_id: '', receivedKg: 300, processedKg: 0 },
+    ]
+    const out = mergeMonthlyByCompany([...historico, ...soloHistorico], vivo)
+
+    expect(out.map((o) => o.company_name).sort()).toEqual(['Airkem', 'Sicarelle'])
+  })
+
+  it('ordena por kilos recibidos, de mayor a menor', () => {
+    const grande = [
+      { company_id: 'company-ion', company_name: 'ION', client_id: 'client-1', receivedKg: 99999, processedKg: 0 },
+    ]
+    const out = mergeMonthlyByCompany(historico, [...vivo, ...grande])
+
+    expect(out[0].company_name).toBe('ION')
   })
 })

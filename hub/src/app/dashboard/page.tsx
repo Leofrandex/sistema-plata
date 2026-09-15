@@ -35,14 +35,13 @@ import {
   computeYearAccumulated,
 } from '@hospiwaste/shared/lib/data/dashboard-analytics'
 import {
+  HISTORICAL_CUTOVER_MONTH,
+  HISTORICAL_FIRST_MONTH,
   historicalMonthlyKgByCompany,
+  mergeMonthlyByCompany,
   unifiedDailyKg,
   yearlyMonthlySeries,
 } from '@hospiwaste/shared/lib/data/historical-kg'
-import {
-  HISTORICAL_CUTOVER,
-  HISTORICAL_FIRST_MONTH,
-} from '@hospiwaste/shared/lib/supabase/queries/historical-kg'
 import { useStore } from '@hospiwaste/shared/lib/store'
 import { useHistoricalKg } from '@/hooks/use-historical-kg'
 import { YearComparisonSection } from '@/components/dashboard/year-comparison-section'
@@ -101,18 +100,27 @@ export default function DashboardPage() {
     error: historicalError,
   } = useHistoricalKg()
 
-  const historicalMonth = month < HISTORICAL_CUTOVER.slice(0, 7)
+  // De dónde sale el mes que se está mirando. El mes del corte tiene días de
+  // las dos fuentes (sep-2026: histórico del 1 al 6, sistema del 7 en adelante)
+  // y hay que sumarlas: elegir una sola dejaba afuera la mitad del mes.
+  const monthSource: 'historico' | 'mixto' | 'sistema' =
+    month < HISTORICAL_CUTOVER_MONTH
+      ? 'historico'
+      : month === HISTORICAL_CUTOVER_MONTH
+        ? 'mixto'
+        : 'sistema'
 
-  const monthlyKg = useMemo(
-    () =>
-      historicalMonth
-        ? historicalMonthlyKgByCompany(historicalRows, month)
-        : computeMonthlyKgByCompany(
-            { clients, companies, containers, receptions, treatmentRuns },
-            month,
-          ),
-    [historicalMonth, historicalRows, clients, companies, containers, receptions, treatmentRuns, month],
-  )
+  const monthlyKg = useMemo(() => {
+    if (monthSource === 'historico') return historicalMonthlyKgByCompany(historicalRows, month)
+
+    const live = computeMonthlyKgByCompany(
+      { clients, companies, containers, receptions, treatmentRuns },
+      month,
+    )
+    if (monthSource === 'sistema') return live
+
+    return mergeMonthlyByCompany(historicalMonthlyKgByCompany(historicalRows, month), live)
+  }, [monthSource, historicalRows, clients, companies, containers, receptions, treatmentRuns, month])
 
   // Comparativo anual: una sola serie que une histórico + sistema, para que el
   // corte del 7-sep no se note como un escalón en los kilos de septiembre.
@@ -242,13 +250,18 @@ export default function DashboardPage() {
         onMonthChange={setMonth}
         maxMonth={currentMonth}
         minMonth={HISTORICAL_FIRST_MONTH}
-        showProcessed={!historicalMonth}
+        // Los procesados solo se muestran cuando TODO el mes viene del sistema.
+        // En un mes con días del histórico, el procesado cubriría menos días que
+        // el recibido y se leería como una merma inexistente.
+        showProcessed={monthSource === 'sistema'}
         note={
-          !historicalMonth
+          monthSource === 'sistema'
             ? undefined
             : historicalError
-              ? 'No se pudo cargar el histórico, así que este mes se ve vacío. No significa que no haya habido actividad: recargá la página.'
-              : 'Mes histórico, tomado de las planillas de kilos diarios de planta. No incluye procesados: la fecha de tratado era opcional en ese formulario.'
+              ? 'No se pudo cargar el histórico, así que a este mes le faltan días. No significa que no haya habido actividad: recargá la página.'
+              : monthSource === 'mixto'
+                ? 'Mes del corte: los primeros días vienen de las planillas de planta y el resto de los pesajes registrados en el sistema. No incluye procesados, porque solo existen para la segunda parte del mes.'
+                : 'Mes histórico, tomado de las planillas de kilos diarios de planta. No incluye procesados: la fecha de tratado era opcional en ese formulario.'
         }
       />
 

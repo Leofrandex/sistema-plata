@@ -3,17 +3,19 @@ import { unwrap, type DB } from './_helpers'
 
 export type HistoricalDailyKgRow = Tables<'historical_daily_kg'>
 
+// El corte entre fuentes es una regla del dominio y vive en la capa de datos.
+// Se re-exporta desde aca por comodidad de quien ya consume este modulo.
+export {
+  HISTORICAL_CUTOVER,
+  HISTORICAL_CUTOVER_MONTH,
+  HISTORICAL_FIRST_MONTH,
+} from '@hospiwaste/shared/lib/data/historical-kg'
+
 /**
- * Primer dia que el sistema en vivo registra con pesajes reales. Todo lo
- * anterior vive en `historical_daily_kg`; nada se solapa. Ver el ADR
- * `2026-09-14-historico-kilos-2024-2026`.
+ * Cuantas filas se piden por vuelta. PostgREST corta las respuestas segun el
+ * `max-rows` del proyecto (1000 en Supabase por defecto), asi que este numero
+ * es un pedido, no una garantia: el bucle avanza por lo que REALMENTE volvio.
  */
-export const HISTORICAL_CUTOVER = '2026-09-07'
-
-/** Mes (YYYY-MM) mas viejo con historico cargado. */
-export const HISTORICAL_FIRST_MONTH = '2024-01'
-
-/** Tope de filas por respuesta de PostgREST en Supabase. */
 const PAGE_SIZE = 1000
 
 /**
@@ -26,8 +28,9 @@ const PAGE_SIZE = 1000
  */
 export async function listHistoricalDailyKg(db: DB): Promise<HistoricalDailyKgRow[]> {
   const todas: HistoricalDailyKgRow[] = []
+  let desde = 0
 
-  for (let desde = 0; ; desde += PAGE_SIZE) {
+  for (;;) {
     const pagina = unwrap(
       await db
         .from('historical_daily_kg')
@@ -36,7 +39,12 @@ export async function listHistoricalDailyKg(db: DB): Promise<HistoricalDailyKgRo
         .order('company_name', { ascending: true })
         .range(desde, desde + PAGE_SIZE - 1)
     )
+    // Se corta con pagina vacia, no comparando contra PAGE_SIZE: si el
+    // `max-rows` del proyecto fuera menor que PAGE_SIZE, esa comparacion daria
+    // verdadera en la primera vuelta y truncaria la tabla en silencio -- el
+    // mismo bug que este paginado vino a arreglar.
+    if (pagina.length === 0) return todas
     todas.push(...pagina)
-    if (pagina.length < PAGE_SIZE) return todas
+    desde += pagina.length
   }
 }

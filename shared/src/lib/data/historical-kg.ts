@@ -24,6 +24,22 @@ export interface DailyKgEntry {
   source: 'historico' | 'sistema'
 }
 
+/**
+ * Primer dia que el sistema en vivo registra pesajes reales. Todo lo anterior
+ * vive en `historical_daily_kg`. Ver el ADR `2026-09-14-historico-kilos-2024-2026`.
+ *
+ * Vive en la capa de datos y no en la de queries porque es una regla del
+ * dominio -- donde termina una fuente y empieza la otra -- y las funciones de
+ * este modulo la necesitan para no contar nada dos veces.
+ */
+export const HISTORICAL_CUTOVER = '2026-09-07'
+
+/** Mes del corte: tiene dias de las dos fuentes y hay que unirlas. */
+export const HISTORICAL_CUTOVER_MONTH = HISTORICAL_CUTOVER.slice(0, 7)
+
+/** Mes (YYYY-MM) mas viejo con historico cargado. */
+export const HISTORICAL_FIRST_MONTH = '2024-01'
+
 const SIN_EMPRESA = 'Sin especificar'
 
 function round2(n: number): number {
@@ -48,7 +64,16 @@ interface LiveSlice {
   receptions: ContainerReception[]
 }
 
-/** Recepciones vigentes del sistema -> entradas diarias por empresa. */
+/**
+ * Recepciones vigentes del sistema -> entradas diarias por empresa.
+ *
+ * Descarta lo anterior al corte. Que hoy no exista ninguna recepcion previa al
+ * 2026-09-07 es una propiedad de los datos, no una garantia: las 36 de prueba
+ * que se borraron siguen archivadas en `_archivo_receptions_pre_2026_09_07`, y
+ * restaurar un backup viejo bastaria para que esos dias se cuenten dos veces
+ * -- una desde aca y otra desde el historico -- sin que nada avise. El filtro
+ * hace que el invariante lo sostenga el codigo.
+ */
 export function dailyKgFromLive(store: LiveSlice): DailyKgEntry[] {
   const containerById = new Map(store.containers.map((c) => [c.id, c]))
   const companyById = new Map(store.companies.map((c) => [c.id, c]))
@@ -60,6 +85,7 @@ export function dailyKgFromLive(store: LiveSlice): DailyKgEntry[] {
     if (!container) continue
 
     const date = r.arrived_at.slice(0, 10)
+    if (date < HISTORICAL_CUTOVER) continue
     const companyId = r.company_id ?? null
     const companyName = companyId ? (companyById.get(companyId)?.name ?? companyId) : SIN_EMPRESA
     const key = `${date}|${companyName}`
@@ -212,6 +238,53 @@ export function historicalMonthlyKgByCompany(
 
   return [...acc.values()]
     .map((b) => ({ ...b, receivedKg: round2(b.receivedKg) }))
+    .sort((a, b) => b.receivedKg - a.receivedKg)
+}
+
+/** Un id inventado por el historico, no una empresa real del sistema. */
+function esIdInventado(companyId: string): boolean {
+  return companyId.startsWith('historico:')
+}
+
+/**
+ * Suma el mes del corte, que tiene dias de las dos fuentes.
+ *
+ * Septiembre 2026 empieza en el historico (1 al 6) y termina en el sistema
+ * (7 en adelante). Elegir una sola fuente para ese mes deja afuera la mitad:
+ * sin esto la barra mensual mostraba 19,180 kg mientras el comparativo anual
+ * -- que si une las dos -- mostraba 32,163 kg para el MISMO mes, en la misma
+ * pantalla.
+ *
+ * Se agrupa por nombre de empresa porque es lo unico que ambas fuentes
+ * comparten: el historico no tiene los ids del sistema.
+ */
+export function mergeMonthlyByCompany(
+  historical: HistoricalMonthByCompany[],
+  live: HistoricalMonthByCompany[],
+): HistoricalMonthByCompany[] {
+  const acc = new Map<string, HistoricalMonthByCompany>()
+
+  for (const fila of [...historical, ...live]) {
+    const previo = acc.get(fila.company_name)
+    if (!previo) {
+      acc.set(fila.company_name, { ...fila })
+      continue
+    }
+    previo.receivedKg += fila.receivedKg
+    previo.processedKg += fila.processedKg
+    // Si una de las dos trae la empresa real del sistema, esa gana.
+    if (esIdInventado(previo.company_id) && !esIdInventado(fila.company_id)) {
+      previo.company_id = fila.company_id
+      previo.client_id = fila.client_id
+    }
+  }
+
+  return [...acc.values()]
+    .map((b) => ({
+      ...b,
+      receivedKg: round2(b.receivedKg),
+      processedKg: round2(b.processedKg),
+    }))
     .sort((a, b) => b.receivedKg - a.receivedKg)
 }
 
