@@ -9,7 +9,6 @@ import { PhotoCapture } from '@/components/register/photo-capture'
 import { filterContainers } from '@/components/register/container-selector'
 import { cn } from '@hospiwaste/shared/lib/utils'
 import { computeNetWeight, formatTachoNumber } from '@hospiwaste/shared/lib/data/containers'
-import { CheckSquare, Square } from 'lucide-react'
 import type { Container, Company, WasteType } from '@hospiwaste/shared/lib/types'
 
 const WASTE_LABELS: Record<WasteType, string> = {
@@ -332,24 +331,6 @@ export function WeighingForm({
           className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
         />
       </div>
-
-      {state.waste_type === 'infectious' && (
-        <button
-          type="button"
-          onClick={() => onChange({ treat_immediately: !state.treat_immediately })}
-          aria-pressed={state.treat_immediately}
-          className={cn(
-            'w-full flex items-center gap-3 rounded-lg border p-3 text-left transition-colors',
-            state.treat_immediately ? 'border-accent/40 bg-accent/5' : 'border-border bg-card hover:bg-muted/40',
-          )}
-        >
-          {state.treat_immediately ? <CheckSquare className="h-5 w-5 shrink-0 text-accent" /> : <Square className="h-5 w-5 shrink-0 text-muted-foreground" />}
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-foreground">Tratar inmediatamente</p>
-            <p className="text-xs text-muted-foreground">Marcar para enviar el tacho directamente a tratamiento.</p>
-          </div>
-        </button>
-      )}
 
       {/* Fotos — balanza arriba, tacho abajo (solo orden visual; el orden de
           subida photo_container/photo_scale no cambia para no romper el reporte) */}

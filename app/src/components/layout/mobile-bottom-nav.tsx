@@ -16,6 +16,7 @@ interface TabDef {
   label: string
   icon: typeof Home
   matchPrefix: string
+  disabled?: boolean
 }
 
 // Operador: Inicio + sus 4 funciones. Sin dashboard ni secciones de coordinador.
@@ -23,7 +24,7 @@ const TABS: TabDef[] = [
   { href: '/',                   label: 'Inicio',      icon: Home,      matchPrefix: '/' },
   { href: '/register/route',     label: 'Recorrido',   icon: RouteIcon, matchPrefix: '/register/route' },
   { href: '/register/weighing',  label: 'Pesaje',      icon: Scale,     matchPrefix: '/register/weighing' },
-  { href: '/register/treatment', label: 'Tratamiento', icon: Flame,     matchPrefix: '/register/treatment' },
+  { href: '/register/treatment', label: 'Tratamiento', icon: Flame,     matchPrefix: '/register/treatment', disabled: true },
   { href: '/register/transfer',  label: 'Traslado',    icon: Truck,     matchPrefix: '/register/transfer' },
 ]
 
@@ -38,7 +39,21 @@ export function MobileBottomNav() {
       className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-sidebar border-t border-sidebar-border pb-[env(safe-area-inset-bottom)]"
     >
       <ul className="grid grid-cols-5">
-        {TABS.map(({ href, label, icon: Icon, matchPrefix }) => {
+        {TABS.map(({ href, label, icon: Icon, matchPrefix, disabled }) => {
+          if (disabled) {
+            return (
+              <li key={href}>
+                <div
+                  aria-disabled="true"
+                  className="flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium text-white/30 cursor-not-allowed select-none"
+                >
+                  <Icon className="h-5 w-5 opacity-40" />
+                  <span className="opacity-40">{label}</span>
+                </div>
+              </li>
+            )
+          }
+
           const active =
             matchPrefix === '/'
               ? pathname === '/'
