@@ -27,7 +27,7 @@ Punto de entrada. Leer al inicio de cada sesión, antes de tocar código.
 **Fase:** producción — piloto PTDP en planta, operando en **modo interino solo-pesaje**
 (recorridos congelados mientras se rehace la capa offline). Ver [[2026-09-01-modo-interino-solo-pesaje]].
 
-**Rama de trabajo:** `main` · último commit `bafe58c`
+**Rama de trabajo:** `main` · último commit `e88f2c4`
 **APK:** v1.6 compilado · **los teléfonos de planta siguen en v1.5**
 
 ### Pendientes abiertos
@@ -113,6 +113,7 @@ Uno por feature o cambio mayor, en orden inverso. Obsidian lista la carpeta comp
 acá van solo los que siguen teniendo consecuencias abiertas o reglas que aplican hoy.
 
 ### Vigentes — leer antes de tocar el APK
+- [[2026-09-17-fix-sqlite-already-exists-recarga-webview]] — fotos de pesaje provocaban recarga del WebView y SQLite fallaba con "Connection already exists"
 - [[2026-09-17-fotos-invisibles-paginado-postgrest]] — las fotos sí se subían: `photos` cruzó las 1000 filas y el hub dejó de verlas
 - [[2026-09-14-historico-kilos-dashboard-y-reporte]] — histórico 2024–2026 cargado; comparativo anual en el dashboard y reporte de kilos para directiva
 - [[2026-09-14-vault-solo-md-y-grafo-de-codigo]] — el vault queda solo-markdown; la estructura del código se deriva con graphify
