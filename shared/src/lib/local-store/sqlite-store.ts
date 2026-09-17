@@ -45,35 +45,54 @@ function base64ToBlob(b64: string, contentType: string): Blob {
 export function createSqliteStore(): LocalStore {
   // Imports dinámicos: este módulo solo se ejecuta en plataforma nativa.
   let conn: import('@capacitor-community/sqlite').SQLiteDBConnection | null = null
+  let initPromise: Promise<import('@capacitor-community/sqlite').SQLiteDBConnection> | null = null
 
   async function db() {
     if (conn) return conn
-    const { CapacitorSQLite, SQLiteConnection } = await import('@capacitor-community/sqlite')
-    const sqlite = new SQLiteConnection(CapacitorSQLite)
-    // La conexión vive en el plugin NATIVO, que sobrevive a una recarga del
-    // WebView dentro del mismo proceso (navegación dura, reload). Si el JS
-    // vuelve a pedir `createConnection`, el nativo lanza "Connection
-    // hospiwaste already exists" (CapacitorSQLite.java) y el LocalStore entero
-    // queda muerto: franja "Sin conexión con el servidor" al abrir. Primero se
-    // pregunta si ya existe y se reutiliza.
-    const existing = await sqlite.isConnection(DB_FILE, false).catch(() => ({ result: false }))
-    const c = existing.result
-      ? await sqlite.retrieveConnection(DB_FILE, false)
-      : await sqlite.createConnection(DB_FILE, false, 'no-encryption', 1, false)
-    // `open()` es idempotente en el plugin; sobre una conexión reutilizada no hace daño.
-    await c.open()
-    // `query()`, no `execute()`: este PRAGMA **devuelve una fila** (el modo
-    // resultante) y `execute()` va a parar a `execSQL()` de Android, que
-    // rechaza toda sentencia con resultado ("Queries can be performed using
-    // SQLiteDatabase query or rawQuery methods only"). Con `execute()` la
-    // conexión no llegaba a abrirse y el LocalStore entero quedaba muerto:
-    // el outbox no drenaba nada. Verificado en dispositivo el 2026-08-24.
-    await c.query('PRAGMA journal_mode=WAL;')
-    for (const stmt of SCHEMA_SQL) await c.execute(stmt)
-    // Migración idempotente: CREATE TABLE IF NOT EXISTS no agrega columnas a tablas ya creadas.
-    try { await c.execute('ALTER TABLE local_rows ADD COLUMN rev INTEGER NOT NULL DEFAULT 0;') } catch { /* ya existe */ }
-    conn = c
-    return c
+    if (initPromise) return initPromise
+
+    initPromise = (async () => {
+      const { CapacitorSQLite, SQLiteConnection } = await import('@capacitor-community/sqlite')
+      const sqlite = new SQLiteConnection(CapacitorSQLite)
+      // Reconciliar estado con el plugin nativo si el WebView se recargó dentro del proceso
+      await sqlite.checkConnectionsConsistency().catch(() => ({ result: false }))
+      const existing = await sqlite.isConnection(DB_FILE, false).catch(() => ({ result: false }))
+      let c: import('@capacitor-community/sqlite').SQLiteDBConnection
+      if (existing.result) {
+        c = await sqlite.retrieveConnection(DB_FILE, false)
+      } else {
+        try {
+          c = await sqlite.createConnection(DB_FILE, false, 'no-encryption', 1, false)
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err)
+          if (/already exists/i.test(msg)) {
+            // El nativo aún conservaba la conexión: forzar cierre y recrear limpiamente
+            await sqlite.closeConnection(DB_FILE, false).catch(() => {})
+            c = await sqlite.createConnection(DB_FILE, false, 'no-encryption', 1, false)
+          } else {
+            throw err
+          }
+        }
+      }
+      // `open()` es idempotente en el plugin; sobre una conexión reutilizada no hace daño.
+      await c.open()
+      // `query()`, no `execute()`: este PRAGMA **devuelve una fila** (el modo
+      // resultante) y `execute()` va a parar a `execSQL()` de Android, que
+      // rechaza toda sentencia con resultado ("Queries can be performed using
+      // SQLiteDatabase query or rawQuery methods only"). Con `execute()` la
+      // conexión no llegaba a abrirse y el LocalStore entero quedaba muerto:
+      // el outbox no drenaba nada. Verificado en dispositivo el 2026-08-24.
+      await c.query('PRAGMA journal_mode=WAL;')
+      for (const stmt of SCHEMA_SQL) await c.execute(stmt)
+      // Migración idempotente: CREATE TABLE IF NOT EXISTS no agrega columnas a tablas ya creadas.
+      try { await c.execute('ALTER TABLE local_rows ADD COLUMN rev INTEGER NOT NULL DEFAULT 0;') } catch { /* ya existe */ }
+      conn = c
+      return c
+    })().finally(() => {
+      initPromise = null
+    })
+
+    return initPromise
   }
 
   async function fs() {

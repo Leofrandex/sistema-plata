@@ -10,7 +10,7 @@
  * `CapacitorSQLite.java`), y como el singleton cacheaba la promesa rechazada,
  * "Reintentar" fallaba para siempre: franja ámbar al abrir sin salida.
  */
-const native = { isConnection: false, failOpenOnce: false }
+const native = { isConnection: false, failOpenOnce: false, failCreateWithAlreadyExists: false }
 const calls: string[] = []
 
 function pluginProxy<T extends object>(impl: T): T {
@@ -37,9 +37,17 @@ jest.mock('@capacitor-community/sqlite', () => {
   class SQLiteConnection {
     async isConnection() { calls.push('isConnection'); return { result: native.isConnection } }
     async retrieveConnection() { calls.push('retrieveConnection'); return new FakeConn() }
+    async closeConnection() {
+      calls.push('closeConnection')
+      native.isConnection = false
+      native.failCreateWithAlreadyExists = false
+    }
+    async checkConnectionsConsistency() { calls.push('checkConnectionsConsistency'); return { result: true } }
     async createConnection() {
       calls.push('createConnection')
-      if (native.isConnection) throw new Error('Connection hospiwaste already exists')
+      if (native.failCreateWithAlreadyExists || native.isConnection) {
+        throw new Error('Connection hospiwaste already exists')
+      }
       native.isConnection = true
       return new FakeConn()
     }
@@ -51,6 +59,7 @@ beforeEach(() => {
   jest.resetModules()
   native.isConnection = false
   native.failOpenOnce = false
+  native.failCreateWithAlreadyExists = false
   calls.length = 0
 })
 
@@ -61,6 +70,17 @@ it('reutiliza la conexión que el nativo ya tiene abierta en vez de fallar con "
   expect(await store.pendingCounts()).toEqual({ records: 0, photos: 0, rejected: 0 })
   expect(calls).toContain('retrieveConnection')
   expect(calls).not.toContain('createConnection')
+})
+
+it('recupera y recrea la conexión si el nativo lanza "already exists" por desincronización de JS', async () => {
+  // JS no tiene la conexión en su Map (isConnection = false), pero el nativo lanza already exists
+  native.isConnection = false
+  native.failCreateWithAlreadyExists = true
+  const { getLocalStore } = await import('@hospiwaste/shared/lib/local-store')
+  const store = await getLocalStore()
+  expect(await store.pendingCounts()).toEqual({ records: 0, photos: 0, rejected: 0 })
+  expect(calls).toContain('closeConnection')
+  expect(calls).toContain('createConnection')
 })
 
 it('no cachea un rechazo: tras un fallo de apertura, la siguiente llamada vuelve a intentar', async () => {
