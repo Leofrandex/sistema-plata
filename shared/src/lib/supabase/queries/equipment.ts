@@ -1,5 +1,5 @@
 import type { Tables, TablesInsert, TablesUpdate } from '../database.types'
-import { unwrap, unwrapOrNull, type DB } from './_helpers'
+import { selectAll, unwrap, unwrapOrNull, type DB } from './_helpers'
 
 export type EquipmentRow = Tables<'equipment'>
 export type EquipmentMaintenanceRow = Tables<'equipment_maintenance'>
@@ -35,11 +35,14 @@ export async function updateEquipment(
 
 /** equipment_id → performed_at más reciente (solo mantenimientos no anulados). */
 export async function listLatestMaintenanceByEquipment(db: DB): Promise<Map<string, string>> {
-  const rows = unwrap(
-    await db
-      .from('equipment_maintenance')
-      .select('equipment_id, performed_at')
-      .is('voided_at', null)
+  const rows = await selectAll<{ equipment_id: string; performed_at: string }>(
+    (desde, hasta) =>
+      db
+        .from('equipment_maintenance')
+        .select('equipment_id, performed_at')
+        .is('voided_at', null)
+        .order('id')
+        .range(desde, hasta)
   )
   const map = new Map<string, string>()
   for (const r of rows) {

@@ -1,10 +1,12 @@
 import type { Tables, TablesInsert, TablesUpdate } from '../database.types'
-import { unwrap, unwrapOrNull, type DB } from './_helpers'
+import { selectAll, unwrap, unwrapOrNull, type DB } from './_helpers'
 
 export type ContainerRow = Tables<'containers'>
 
 export async function listContainers(db: DB): Promise<ContainerRow[]> {
-  return unwrap(await db.from('containers').select('*').order('id'))
+  return selectAll<ContainerRow>((desde, hasta) =>
+    db.from('containers').select('*').order('id').range(desde, hasta)
+  )
 }
 
 export async function listActiveContainers(db: DB): Promise<ContainerRow[]> {

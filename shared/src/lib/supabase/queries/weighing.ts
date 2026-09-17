@@ -1,5 +1,5 @@
 import type { Tables, TablesInsert, TablesUpdate } from '../database.types'
-import { unwrap, unwrapOrNull, type DB } from './_helpers'
+import { selectAll, unwrap, unwrapOrNull, type DB } from './_helpers'
 
 export type WeighingSessionRow = Tables<'weighing_sessions'>
 export type ReceptionRow = Tables<'container_receptions'>
@@ -8,12 +8,14 @@ export type ReceptionWithNetRow = Tables<'container_receptions_with_net'>
 // ─── Sesiones ──────────────────────────────────────────────────────────────
 
 export async function listWeighingSessions(db: DB): Promise<WeighingSessionRow[]> {
-  return unwrap(
-    await db
+  return selectAll<WeighingSessionRow>((desde, hasta) =>
+    db
       .from('weighing_sessions')
       .select('*')
       .order('date', { ascending: false })
       .order('started_at', { ascending: false })
+      .order('id')
+      .range(desde, hasta)
   )
 }
 
@@ -84,17 +86,25 @@ export async function listReceptionsBySession(
   )
 }
 
+/**
+ * Todas las recepciones de las sesiones dadas. Paginada: es la tabla
+ * operativa que mas crece (~100 filas/dia) y una vez pasadas las 1000 filas,
+ * sin paginar, se perderian los pesajes MAS NUEVOS sin ningun error --
+ * kilos del dashboard, cola de pesaje y reportes quedarian cortos en silencio.
+ */
 export async function listReceptionsBySessionIds(
   db: DB,
   sessionIds: string[]
 ): Promise<ReceptionRow[]> {
   if (sessionIds.length === 0) return []
-  return unwrap(
-    await db
+  return selectAll<ReceptionRow>((desde, hasta) =>
+    db
       .from('container_receptions')
       .select('*')
       .in('weighing_session_id', sessionIds)
       .order('arrived_at')
+      .order('id')
+      .range(desde, hasta)
   )
 }
 

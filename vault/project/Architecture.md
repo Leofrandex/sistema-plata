@@ -4,7 +4,7 @@ tags:
   - project
   - architecture
   - tech
-updated: 2026-09-14
+updated: 2026-09-17
 ---
 
 # Arquitectura del Sistema
@@ -62,6 +62,10 @@ Monorepo de npm workspaces desde el 2026-07-22 — ver [[2026-07-22-separacion-h
 - **Distribución del APK: siempre el build de `release/`** — el de `debug/` lleva la llave
   genérica de Android y cambiar de llave impide actualizar sobre lo instalado. Subir
   `versionCode` en cada build. Ver [[2026-08-25-instalacion-apk-firma-debug-vs-release]]
+- **Consulta sobre una tabla que crece ⇒ se pagina con `selectAll`** — PostgREST corta en
+  el `max-rows` del proyecto (1000) y devuelve 200 sin error, así que un `select('*')` sin
+  paginar miente en silencio en cuanto la tabla pasa el tope. El orden debe ser total
+  (`id` como desempate). Ver [[2026-09-17-paginado-obligatorio-postgrest]]
 
 ## Integraciones externas
 

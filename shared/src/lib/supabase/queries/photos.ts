@@ -1,5 +1,5 @@
 import type { Tables, TablesInsert } from '../database.types'
-import { unwrap, type DB } from './_helpers'
+import { selectAll, unwrap, type DB } from './_helpers'
 
 export type PhotoRow = Tables<'photos'>
 export type PhotoEventType = PhotoRow['event_type']
@@ -91,9 +91,21 @@ export async function listPhotosByEvent(
   )
 }
 
-/** Trae todas las fotos (para hidratar el store al arrancar). */
+/**
+ * Trae todas las fotos (para hidratar el store al arrancar).
+ *
+ * Paginado obligatorio: la tabla crece ~200 filas/dia y cruzo las 1000 el
+ * 2026-09-11, momento en que el hub dejo de ver las fotos nuevas en silencio.
+ */
 export async function listAllPhotos(db: DB): Promise<PhotoRow[]> {
-  return unwrap(await db.from('photos').select('*').order('taken_at'))
+  return selectAll<PhotoRow>((desde, hasta) =>
+    db
+      .from('photos')
+      .select('*')
+      .order('taken_at')
+      .order('id')
+      .range(desde, hasta)
+  )
 }
 
 /**

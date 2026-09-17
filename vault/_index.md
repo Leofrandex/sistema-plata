@@ -3,7 +3,7 @@ title: Índice del Vault — Hospiwaste
 tags:
   - index
   - meta
-updated: 2026-09-14
+updated: 2026-09-17
 ---
 
 # Vault — Hospiwaste
@@ -27,7 +27,7 @@ Punto de entrada. Leer al inicio de cada sesión, antes de tocar código.
 **Fase:** producción — piloto PTDP en planta, operando en **modo interino solo-pesaje**
 (recorridos congelados mientras se rehace la capa offline). Ver [[2026-09-01-modo-interino-solo-pesaje]].
 
-**Rama de trabajo:** `feat/modo-interino-solo-pesaje` · último commit `32add8c`
+**Rama de trabajo:** `main` · último commit `bafe58c`
 **APK:** v1.6 compilado · **los teléfonos de planta siguen en v1.5**
 
 ### Pendientes abiertos
@@ -44,6 +44,8 @@ Punto de entrada. Leer al inicio de cada sesión, antes de tocar código.
 | E2E manual: pesar un `Y*` de punta a punta contra la balanza nueva | [[2026-09-07-yaris-pesaje-directo]] |
 | Decidir custom domain de Supabase — el DNS de Movistar VE no resuelve el subdominio | [[2026-08-25-fix-sesion-apk-preferences-sqlite]] |
 | Rediseño de la capa offline de recorridos (levanta el modo interino) | [[2026-09-01-modo-interino-solo-pesaje]] |
+| Hidratar por ventana de fechas en vez de traer las tablas enteras (`photos` crece ~200 filas/día) | [[2026-09-17-fotos-invisibles-paginado-postgrest]] |
+| Smoke en el navegador: abrir el reporte fotográfico del 11 al 17 de septiembre y confirmar que las fotos aparecen | [[2026-09-17-fotos-invisibles-paginado-postgrest]] |
 | Ciclo del compactador — módulo nunca empezado | [[Roadmap]] |
 | GPS en tiempo real — pendiente de cotización formal (~$2,000 + mensual) | [[Overview]] |
 
@@ -88,6 +90,7 @@ Punto de entrada. Leer al inicio de cada sesión, antes de tocar código.
 
 Formato y plantilla en [[Formato-ADR]] (`decisions/`).
 
+- [[2026-09-17-paginado-obligatorio-postgrest]] — toda lista acumulativa de Supabase se pagina: PostgREST corta en 1000 filas sin error
 - [[2026-09-14-historico-kilos-2024-2026]] — el histórico de kilos vive en tabla aparte, agregado por día; el sistema es dueño desde el 2026-09-07
 - [[2026-09-07-yaris-pesaje-directo]] — la flota Yaris estrena balanza: se pesa directo y muere el modo Yaris del formulario
 - [[2026-09-01-modo-interino-solo-pesaje]] — flag `INTERIM_MODE`: recorridos congelados, cola de pesaje abierta a todos los tachos
@@ -110,6 +113,7 @@ Uno por feature o cambio mayor, en orden inverso. Obsidian lista la carpeta comp
 acá van solo los que siguen teniendo consecuencias abiertas o reglas que aplican hoy.
 
 ### Vigentes — leer antes de tocar el APK
+- [[2026-09-17-fotos-invisibles-paginado-postgrest]] — las fotos sí se subían: `photos` cruzó las 1000 filas y el hub dejó de verlas
 - [[2026-09-14-historico-kilos-dashboard-y-reporte]] — histórico 2024–2026 cargado; comparativo anual en el dashboard y reporte de kilos para directiva
 - [[2026-09-14-vault-solo-md-y-grafo-de-codigo]] — el vault queda solo-markdown; la estructura del código se deriva con graphify
 - [[2026-09-07-yaris-pesaje-directo]] — taras reales `Y1`…`Y26` cargadas y migración aplicada; planta sigue en v1.5

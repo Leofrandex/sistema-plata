@@ -1,11 +1,16 @@
 import type { Tables, TablesInsert, TablesUpdate } from '../database.types'
-import { unwrap, unwrapOrNull, type DB } from './_helpers'
+import { selectAll, unwrap, unwrapOrNull, type DB } from './_helpers'
 
 export type RouteEventRow = Tables<'route_events'>
 
 export async function listRouteEvents(db: DB): Promise<RouteEventRow[]> {
-  return unwrap(
-    await db.from('route_events').select('*').order('date', { ascending: false })
+  return selectAll<RouteEventRow>((desde, hasta) =>
+    db
+      .from('route_events')
+      .select('*')
+      .order('date', { ascending: false })
+      .order('id')
+      .range(desde, hasta)
   )
 }
 
@@ -119,16 +124,27 @@ export type RouteContainerLink = { route_event_id: string; container_id: string 
 export async function listAllRouteContainersDirty(
   db: DB
 ): Promise<RouteContainerLink[]> {
-  return unwrap(
-    await db.from('route_event_containers_dirty').select('route_event_id, container_id')
+  return selectAll<RouteContainerLink>((desde, hasta) =>
+    db
+      .from('route_event_containers_dirty')
+      .select('route_event_id, container_id')
+      // La tabla no tiene `id`: el orden total lo da su PK compuesta.
+      .order('route_event_id')
+      .order('container_id')
+      .range(desde, hasta)
   )
 }
 
 export async function listAllRouteContainersClean(
   db: DB
 ): Promise<RouteContainerLink[]> {
-  return unwrap(
-    await db.from('route_event_containers_clean').select('route_event_id, container_id')
+  return selectAll<RouteContainerLink>((desde, hasta) =>
+    db
+      .from('route_event_containers_clean')
+      .select('route_event_id, container_id')
+      .order('route_event_id')
+      .order('container_id')
+      .range(desde, hasta)
   )
 }
 

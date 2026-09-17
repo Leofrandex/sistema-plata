@@ -1,5 +1,5 @@
 import type { Tables, TablesInsert } from '../database.types'
-import { unwrap, type DB } from './_helpers'
+import { selectAll, unwrap, type DB } from './_helpers'
 
 export type StorageEventRow = Tables<'storage_events'>
 export type ContainerLocationRow = Tables<'container_locations'>
@@ -15,7 +15,9 @@ export async function createStorageEvent(
 }
 
 export async function listStorageEvents(db: DB): Promise<StorageEventRow[]> {
-  return unwrap(await db.from('storage_events').select('*').order('entry_at'))
+  return selectAll<StorageEventRow>((desde, hasta) =>
+    db.from('storage_events').select('*').order('entry_at').order('id').range(desde, hasta)
+  )
 }
 
 // ─── container_locations ─────────────────────────────────────────────────────
@@ -28,11 +30,25 @@ export async function createContainerLocation(
 }
 
 export async function listContainerLocations(db: DB): Promise<ContainerLocationRow[]> {
-  return unwrap(await db.from('container_locations').select('*').order('reported_at'))
+  return selectAll<ContainerLocationRow>((desde, hasta) =>
+    db
+      .from('container_locations')
+      .select('*')
+      .order('reported_at')
+      .order('id')
+      .range(desde, hasta)
+  )
 }
 
 // ─── external_transfers ──────────────────────────────────────────────────────
 
 export async function listExternalTransfers(db: DB): Promise<ExternalTransferRow[]> {
-  return unwrap(await db.from('external_transfers').select('*').order('storage_started_at'))
+  return selectAll<ExternalTransferRow>((desde, hasta) =>
+    db
+      .from('external_transfers')
+      .select('*')
+      .order('storage_started_at')
+      .order('id')
+      .range(desde, hasta)
+  )
 }
