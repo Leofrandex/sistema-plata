@@ -10,6 +10,17 @@ const BUCKET = 'photos'
 const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24
 
 /**
+ * Cuantas rutas se firman por request. Supabase Storage rechaza el lote con
+ * `body/paths must NOT have more than 1000 items` si se pasa, y ese fallo
+ * tumba la hidratacion entera (banner "Sin conexion con el servidor").
+ *
+ * Estuvo latente hasta el 2026-09-17: `listAllPhotos` no paginaba, asi que
+ * nunca llegaban mas de 1000 fotos que firmar. Al arreglar el paginado
+ * quedaron 2.121 y el tope aparecio de golpe.
+ */
+const SIGNED_URL_BATCH_SIZE = 1000
+
+/**
  * Sube un archivo al bucket `photos` y registra la fila en `public.photos`.
  *
  * @param file       File/Blob desde el input/captura.
@@ -125,16 +136,17 @@ export async function getPhotoUrls(
     else if (p.storage_path) toSign.push(p)
   }
 
-  if (toSign.length > 0) {
+  for (let i = 0; i < toSign.length; i += SIGNED_URL_BATCH_SIZE) {
+    const lote = toSign.slice(i, i + SIGNED_URL_BATCH_SIZE)
     const { data, error } = await db.storage
       .from(BUCKET)
       .createSignedUrls(
-        toSign.map((p) => p.storage_path as string),
+        lote.map((p) => p.storage_path as string),
         SIGNED_URL_TTL_SECONDS
       )
     if (error) throw new Error(`Signed URLs failed: ${error.message}`)
     data.forEach((res, idx) => {
-      if (res.signedUrl) result.set(toSign[idx].id, res.signedUrl)
+      if (res.signedUrl) result.set(lote[idx].id, res.signedUrl)
     })
   }
 

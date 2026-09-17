@@ -60,8 +60,36 @@ No se perdió nada: las fotos y las recepciones siempre estuvieron en la base.
 Solo habían dejado de leerse. Al desplegar, los reportes del 11 al 17 de
 septiembre se completan solos.
 
+## El paginado destapó un segundo tope (mismo día, en producción)
+
+Con el fix desplegado, el hub mostró **"Sin conexión con el servidor"**:
+
+```
+Error: Signed URLs failed: body/paths must NOT have more than 1000 items
+```
+
+`getPhotoUrls` firmaba todas las fotos en una sola llamada a `createSignedUrls`,
+y Supabase Storage acepta máximo 1000 rutas por request. Estuvo latente desde
+siempre: como `listAllPhotos` nunca devolvía más de 1000, el lote jamás llegaba
+al tope. Al arreglar el paginado le llegaron 2.121 de golpe, la llamada falló, y
+como la hidratación es un solo `try`, **todo** el hub se fue al `catch` — no solo
+las fotos.
+
+Arreglado firmando en lotes de 1000 (`SIGNED_URL_BATCH_SIZE`). La lección
+general: un tope que tapaba a otro. Al levantar un límite conviene buscar cuál
+era el siguiente antes de desplegar, no después.
+
 ## Pendiente
 
 La hidratación trae ahora **todo** de verdad, y `photos` crece ~200 filas/día.
 Hay que pasar a una ventana por fecha en vez de "traer la tabla entera" — ver el
 pendiente en [[_index]].
+
+Y firmar 2.121 URLs en cada hidratación es caro aunque ya no falle: son 3
+requests a Storage al abrir el hub, creciendo. La ventana por fecha también
+resuelve esto.
+
+`listReceptionsBySessionIds` manda los ids de sesión en un `.in()`, que viaja en
+el query string: 72 sesiones son ~2,7 KB de URL hoy. A ~200 sesiones se acerca al
+límite de longitud y empezaría a dar 414. No es urgente, pero está en la misma
+familia de topes silenciosos.
