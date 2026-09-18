@@ -28,7 +28,7 @@ Punto de entrada. Leer al inicio de cada sesión, antes de tocar código.
 (recorridos congelados mientras se rehace la capa offline). Ver [[2026-09-01-modo-interino-solo-pesaje]].
 
 **Rama de trabajo:** `main` · último commit `e88f2c4`
-**APK:** v1.6 compilado · **los teléfonos de planta siguen en v1.5**
+**APK:** v1.7 compilado · **los teléfonos de planta siguen en v1.5**
 
 ### Pendientes abiertos
 
