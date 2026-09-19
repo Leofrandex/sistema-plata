@@ -3,7 +3,7 @@ title: Índice del Vault — Hospiwaste
 tags:
   - index
   - meta
-updated: 2026-09-17
+updated: 2026-09-18
 ---
 
 # Vault — Hospiwaste
@@ -38,7 +38,7 @@ Punto de entrada. Leer al inicio de cada sesión, antes de tocar código.
 | Aclarar con planta qué es `ION - Airkem` en el histórico (390 pesajes de 2026) | [[2026-09-14-historico-kilos-2024-2026]] |
 | Revisar dashboard y `/reports/comparativo` en el navegador con sesión de coordinador | [[2026-09-14-historico-kilos-dashboard-y-reporte]] |
 | Verificar el estado de error del histórico cortando la red (nunca se vio funcionando) | [[2026-09-14-historico-kilos-dashboard-y-reporte]] |
-| Investigar por qué una pestaña sin sesión no hidrata ni redirige al login | [[2026-09-14-historico-kilos-dashboard-y-reporte]] |
+| Investigar por qué una pestaña sin sesión no hidrata ni redirige al login — ahora además deja el dashboard en esqueletos para siempre | [[2026-09-18-skeletons-dashboard]] |
 | Captura de `/diagnostico` desde planta — cierra el diagnóstico del crash nativo | [[2026-09-06-auditoria-apk-crash-nativo-y-diagnostico]] |
 | Correr el reset de datos operativos (después del rollout del APK, no antes) | [[2026-09-01-modo-interino-solo-pesaje]] |
 | E2E manual: pesar un `Y*` de punta a punta contra la balanza nueva | [[2026-09-07-yaris-pesaje-directo]] |
@@ -46,6 +46,10 @@ Punto de entrada. Leer al inicio de cada sesión, antes de tocar código.
 | Rediseño de la capa offline de recorridos (levanta el modo interino) | [[2026-09-01-modo-interino-solo-pesaje]] |
 | Hidratar por ventana de fechas en vez de traer las tablas enteras (`photos` crece ~200 filas/día) | [[2026-09-17-fotos-invisibles-paginado-postgrest]] |
 | Smoke en el navegador: abrir el reporte fotográfico del 11 al 17 de septiembre y confirmar que las fotos aparecen | [[2026-09-17-fotos-invisibles-paginado-postgrest]] |
+| Averiguar qué son los tachos `52.1` y `76.1` del inventario de planta y cuál es su número real — no existen en Supabase y sus taras (15.6 / 13.9 kg) no coinciden con las de `052` / `076` | `Inventario de Contenedores en Proceso.xlsx` (2026-09-18) |
+| Reactivar el módulo de tratamiento (hoy deshabilitado en el código desde el 2026-09-15, commit `5fd0575`) | esta sesión |
+| Decidir si el radio de las tarjetas es 8px (ADR) o 16px (`rounded-2xl`, como está hoy) | [[2026-09-18-dashboard-operativo-vs-analitico]] |
+| Mantener `shared/src/lib/brand.ts` sincronizado con `tokens.css` a mano — o derivarlo en build | [[2026-09-18-reporte-pdf-identidad-y-grafico]] |
 | Ciclo del compactador — módulo nunca empezado | [[Roadmap]] |
 | GPS en tiempo real — pendiente de cotización formal (~$2,000 + mensual) | [[Overview]] |
 
@@ -113,6 +117,9 @@ Uno por feature o cambio mayor, en orden inverso. Obsidian lista la carpeta comp
 acá van solo los que siguen teniendo consecuencias abiertas o reglas que aplican hoy.
 
 ### Vigentes — leer antes de tocar el APK
+- [[2026-09-18-reporte-pdf-identidad-y-grafico]] — el PDF usa la tipografía y los colores de la app, y suma el comparativo año contra año
+- [[2026-09-18-dashboard-operativo-vs-analitico]] — el dashboard se queda con el día a día; el histórico y el navegador de meses se van a `/analytics`
+- [[2026-09-18-skeletons-dashboard]] — el dashboard mostraba mocks caducos como ceros mientras hidrataba; ahora van esqueletos
 - [[2026-09-17-fix-sqlite-already-exists-recarga-webview]] — fotos de pesaje provocaban recarga del WebView y SQLite fallaba con "Connection already exists"
 - [[2026-09-17-fotos-invisibles-paginado-postgrest]] — las fotos sí se subían: `photos` cruzó las 1000 filas y el hub dejó de verlas
 - [[2026-09-14-historico-kilos-dashboard-y-reporte]] — histórico 2024–2026 cargado; comparativo anual en el dashboard y reporte de kilos para directiva
