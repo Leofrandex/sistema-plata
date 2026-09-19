@@ -1,7 +1,9 @@
 'use client'
 
 import { Users } from 'lucide-react'
+import { cn } from '@hospiwaste/shared/lib/utils'
 import type { OperatorActivityRow } from '@hospiwaste/shared/lib/data/dashboard-analytics'
+import { CardSkeleton } from './card-skeleton'
 
 /** Colores del trío de actividad (validados CVD en este orden de apilado). */
 const SEGMENTS = [
@@ -12,14 +14,18 @@ const SEGMENTS = [
 
 interface Props {
   rows: OperatorActivityRow[]
+  loading?: boolean
+  className?: string
 }
 
 /** Actividad por operador (últimos 7 días): barras apiladas con gaps y labels. */
-export function OperatorActivitySection({ rows }: Props) {
+export function OperatorActivitySection({ rows, loading = false, className }: Props) {
   const max = rows.length > 0 ? Math.max(...rows.map((r) => r.total)) : 0
 
+  if (loading) return <CardSkeleton rows={5} className={className} />
+
   return (
-    <section className="rounded-2xl bg-card p-5 ring-1 ring-foreground/10">
+    <section className={cn('rounded-2xl bg-card p-5 ring-1 ring-foreground/10', className)}>
       <header className="mb-4 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">

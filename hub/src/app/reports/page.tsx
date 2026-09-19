@@ -12,7 +12,6 @@ import {
   isoDate,
 } from '@/lib/data/reports'
 import { ReportPreview } from '@/components/reports/report-preview'
-import { ReportsTabs } from '@/components/reports/reports-tabs'
 
 export default function ReportsPage() {
   const {
@@ -50,15 +49,13 @@ export default function ReportsPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <header>
-        <h1 className="text-2xl font-bold text-foreground">Reportes</h1>
+        <h1 className="text-2xl font-bold text-foreground">Registro fotográfico</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Genera el registro fotográfico por empresa. Por defecto cubre la semana actual,
+          Genera el reporte fotográfico de evidencia por empresa. Por defecto cubre la semana actual,
           pero podés elegir cualquier rango de fechas. Las fotos se ordenan por día,
-          ruta y etapa (recorrido y luego pesaje). Un PDF por empresa.
+          ruta y etapa (recorrido y pesaje). Exportable a PDF.
         </p>
       </header>
-
-      <ReportsTabs />
 
       <Card>
         <CardContent className="pt-6 space-y-4">

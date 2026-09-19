@@ -2,10 +2,14 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import { Boxes } from 'lucide-react'
+import { cn } from '@hospiwaste/shared/lib/utils'
 import type { CirculationBreakdown } from '@hospiwaste/shared/lib/data/dashboard-metrics'
+import { CardSkeleton } from './card-skeleton'
 
 interface Props {
   data: CirculationBreakdown
+  loading?: boolean
+  className?: string
 }
 
 interface TooltipPayload {
@@ -36,12 +40,14 @@ function CustomTooltip({ active, payload, total }: CustomTooltipProps) {
   )
 }
 
-export function CirculationPieChart({ data }: Props) {
+export function CirculationPieChart({ data, loading = false, className }: Props) {
+  if (loading) return <CardSkeleton bodyHeight="h-80" className={className} />
+
   const chartData = data.buckets.filter((b) => b.count > 0)
   const hasData = chartData.length > 0
 
   return (
-    <section className="rounded-2xl bg-card p-5 ring-1 ring-foreground/10">
+    <section className={cn('rounded-2xl bg-card p-5 ring-1 ring-foreground/10', className)}>
       <header className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -56,8 +62,10 @@ export function CirculationPieChart({ data }: Props) {
         </div>
       </header>
 
-      <div className="flex flex-col items-center gap-4 lg:flex-row lg:items-stretch">
-        <div className="relative h-56 w-full lg:w-1/2">
+      {/* Apilado siempre: la tarjeta vive en un tercio de la grilla, donde el
+          donut y la leyenda lado a lado no entran. */}
+      <div className="flex flex-1 flex-col gap-4">
+        <div className="relative min-h-48 w-full flex-1">
           {hasData ? (
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -100,7 +108,7 @@ export function CirculationPieChart({ data }: Props) {
         </div>
 
         {/* Legend */}
-        <ul className="flex-1 space-y-2 self-center lg:self-stretch lg:py-4">
+        <ul className="space-y-2">
           {data.buckets.map((bucket) => {
             const pct = data.total > 0 ? Math.round((bucket.count / data.total) * 100) : 0
             return (

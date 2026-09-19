@@ -14,6 +14,7 @@ import {
   LogOut,
   X,
   Wrench,
+  TrendingUp,
 } from 'lucide-react'
 import { cn } from '@hospiwaste/shared/lib/utils'
 
@@ -38,6 +39,7 @@ interface MoreLink {
 }
 
 const MORE_LINKS: MoreLink[] = [
+  { href: '/analytics',        label: 'Analíticas',     icon: TrendingUp },
   { href: '/equipment',        label: 'Equipos',        icon: Wrench },
   { href: '/admin/containers', label: 'Admin tachos',   icon: Settings },
   { href: '/admin/clients',    label: 'Admin clientes', icon: Settings },

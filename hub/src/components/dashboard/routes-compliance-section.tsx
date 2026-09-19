@@ -3,19 +3,24 @@
 import { Route as RouteIcon, CheckCircle2, Timer, CircleDashed, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { cn } from '@hospiwaste/shared/lib/utils'
 import type { SlotCompliance, RouteStats } from '@hospiwaste/shared/lib/data/dashboard-analytics'
+import { CardSkeleton } from './card-skeleton'
 
 interface Props {
   compliance: SlotCompliance
   stats: RouteStats
+  loading?: boolean
+  className?: string
 }
 
 /** Cumplimiento de los 6 horarios fijos del día + estadísticas de la semana. */
-export function RoutesComplianceSection({ compliance, stats }: Props) {
+export function RoutesComplianceSection({ compliance, stats, loading = false, className }: Props) {
+  if (loading) return <CardSkeleton rows={5} className={className} />
+
   const delta = stats.last7Count - stats.prev7Count
   const DeltaIcon = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus
 
   return (
-    <section className="rounded-2xl bg-card p-5 ring-1 ring-foreground/10">
+    <section className={cn('rounded-2xl bg-card p-5 ring-1 ring-foreground/10', className)}>
       <header className="mb-4 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/10 text-accent">
@@ -33,12 +38,15 @@ export function RoutesComplianceSection({ compliance, stats }: Props) {
         </span>
       </header>
 
-      <ul className="grid grid-cols-3 gap-2">
+      {/* `flex-1` + `auto-rows-fr` solo hacen algo cuando la página estira la
+          tarjeta: el alto extra se reparte entre las dos filas de horarios en
+          vez de quedar como hueco al pie. */}
+      <ul className="grid flex-1 auto-rows-fr grid-cols-3 gap-2">
         {compliance.slots.map(({ slot, shortLabel, status }) => (
           <li
             key={slot}
             className={cn(
-              'flex flex-col items-center gap-1 rounded-lg px-2 py-2.5',
+              'flex flex-col items-center justify-center gap-1 rounded-lg px-2 py-2.5',
               status === 'completed' && 'bg-green-50 text-green-700',
               status === 'in_progress' && 'bg-amber-50 text-amber-700',
               status === 'available' && 'bg-muted/60 text-muted-foreground',

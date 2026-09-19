@@ -1,9 +1,13 @@
 'use client'
 
+import { useMemo } from 'react'
 import { Biohazard } from 'lucide-react'
 import { cn } from '@hospiwaste/shared/lib/utils'
 import { formatKg } from '@hospiwaste/shared/lib/data/dashboard-metrics'
-import type { WasteTypeKgBucket } from '@hospiwaste/shared/lib/data/dashboard-analytics'
+import {
+  WASTE_TYPE_LABELS,
+  type WasteTypeKgBucket,
+} from '@hospiwaste/shared/lib/data/dashboard-analytics'
 import type { WasteType } from '@hospiwaste/shared/lib/types'
 
 /** Paleta categórica por tipo de desecho (validada CVD, orden fijo).
@@ -18,6 +22,26 @@ export const WASTE_TYPE_COLORS: Record<WasteType | 'unclassified', string> = {
   unclassified: '#94A3B8',
 }
 
+import { CardSkeleton } from './card-skeleton'
+
+/**
+ * Los seis tipos que existen, en el orden de la norma. Se listan siempre,
+ * tengan kilos o no: un tipo ausente de la lista no se distingue de un tipo que
+ * no se recibió, y esa diferencia importa —si en 30 días no entró ni un
+ * citotóxico, eso es información, no una fila que sobra.
+ *
+ * `unclassified` no entra acá: no es un tipo de desecho, es una recepción del
+ * histórico sin backfill. Solo aparece cuando de verdad tiene kilos.
+ */
+const ALL_WASTE_TYPES: WasteType[] = [
+  'infectious',
+  'anatomopathological',
+  'cytotoxic',
+  'liquid',
+  'morgue',
+  'metallic',
+]
+
 export type WasteRange = '7d' | '30d' | 'month'
 
 const RANGE_LABELS: Record<WasteRange, string> = {
@@ -31,15 +55,40 @@ interface Props {
   totalKg: number
   range: WasteRange
   onRangeChange: (range: WasteRange) => void
+  loading?: boolean
+  className?: string
 }
 
 /** Kg por tipo de desecho — barras horizontales con label directo (la identidad
  *  la lleva el texto, el color es refuerzo). */
-export function WasteTypeSection({ buckets, totalKg, range, onRangeChange }: Props) {
+export function WasteTypeSection({
+  buckets,
+  totalKg,
+  range,
+  onRangeChange,
+  loading = false,
+  className,
+}: Props) {
   const maxKg = buckets.length > 0 ? buckets[0].kg : 0
 
+  // `computeKgByWasteType` solo devuelve lo que tuvo kilos — es correcto como
+  // analítica. Completar la lista es decisión de presentación y vive acá: los
+  // que faltan van al final, ya ordenados por norma y no por un cero.
+  const rows = useMemo(() => {
+    const present = new Set(buckets.map((b) => b.type))
+    const missing = ALL_WASTE_TYPES.filter((t) => !present.has(t)).map((type) => ({
+      type,
+      label: WASTE_TYPE_LABELS[type],
+      kg: 0,
+      pct: 0,
+    }))
+    return [...buckets, ...missing]
+  }, [buckets])
+
+  if (loading) return <CardSkeleton rows={6} className={className} />
+
   return (
-    <section className="rounded-2xl bg-card p-5 ring-1 ring-foreground/10">
+    <section className={cn('rounded-2xl bg-card p-5 ring-1 ring-foreground/10', className)}>
       <header className="mb-4 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -73,34 +122,41 @@ export function WasteTypeSection({ buckets, totalKg, range, onRangeChange }: Pro
         </div>
       </header>
 
-      {buckets.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">
-          Sin pesajes en este rango.
-        </p>
-      ) : (
-        <ul className="space-y-3">
-          {buckets.map((b) => (
+      {/* `justify-between` reparte el alto sobrante entre las filas cuando la
+          página estira la tarjeta, en vez de dejarlo todo al pie. */}
+      <ul className="flex flex-1 flex-col justify-between gap-3">
+        {rows.map((b) => {
+          const empty = b.kg === 0
+          return (
             <li key={b.type}>
               <div className="mb-1 flex items-baseline justify-between gap-2 text-sm">
-                <span className="truncate text-foreground/80">{b.label}</span>
-                <span className="shrink-0 tabular-nums">
-                  <span className="font-semibold text-foreground">{formatKg(b.kg)}</span>{' '}
-                  <span className="text-xs text-muted-foreground">({b.pct}%)</span>
+                <span className={cn('truncate', empty ? 'text-muted-foreground' : 'text-foreground/80')}>
+                  {b.label}
                 </span>
+                {empty ? (
+                  <span className="shrink-0 text-xs text-muted-foreground">sin registros</span>
+                ) : (
+                  <span className="shrink-0 tabular-nums">
+                    <span className="font-semibold text-foreground">{formatKg(b.kg)}</span>{' '}
+                    <span className="text-xs text-muted-foreground">({b.pct}%)</span>
+                  </span>
+                )}
               </div>
               <div className="h-2.5 overflow-hidden rounded-sm bg-muted">
-                <div
-                  className="h-full rounded-sm"
-                  style={{
-                    width: `${maxKg > 0 ? Math.max((b.kg / maxKg) * 100, 1) : 0}%`,
-                    backgroundColor: WASTE_TYPE_COLORS[b.type],
-                  }}
-                />
+                {!empty && (
+                  <div
+                    className="h-full rounded-sm"
+                    style={{
+                      width: `${maxKg > 0 ? Math.max((b.kg / maxKg) * 100, 1) : 0}%`,
+                      backgroundColor: WASTE_TYPE_COLORS[b.type],
+                    }}
+                  />
+                )}
               </div>
             </li>
-          ))}
-        </ul>
-      )}
+          )
+        })}
+      </ul>
     </section>
   )
 }

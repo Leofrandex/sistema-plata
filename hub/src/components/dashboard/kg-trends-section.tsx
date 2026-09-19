@@ -7,8 +7,8 @@ import { formatKg } from '@hospiwaste/shared/lib/data/dashboard-metrics'
 import type {
   DailyKgPoint,
   MonthComparison,
-  YearAccumulated,
 } from '@hospiwaste/shared/lib/data/dashboard-analytics'
+import { CardSkeleton } from './card-skeleton'
 
 const SERIES_COLOR = '#2A27E9'
 
@@ -38,17 +38,32 @@ function SeriesTooltip({ active, payload }: TooltipProps) {
 interface Props {
   series: DailyKgPoint[]
   monthComparison: MonthComparison
-  yearAccumulated: YearAccumulated
   avgWeightPerContainer: number | null
+  loading?: boolean
+  className?: string
 }
 
-/** Tendencia de kg: serie de 30 días + comparativa mensual + acumulado anual. */
-export function KgTrendsSection({ series, monthComparison, yearAccumulated, avgWeightPerContainer }: Props) {
+/**
+ * Tendencia de kg de los últimos 30 días + comparativa contra el mes anterior.
+ *
+ * No lleva acumulado anual: el sistema solo es dueño de los kilos desde el
+ * 2026-09-07, así que un "Acumulado 2026" acá cubriría dos semanas y se leería
+ * como el año entero. Ese número, unido al histórico, vive en Analíticas.
+ */
+export function KgTrendsSection({
+  series,
+  monthComparison,
+  avgWeightPerContainer,
+  loading = false,
+  className,
+}: Props) {
+  if (loading) return <CardSkeleton bodyHeight="h-52" className={className} />
+
   const delta = monthComparison.deltaPct
   const DeltaIcon = delta === null || delta === 0 ? Minus : delta > 0 ? TrendingUp : TrendingDown
 
   return (
-    <section className="rounded-2xl bg-card p-5 ring-1 ring-foreground/10">
+    <section className={cn('rounded-2xl bg-card p-5 ring-1 ring-foreground/10', className)}>
       <header className="mb-4 flex items-center gap-2.5">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/10 text-accent">
           <LineChartIcon className="h-4 w-4" />
@@ -61,7 +76,10 @@ export function KgTrendsSection({ series, monthComparison, yearAccumulated, avgW
         </div>
       </header>
 
-      <div className="h-52 w-full">
+      {/* `flex-1` solo hace algo cuando la página estira la tarjeta hasta el
+          alto de su fila; el alto extra se lo lleva el gráfico, no un hueco.
+          `min-h-52` es el piso por debajo del cual la serie no se lee. */}
+      <div className="min-h-52 w-full flex-1">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={series} margin={{ top: 4, right: 4, bottom: 0, left: -14 }}>
             <defs>
@@ -95,7 +113,7 @@ export function KgTrendsSection({ series, monthComparison, yearAccumulated, avgW
         </ResponsiveContainer>
       </div>
 
-      <dl className="mt-4 grid grid-cols-1 gap-3 border-t border-border pt-4 sm:grid-cols-3">
+      <dl className="mt-4 grid grid-cols-1 gap-3 border-t border-border pt-4 sm:grid-cols-2">
         <div>
           <dt className="text-xs text-muted-foreground first-letter:uppercase">
             {MONTH_FORMATTER.format(new Date(`${monthComparison.month}-15T12:00:00Z`))}
@@ -118,12 +136,6 @@ export function KgTrendsSection({ series, monthComparison, yearAccumulated, avgW
               <DeltaIcon className="size-3.5" />
               {delta === null ? 's/d' : `${Math.abs(delta)}%`}
             </span>
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">Acumulado {yearAccumulated.year}</dt>
-          <dd className="mt-0.5 text-xl font-bold tabular-nums text-foreground">
-            {formatKg(yearAccumulated.totalKg)}
           </dd>
         </div>
         <div>

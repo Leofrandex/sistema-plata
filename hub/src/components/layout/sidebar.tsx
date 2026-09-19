@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, Package, Settings, ChevronDown, FileText, LogOut, Wrench, History } from 'lucide-react'
+import { LayoutDashboard, TrendingUp, Package, Settings, ChevronDown, FileText, LogOut, Wrench, History } from 'lucide-react'
 import { cn } from '@hospiwaste/shared/lib/utils'
 import { APP_NAME } from '@hospiwaste/shared/lib/constants'
 import { useState } from 'react'
@@ -16,6 +16,7 @@ const ADMIN_LINKS = [
 
 const TOP_NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/analytics', label: 'Analíticas', icon: TrendingUp },
   { href: '/containers', label: 'Tachos', icon: Package },
   { href: '/equipment', label: 'Equipos', icon: Wrench },
   { href: '/history', label: 'Historial', icon: History },

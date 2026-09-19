@@ -4,16 +4,21 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import { Scale, TrendingUp, Clock } from 'lucide-react'
 import { cn } from '@hospiwaste/shared/lib/utils'
 import { formatKg, type DailyKgMetrics } from '@hospiwaste/shared/lib/data/dashboard-metrics'
+import { CardSkeleton } from './card-skeleton'
 
 interface Props {
   data: DailyKgMetrics
+  loading?: boolean
+  className?: string
 }
 
 const PROCESSED_COLOR = '#0B1A48' // primary
 const PENDING_COLOR = '#F59E0B'   // amber
 
-export function DailyKgDonut({ data }: Props) {
+export function DailyKgDonut({ data, loading = false, className }: Props) {
   const { receivedKg, processedKg, pendingKg } = data
+
+  if (loading) return <CardSkeleton bodyHeight="h-80" className={className} />
 
   // Si no hay nada recibido todavía, dibujamos un placeholder
   const chartData =
@@ -27,7 +32,7 @@ export function DailyKgDonut({ data }: Props) {
   const processedPct = receivedKg > 0 ? Math.round((processedKg / receivedKg) * 100) : 0
 
   return (
-    <section className="rounded-2xl bg-card p-5 ring-1 ring-foreground/10">
+    <section className={cn('rounded-2xl bg-card p-5 ring-1 ring-foreground/10', className)}>
       <header className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -42,8 +47,9 @@ export function DailyKgDonut({ data }: Props) {
         </div>
       </header>
 
-      <div className="flex flex-col items-center gap-4 lg:flex-row lg:items-stretch">
-        <div className="relative h-56 w-full max-w-xs">
+      {/* Apilado siempre: la tarjeta vive en un tercio de la grilla. */}
+      <div className="flex flex-col gap-4">
+        <div className="relative mx-auto h-48 w-full max-w-xs">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -81,7 +87,7 @@ export function DailyKgDonut({ data }: Props) {
           </div>
         </div>
 
-        <div className="flex-1 space-y-3 self-center lg:self-stretch lg:py-4">
+        <div className="space-y-3">
           <MetricRow
             color={PROCESSED_COLOR}
             icon={<TrendingUp className="h-4 w-4" />}

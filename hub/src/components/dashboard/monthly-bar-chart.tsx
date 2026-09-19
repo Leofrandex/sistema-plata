@@ -15,11 +15,17 @@ import {
 import { BarChart3, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@hospiwaste/shared/lib/utils'
 import { formatKg, type MonthlyKgByCompany } from '@hospiwaste/shared/lib/data/dashboard-metrics'
+import { Skeleton } from '@hospiwaste/shared/components/ui/skeleton'
 
 interface Props {
   data: MonthlyKgByCompany[]
   month: string // YYYY-MM
-  onMonthChange: (month: string) => void
+  /**
+   * Habilita el navegador de meses. Sin él la tarjeta queda anclada al mes que
+   * reciba: así vive en el dashboard, que solo mira el día a día. Navegar hacia
+   * atrás es cosa de Analíticas, donde el histórico sí está cargado.
+   */
+  onMonthChange?: (month: string) => void
   /** Mes máximo navegable. Por defecto sin límite. */
   maxMonth?: string
   /** Mes mínimo navegable. Por defecto sin límite. */
@@ -32,6 +38,8 @@ interface Props {
   showProcessed?: boolean
   /** Aclaración al pie del gráfico, p. ej. el origen de un mes histórico. */
   note?: string
+  loading?: boolean
+  className?: string
 }
 
 const RECEIVED_COLOR = '#2A27E9' // accent
@@ -233,6 +241,8 @@ export function MonthlyBarChart({
   minMonth,
   showProcessed = true,
   note,
+  loading = false,
+  className,
 }: Props) {
   const [direction, setDirection] = useState<'forward' | 'backward' | null>(null)
 
@@ -242,14 +252,8 @@ export function MonthlyBarChart({
   const chartData = hasData ? data.filter((d) => d.receivedKg > 0 || d.processedKg > 0) : data
 
   return (
-    <section className="overflow-hidden rounded-2xl bg-card ring-1 ring-foreground/10">
-      {/* Glow decorativo en la esquina superior derecha */}
+    <section className={cn('overflow-hidden rounded-2xl bg-card ring-1 ring-foreground/10', className)}>
       <div className="relative">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -top-24 -right-24 size-64 rounded-full bg-gradient-to-br from-accent/15 to-primary/0 blur-3xl"
-        />
-
         <div className="relative p-5">
           <header className="flex flex-wrap items-start justify-between gap-3 mb-4">
             <div className="flex items-center gap-2.5">
@@ -265,35 +269,50 @@ export function MonthlyBarChart({
                 </p>
               </div>
             </div>
-            <MonthSwitcher
-              month={month}
-              onChange={onMonthChange}
-              maxMonth={maxMonth}
-              minMonth={minMonth}
-              onDirectionChange={setDirection}
-            />
+            {onMonthChange ? (
+              <MonthSwitcher
+                month={month}
+                onChange={onMonthChange}
+                maxMonth={maxMonth}
+                minMonth={minMonth}
+                onDirectionChange={setDirection}
+              />
+            ) : (
+              <span className="text-sm font-semibold tabular-nums text-foreground">
+                {formatMonthLabel(month)}
+              </span>
+            )}
           </header>
 
           {/* Totales agregados (no animados — son del mes actual seleccionado) */}
           <div className={cn('grid gap-3 mb-5', showProcessed ? 'grid-cols-2' : 'grid-cols-1')}>
-            <TotalCard
-              color={RECEIVED_COLOR}
-              label="Total recibido"
-              value={formatKg(totalReceived)}
-            />
-            {showProcessed && (
+            {loading ? (
+              <Skeleton className="h-[74px] rounded-lg" />
+            ) : (
               <TotalCard
-                color={PROCESSED_COLOR}
-                label="Total procesado"
-                value={formatKg(totalProcessed)}
+                color={RECEIVED_COLOR}
+                label="Total recibido"
+                value={formatKg(totalReceived)}
               />
             )}
+            {showProcessed &&
+              (loading ? (
+                <Skeleton className="h-[74px] rounded-lg" />
+              ) : (
+                <TotalCard
+                  color={PROCESSED_COLOR}
+                  label="Total procesado"
+                  value={formatKg(totalProcessed)}
+                />
+              ))}
           </div>
 
           {/* Chart con animación slide */}
           <AnimatedPanel contentKey={month} direction={direction}>
             <div className="h-72 w-full">
-              {chartData.length === 0 ? (
+              {loading ? (
+                <Skeleton className="h-full w-full rounded-lg" />
+              ) : chartData.length === 0 ? (
                 <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                   Sin actividad registrada este mes.
                 </div>

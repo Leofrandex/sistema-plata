@@ -1,17 +1,23 @@
 'use client'
 
 import { Boxes, Flame, Truck } from 'lucide-react'
+import { cn } from '@hospiwaste/shared/lib/utils'
 import { formatDuration } from '@hospiwaste/shared/lib/data/dashboard-metrics'
 import type { FleetBreakdown } from '@hospiwaste/shared/lib/data/dashboard-analytics'
+import { CardSkeleton } from './card-skeleton'
 
 interface Props {
   fleet: FleetBreakdown
+  loading?: boolean
+  className?: string
 }
 
 /** Composición de la flota y operaciones de planta (tratamientos, traslados). */
-export function FleetSection({ fleet }: Props) {
+export function FleetSection({ fleet, loading = false, className }: Props) {
+  if (loading) return <CardSkeleton rows={4} className={className} />
+
   return (
-    <section className="rounded-2xl bg-card p-5 ring-1 ring-foreground/10">
+    <section className={cn('rounded-2xl bg-card p-5 ring-1 ring-foreground/10', className)}>
       <header className="mb-4 flex items-center gap-2.5">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <Boxes className="h-4 w-4" />

@@ -32,25 +32,23 @@ import {
   computeRouteStats,
   computeSlotComplianceToday,
   computeStagnantContainers,
-  computeYearAccumulated,
 } from '@hospiwaste/shared/lib/data/dashboard-analytics'
-import {
-  HISTORICAL_CUTOVER_MONTH,
-  HISTORICAL_FIRST_MONTH,
-  historicalMonthlyKgByCompany,
-  mergeMonthlyByCompany,
-  unifiedDailyKg,
-  yearlyMonthlySeries,
-} from '@hospiwaste/shared/lib/data/historical-kg'
 import { useStore } from '@hospiwaste/shared/lib/store'
-import { useHistoricalKg } from '@/hooks/use-historical-kg'
-import { YearComparisonSection } from '@/components/dashboard/year-comparison-section'
 
+/**
+ * Dashboard del coordinador: solo el día a día.
+ *
+ * Todo lo que mira hacia atrás —el histórico de planta 2024–2026, el
+ * comparativo año contra año, el acumulado anual, la navegación por meses—
+ * vive en `/analytics`. Acá no se toca `historical_daily_kg`: esta página se
+ * alimenta únicamente del store, así que carga con la hidratación y nada más.
+ * Ver el log 2026-09-18-dashboard-operativo-vs-analitico.
+ */
 export default function DashboardPage() {
   const {
     clients, companies, containers, routeEvents, receptions, weighingSessions,
     storageEvents, treatmentRuns, externalTransfers, locations,
-    users, currentProfileId,
+    users, currentProfileId, connectionStatus,
   } = useStore()
 
   const firstName = useMemo(() => {
@@ -63,9 +61,15 @@ export default function DashboardPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   }, [])
   const currentMonth = today.slice(0, 7) // 'YYYY-MM'
-  const currentYear = today.slice(0, 4)
-  const [month, setMonth] = useState<string>(currentMonth)
   const [wasteRange, setWasteRange] = useState<WasteRange>('30d')
+
+  // El store arranca sembrado con los mocks, cuyas fechas son viejas: hasta que
+  // la hidratación termina, todo lo que se calcula contra hoy da 0 y las
+  // gráficas dibujan una planta parada que no existe. Mientras tanto van
+  // esqueletos. 'connecting' es exclusivo del primer intento — las
+  // rehidrataciones (foco, reconexión, login) no vuelven a ese estado, así que
+  // el dashboard ya cargado nunca parpadea.
+  const loading = connectionStatus === 'connecting'
 
   // Reloj para "tiempo en estado" de los tachos estancados (refresco 60s).
   const [nowMs, setNowMs] = useState(() => Date.now())
@@ -91,48 +95,16 @@ export default function DashboardPage() {
     [containers, receptions, treatmentRuns, today],
   )
 
-  // ── Histórico de planta (2024-01-15 → 2026-09-06, tabla aparte) ─────────────
-  // Se trae aparte del store porque no es data operativa: son kilos agregados
-  // por día sin trazabilidad de tacho. Ver el ADR 2026-09-14-historico-kilos.
-  const {
-    rows: historicalRows,
-    loading: historicalLoading,
-    error: historicalError,
-  } = useHistoricalKg()
-
-  // De dónde sale el mes que se está mirando. El mes del corte tiene días de
-  // las dos fuentes (sep-2026: histórico del 1 al 6, sistema del 7 en adelante)
-  // y hay que sumarlas: elegir una sola dejaba afuera la mitad del mes.
-  const monthSource: 'historico' | 'mixto' | 'sistema' =
-    month < HISTORICAL_CUTOVER_MONTH
-      ? 'historico'
-      : month === HISTORICAL_CUTOVER_MONTH
-        ? 'mixto'
-        : 'sistema'
-
-  const monthlyKg = useMemo(() => {
-    if (monthSource === 'historico') return historicalMonthlyKgByCompany(historicalRows, month)
-
-    const live = computeMonthlyKgByCompany(
+  // Mes en curso y solo del sistema. El mes del corte (sep-2026) tiene días que
+  // vienen de las planillas de planta, pero completarlos exigiría traer el
+  // histórico: eso es el trabajo de Analíticas, no del tablero del día.
+  const monthlyKg = useMemo(
+    () => computeMonthlyKgByCompany(
       { clients, companies, containers, receptions, treatmentRuns },
-      month,
-    )
-    if (monthSource === 'sistema') return live
-
-    return mergeMonthlyByCompany(historicalMonthlyKgByCompany(historicalRows, month), live)
-  }, [monthSource, historicalRows, clients, companies, containers, receptions, treatmentRuns, month])
-
-  // Comparativo anual: una sola serie que une histórico + sistema, para que el
-  // corte del 7-sep no se note como un escalón en los kilos de septiembre.
-  const yearSeries = useMemo(
-    () =>
-      yearlyMonthlySeries(
-        unifiedDailyKg(historicalRows, { companies, containers, receptions }),
-      ),
-    [historicalRows, companies, containers, receptions],
+      currentMonth,
+    ),
+    [clients, companies, containers, receptions, treatmentRuns, currentMonth],
   )
-
-  // ── Métricas nuevas ─────────────────────────────────────────────────────────
 
   const wasteByType = useMemo(() => {
     const startDay =
@@ -171,11 +143,6 @@ export default function DashboardPage() {
     [containers, receptions, currentMonth],
   )
 
-  const yearAccumulated = useMemo(
-    () => computeYearAccumulated({ containers, receptions }, currentYear),
-    [containers, receptions, currentYear],
-  )
-
   const avgWeight = useMemo(
     () => computeAvgWeightPerContainer({ containers, receptions }, addDaysISO(today, -29), today),
     [containers, receptions, today],
@@ -207,80 +174,84 @@ export default function DashboardPage() {
   )
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-4 pb-8">
       <DashboardHero name={firstName} />
       <InterimModeBanner />
-      <MetricsCards metrics={metrics} />
+      <MetricsCards metrics={metrics} loading={loading} />
 
-      {/* Hoy: circulación + kg del día */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <CirculationPieChart data={circulation} />
-        <DailyKgDonut data={dailyKg} />
-      </div>
+      {/*
+        Una sola grilla de 12 columnas para todas las tarjetas, en vez de filas
+        sueltas de 1 y 2 columnas. Cada tarjeta pide el ancho que su contenido
+        necesita: el semáforo de equipos son cuatro chips y no merece la página
+        entera, la tendencia de kg es un gráfico de 30 puntos y sí.
 
-      {/* Operación: cumplimiento de recorridos + tachos estancados */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <RoutesComplianceSection compliance={slotCompliance} stats={routeStats} />
-        <StagnantContainersSection rows={stagnant} />
-      </div>
+        `items-start` es el default: una tarjeta corta no se estira hasta el
+        alto de su vecina alta, porque estirarla solo agregaría hueco al pie.
+        Las que sí se estiran lo piden con `self-stretch flex flex-col`, y a
+        cambio tienen adentro una región `flex-1` que se come el alto extra —
+        el gráfico crece, no el vacío.
+      */}
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">
+        {/* Kilos: la tendencia manda, el donut del día la acompaña */}
+        <KgTrendsSection
+          series={kgSeries}
+          monthComparison={monthComparison}
+          avgWeightPerContainer={avgWeight}
+          loading={loading}
+          className="flex flex-col self-stretch lg:col-span-8"
+        />
+        <DailyKgDonut data={dailyKg} loading={loading} className="lg:col-span-4" />
 
-      {/* Tendencias de kg (30 días + mes + año) */}
-      <KgTrendsSection
-        series={kgSeries}
-        monthComparison={monthComparison}
-        yearAccumulated={yearAccumulated}
-        avgWeightPerContainer={avgWeight}
-      />
+        {/* Estado de la operación ahora mismo */}
+        <RoutesComplianceSection
+          compliance={slotCompliance}
+          stats={routeStats}
+          loading={loading}
+          className="flex flex-col self-stretch lg:col-span-4"
+        />
+        <CirculationPieChart
+          data={circulation}
+          loading={loading}
+          className="flex flex-col self-stretch lg:col-span-4"
+        />
+        <div className="space-y-4 lg:col-span-4">
+          <EquipmentSummaryCard />
+          <FleetSection fleet={fleet} loading={loading} />
+        </div>
 
-      {/* Tipos de desecho + actividad por operador */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* Qué se recibió y quién lo registró */}
         <WasteTypeSection
           buckets={wasteByType.buckets}
           totalKg={wasteByType.totalKg}
           range={wasteRange}
           onRangeChange={setWasteRange}
+          loading={loading}
+          className="flex flex-col self-stretch lg:col-span-6"
         />
-        <OperatorActivitySection rows={operatorActivity} />
+        <OperatorActivitySection
+          rows={operatorActivity}
+          loading={loading}
+          className="lg:col-span-6"
+        />
+
+        {/* Pendientes de atención */}
+        <StagnantContainersSection rows={stagnant} loading={loading} className="lg:col-span-7" />
+        <QualitySection
+          indicators={quality}
+          windowLabel="últimos 7 días"
+          loading={loading}
+          className="flex flex-col self-stretch lg:col-span-5"
+        />
+
+        {/* Kg del mes en curso por empresa — sin navegador: mirar meses
+            anteriores es cosa de Analíticas, que sí carga el histórico. */}
+        <MonthlyBarChart
+          data={monthlyKg}
+          month={currentMonth}
+          loading={loading}
+          className="lg:col-span-12"
+        />
       </div>
-
-      {/* Kg por empresa (mes seleccionable) */}
-      <MonthlyBarChart
-        data={monthlyKg}
-        month={month}
-        onMonthChange={setMonth}
-        maxMonth={currentMonth}
-        minMonth={HISTORICAL_FIRST_MONTH}
-        // Los procesados solo se muestran cuando TODO el mes viene del sistema.
-        // En un mes con días del histórico, el procesado cubriría menos días que
-        // el recibido y se leería como una merma inexistente.
-        showProcessed={monthSource === 'sistema'}
-        note={
-          monthSource === 'sistema'
-            ? undefined
-            : historicalError
-              ? 'No se pudo cargar el histórico, así que a este mes le faltan días. No significa que no haya habido actividad: recargá la página.'
-              : monthSource === 'mixto'
-                ? 'Mes del corte: los primeros días vienen de las planillas de planta y el resto de los pesajes registrados en el sistema. No incluye procesados, porque solo existen para la segunda parte del mes.'
-                : 'Mes histórico, tomado de las planillas de kilos diarios de planta. No incluye procesados: la fecha de tratado era opcional en ese formulario.'
-        }
-      />
-
-      {/* Comparativo año contra año (histórico + sistema) */}
-      <YearComparisonSection
-        series={yearSeries}
-        currentMonth={currentMonth}
-        loading={historicalLoading}
-        error={historicalError}
-      />
-
-      {/* Calidad del registro + flota/planta */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <QualitySection indicators={quality} windowLabel="últimos 7 días" />
-        <FleetSection fleet={fleet} />
-      </div>
-
-      {/* Equipos (async, fuera del store) */}
-      <EquipmentSummaryCard />
     </div>
   )
 }

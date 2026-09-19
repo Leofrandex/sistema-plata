@@ -1,5 +1,4 @@
-import { Boxes, Route, Scale, Flame, type LucideIcon } from 'lucide-react'
-import { cn } from '@hospiwaste/shared/lib/utils'
+import { Skeleton } from '@hospiwaste/shared/components/ui/skeleton'
 import { getPendingWeighingContainerIds } from '@hospiwaste/shared/lib/data/containers'
 import type {
   Container,
@@ -35,46 +34,71 @@ export function computeDashboardMetrics(
   }
 }
 
-interface CardSpec {
-  key: keyof DashboardMetrics
-  label: string
-  icon: LucideIcon
-  iconBg: string
-  iconText: string
-  decoration: string
-}
-
-const CARDS: CardSpec[] = [
-  { key: 'routesToday',                label: 'Recorridos hoy',         icon: Route,  iconBg: 'bg-accent/10',  iconText: 'text-accent',     decoration: 'from-accent/15    to-accent/0' },
-  { key: 'containersInCirculation',    label: 'Tachos en circulación', icon: Boxes,  iconBg: 'bg-primary/10', iconText: 'text-primary',    decoration: 'from-primary/15   to-primary/0' },
-  { key: 'containersPendingWeighing',  label: 'Pendientes de pesar',    icon: Scale,  iconBg: 'bg-amber-100',  iconText: 'text-amber-700',  decoration: 'from-amber-200/40 to-amber-200/0' },
-  { key: 'containersInTreatment',      label: 'En tratamiento',         icon: Flame,  iconBg: 'bg-violet-100', iconText: 'text-violet-700', decoration: 'from-violet-200/40 to-violet-200/0' },
+/**
+ * Las tres secundarias. La cola de pesaje no está acá: es la primaria y se
+ * dibuja aparte, con el contexto que estas no tienen.
+ */
+const SECONDARY: Array<{ key: keyof DashboardMetrics; label: string }> = [
+  { key: 'routesToday', label: 'Recorridos hoy' },
+  { key: 'containersInCirculation', label: 'Tachos en circulación' },
+  { key: 'containersInTreatment', label: 'En tratamiento' },
 ]
 
 interface Props {
   metrics: DashboardMetrics
+  loading?: boolean
 }
 
-export function MetricsCards({ metrics }: Props) {
+/**
+ * Fila de métricas del día. La cola de pesaje manda: en modo interino es lo
+ * único sobre lo que el coordinador puede actuar, así que ocupa medio ancho y
+ * lleva el denominador al lado. Las otras tres son referencia y se compactan.
+ */
+export function MetricsCards({ metrics, loading = false }: Props) {
+  const pending = metrics.containersPendingWeighing
+  const active = metrics.containersInCirculation
+  const pendingPct = active > 0 ? Math.round((pending / active) * 100) : null
+
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-      {CARDS.map(({ key, label, icon: Icon, iconBg, iconText, decoration }) => (
+    <div className="grid grid-cols-1 gap-3 lg:grid-cols-12">
+      {/* Primaria — el acento marca que acá es donde se actúa. */}
+      <div className="rounded-xl border-l-2 border-accent bg-card p-5 ring-1 ring-foreground/10 lg:col-span-6">
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Pendientes de pesar
+        </span>
+        {loading ? (
+          <Skeleton className="mt-2 h-10 w-24" />
+        ) : (
+          <p className="mt-1 text-[40px] font-bold leading-none tabular-nums text-foreground">
+            {pending}
+          </p>
+        )}
+        <p className="mt-2 text-xs text-muted-foreground">
+          {loading || pendingPct === null ? (
+            <span className="tabular-nums">de {active} tachos en circulación</span>
+          ) : (
+            <span className="tabular-nums">
+              de {active} tachos en circulación · {pendingPct}% de la flota activa
+            </span>
+          )}
+        </p>
+      </div>
+
+      {SECONDARY.map(({ key, label }) => (
         <div
           key={key}
-          className="group relative overflow-hidden rounded-xl bg-card p-4 ring-1 ring-foreground/10 transition-all hover:-translate-y-0.5 hover:shadow-md"
+          className="rounded-xl bg-card p-4 ring-1 ring-foreground/10 lg:col-span-2"
         >
-          <div aria-hidden className={cn('pointer-events-none absolute -top-10 -right-10 size-32 rounded-full bg-gradient-to-br blur-2xl', decoration)} />
-          <div className="relative flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {label}
-              </span>
-              <span className={cn('flex size-9 items-center justify-center rounded-lg ring-1 ring-foreground/5', iconBg, iconText)}>
-                <Icon aria-hidden className="size-4" />
-              </span>
-            </div>
-            <p className="text-3xl font-bold tabular-nums text-foreground">{metrics[key]}</p>
-          </div>
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {label}
+          </span>
+          {loading ? (
+            <Skeleton className="mt-2 h-7 w-12" />
+          ) : (
+            <p className="mt-1.5 text-2xl font-bold leading-none tabular-nums text-foreground">
+              {metrics[key]}
+            </p>
+          )}
         </div>
       ))}
     </div>

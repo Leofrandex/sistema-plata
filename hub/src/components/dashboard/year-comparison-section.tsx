@@ -13,18 +13,14 @@ import {
 } from 'recharts'
 import { CalendarRange, ChevronRight, TrendingDown, TrendingUp } from 'lucide-react'
 import { cn } from '@hospiwaste/shared/lib/utils'
+import { Skeleton } from '@hospiwaste/shared/components/ui/skeleton'
 import {
   MONTH_LABELS,
   monthlyComparisonPoints,
   type YearMonthlySeries,
 } from '@hospiwaste/shared/lib/data/historical-kg'
 
-/**
- * Paleta por ano: el mas viejo mas apagado, el ano en curso en el acento de
- * marca. Ordenada de viejo a nuevo; si algun dia hay mas anos que colores, se
- * repite el ciclo (no es un problema real en el horizonte de este piloto).
- */
-const YEAR_COLORS = ['#CBD5E1', '#94A3B8', '#2A27E9', '#7C3AED', '#0EA5E9']
+import { YEAR_COLORS } from '@hospiwaste/shared/lib/brand'
 
 const KG = new Intl.NumberFormat('es-PA', { maximumFractionDigits: 0 })
 
@@ -109,6 +105,8 @@ interface Props {
    */
   currentMonth?: string
   loading?: boolean
+  /** Ocultar enlace a analíticas completas (ej. cuando ya se está en la página de analíticas). */
+  hideReportLink?: boolean
 }
 
 /**
@@ -121,6 +119,7 @@ export function YearComparisonSection({
   currentMonth,
   error = false,
   loading = false,
+  hideReportLink = false,
 }: Props) {
   // Años ocultos por el usuario. Se guarda lo OCULTO y no lo visible para que
   // un año nuevo en los datos aparezca solo, sin tener que tocar este estado.
@@ -212,19 +211,19 @@ export function YearComparisonSection({
             </p>
           </div>
         </div>
-        <Link
-          href="/reports/comparativo"
-          className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent/10"
-        >
-          Ver reporte completo
-          <ChevronRight className="h-3.5 w-3.5" />
-        </Link>
+        {!hideReportLink && (
+          <Link
+            href="/analytics"
+            className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent/10"
+          >
+            Ver analíticas completas
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Link>
+        )}
       </header>
 
       {loading ? (
-        <div className="flex h-72 items-center justify-center text-sm text-muted-foreground">
-          Cargando histórico…
-        </div>
+        <Skeleton className="h-72 w-full rounded-lg" />
       ) : error ? (
         <div className="flex h-72 flex-col items-center justify-center gap-1 px-6 text-center text-sm">
           <p className="font-medium text-red-700">No se pudo cargar el histórico.</p>

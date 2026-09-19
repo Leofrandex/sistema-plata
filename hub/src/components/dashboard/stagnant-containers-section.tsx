@@ -7,17 +7,23 @@ import {
   circulationLabel,
   formatDuration,
 } from '@hospiwaste/shared/lib/data/dashboard-metrics'
+import { cn } from '@hospiwaste/shared/lib/utils'
 import { formatTachoNumber } from '@hospiwaste/shared/lib/data/containers'
 import type { StagnantContainer } from '@hospiwaste/shared/lib/data/dashboard-analytics'
+import { CardSkeleton } from './card-skeleton'
 
 interface Props {
   rows: StagnantContainer[]
+  loading?: boolean
+  className?: string
 }
 
 /** Top de tachos con más tiempo en su estado actual (fuera de planta). */
-export function StagnantContainersSection({ rows }: Props) {
+export function StagnantContainersSection({ rows, loading = false, className }: Props) {
+  if (loading) return <CardSkeleton rows={5} className={className} />
+
   return (
-    <section className="rounded-2xl bg-card p-5 ring-1 ring-foreground/10">
+    <section className={cn('rounded-2xl bg-card p-5 ring-1 ring-foreground/10', className)}>
       <header className="mb-4 flex items-center gap-2.5">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
           <Hourglass className="h-4 w-4" />

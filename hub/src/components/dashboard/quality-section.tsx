@@ -1,8 +1,10 @@
 'use client'
 
 import { ShieldCheck, PenOff, ImageOff, Ban, MessageSquareText } from 'lucide-react'
+import { cn } from '@hospiwaste/shared/lib/utils'
 import { formatTachoNumber } from '@hospiwaste/shared/lib/data/containers'
 import type { QualityIndicators } from '@hospiwaste/shared/lib/data/dashboard-analytics'
+import { CardSkeleton } from './card-skeleton'
 
 const DATETIME_FORMATTER = new Intl.DateTimeFormat('es-PA', {
   day: '2-digit',
@@ -14,14 +16,18 @@ const DATETIME_FORMATTER = new Intl.DateTimeFormat('es-PA', {
 interface Props {
   indicators: QualityIndicators
   windowLabel: string // ej: "últimos 7 días"
+  loading?: boolean
+  className?: string
 }
 
 /** Calidad del registro: firmas/fotos faltantes, anulaciones y observaciones. */
-export function QualitySection({ indicators, windowLabel }: Props) {
+export function QualitySection({ indicators, windowLabel, loading = false, className }: Props) {
   const { observations, voided, routesWithoutSignature, routesWithoutPhotos, routesConsidered } = indicators
 
+  if (loading) return <CardSkeleton rows={4} className={className} />
+
   return (
-    <section className="rounded-2xl bg-card p-5 ring-1 ring-foreground/10">
+    <section className={cn('rounded-2xl bg-card p-5 ring-1 ring-foreground/10', className)}>
       <header className="mb-4 flex items-center gap-2.5">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-100 text-green-700">
           <ShieldCheck className="h-4 w-4" />
@@ -104,7 +110,9 @@ export function QualitySection({ indicators, windowLabel }: Props) {
       )}
 
       {voided.length === 0 && observations.length === 0 && (
-        <p className="mt-4 text-center text-sm text-muted-foreground">
+        // `my-auto` centra el mensaje en el alto sobrante cuando la página
+        // estira la tarjeta; sin estirar se comporta como el `mt-4` de antes.
+        <p className="my-auto py-4 text-center text-sm text-muted-foreground">
           Sin anulaciones ni observaciones en los {windowLabel}.
         </p>
       )}
