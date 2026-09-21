@@ -40,7 +40,7 @@ export async function treatContainers(
   for (const { container, reception, storageEvent } of candidates) {
     try {
       const runId = await treatmentRunId(container.id, reception.id)
-      const run: TreatmentRun = {
+      const run = {
         id: runId,
         container_id: container.id,
         started_at: nowIso,
