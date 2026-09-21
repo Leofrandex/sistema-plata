@@ -4,7 +4,7 @@ tags:
   - processes
   - domain
   - containers
-updated: 2026-06-04
+updated: 2026-09-21
 ---
 
 # Ciclo de Vida del Tacho
@@ -59,6 +59,14 @@ Esterilización + trituración
 En el sistema es un registro PUNTUAL: el envío crea el treatment_run ya
 completado (started_at == completed_at) y el tacho pasa directo a 'clean'.
 No existe fase 'treatment' en curso en la operación actual.
+
+Enviar a tratamiento CIERRA el exit_at del storage_event de cámara fría
+abierto para ese tacho. Antes del 2026-09-21 nadie lo cerraba: había 641
+eventos de cámara fría abiertos, así que "tiempo en cámara fría" nunca fue
+un dato confiable. Ver [[2026-09-21-reactivacion-tratamiento]]. Es fiable
+solo desde esa fecha en adelante — los tratamientos previos a ella dejan su
+storage_event abierto para siempre, a propósito: cerrarlo ahora sería
+inventar un timestamp en un registro regulatorio.
         ↓
 [Sale como desecho común]
         ↓

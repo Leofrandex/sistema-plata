@@ -3,7 +3,7 @@ title: Índice del Vault — Hospiwaste
 tags:
   - index
   - meta
-updated: 2026-09-18
+updated: 2026-09-21
 ---
 
 # Vault — Hospiwaste
@@ -47,11 +47,13 @@ Punto de entrada. Leer al inicio de cada sesión, antes de tocar código.
 | Hidratar por ventana de fechas en vez de traer las tablas enteras (`photos` crece ~200 filas/día) | [[2026-09-17-fotos-invisibles-paginado-postgrest]] |
 | Smoke en el navegador: abrir el reporte fotográfico del 11 al 17 de septiembre y confirmar que las fotos aparecen | [[2026-09-17-fotos-invisibles-paginado-postgrest]] |
 | Averiguar qué son los tachos `52.1` y `76.1` del inventario de planta y cuál es su número real — no existen en Supabase y sus taras (15.6 / 13.9 kg) no coinciden con las de `052` / `076` | `Inventario de Contenedores en Proceso.xlsx` (2026-09-18) |
-| Reactivar el módulo de tratamiento (hoy deshabilitado en el código desde el 2026-09-15, commit `5fd0575`) | esta sesión |
 | Decidir si el radio de las tarjetas es 8px (ADR) o 16px (`rounded-2xl`, como está hoy) | [[2026-09-18-dashboard-operativo-vs-analitico]] |
 | Mantener `shared/src/lib/brand.ts` sincronizado con `tokens.css` a mano — o derivarlo en build | [[2026-09-18-reporte-pdf-identidad-y-grafico]] |
 | Ciclo del compactador — módulo nunca empezado | [[Roadmap]] |
 | GPS en tiempo real — pendiente de cotización formal (~$2,000 + mensual) | [[Overview]] |
+| Preguntar a Francesca si el tratamiento es por carga de autoclave o tacho por tacho — define si hace falta una tabla "corrida" con duración propia | [[2026-09-21-reactivacion-tratamiento]] |
+| Si es por carga: ¿planta cronometra el ciclo? | [[2026-09-21-reactivacion-tratamiento]] |
+| Qué debe mostrar la foto de un tacho tratado — el tacho, la carga, el equipo | [[2026-09-21-reactivacion-tratamiento]] |
 
 > [!warning] Ventana abierta
 > La migración de taras Yaris ya está aplicada en el piloto, pero planta corre el APK v1.5.
@@ -94,6 +96,7 @@ Punto de entrada. Leer al inicio de cada sesión, antes de tocar código.
 
 Formato y plantilla en [[Formato-ADR]] (`decisions/`).
 
+- [[2026-09-21-id-determinista-tratamiento]] — el id de `treatment_run` es UUID v5 de tacho:recepción, no aleatorio: colapsa doble tap, dos teléfonos y reintentos del outbox
 - [[2026-09-17-paginado-obligatorio-postgrest]] — toda lista acumulativa de Supabase se pagina: PostgREST corta en 1000 filas sin error
 - [[2026-09-14-historico-kilos-2024-2026]] — el histórico de kilos vive en tabla aparte, agregado por día; el sistema es dueño desde el 2026-09-07
 - [[2026-09-07-yaris-pesaje-directo]] — la flota Yaris estrena balanza: se pesa directo y muere el modo Yaris del formulario
@@ -117,6 +120,7 @@ Uno por feature o cambio mayor, en orden inverso. Obsidian lista la carpeta comp
 acá van solo los que siguen teniendo consecuencias abiertas o reglas que aplican hoy.
 
 ### Vigentes — leer antes de tocar el APK
+- [[2026-09-21-reactivacion-tratamiento]] — el módulo de tratamiento vuelve a estar activo en el código: cola oldest-first, id determinista, outbox, cierra `exit_at` de cámara fría
 - [[2026-09-18-reporte-pdf-identidad-y-grafico]] — el PDF usa la tipografía y los colores de la app, y suma el comparativo año contra año
 - [[2026-09-18-dashboard-operativo-vs-analitico]] — el dashboard se queda con el día a día; el histórico y el navegador de meses se van a `/analytics`
 - [[2026-09-18-skeletons-dashboard]] — el dashboard mostraba mocks caducos como ceros mientras hidrataba; ahora van esqueletos
