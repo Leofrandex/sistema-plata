@@ -64,9 +64,11 @@ Enviar a tratamiento CIERRA el exit_at del storage_event de cámara fría
 abierto para ese tacho. Antes del 2026-09-21 nadie lo cerraba: había 641
 eventos de cámara fría abiertos, así que "tiempo en cámara fría" nunca fue
 un dato confiable. Ver [[2026-09-21-reactivacion-tratamiento]]. Es fiable
-solo desde esa fecha en adelante — los tratamientos previos a ella dejan su
-storage_event abierto para siempre, a propósito: cerrarlo ahora sería
-inventar un timestamp en un registro regulatorio.
+solo desde que el APK que trae este cambio llegue a los teléfonos de
+planta — al 2026-09-21 ese despliegue todavía está pendiente — los
+tratamientos previos a ese despliegue dejan su storage_event abierto para
+siempre, a propósito: cerrarlo ahora sería inventar un timestamp en un
+registro regulatorio.
         ↓
 [Sale como desecho común]
         ↓

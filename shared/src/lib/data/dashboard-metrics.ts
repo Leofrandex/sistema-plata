@@ -14,7 +14,7 @@ import { computeNetWeight } from './containers'
 // ─── Circulación de tachos ────────────────────────────────────────────────
 
 export type CirculationBucket =
-  | 'en_planta'        // tratado y listo para salir
+  | 'en_planta'        // ciclo cerrado (tratado o trasladado externamente) y listo para salir
   | 'en_cliente'       // entregado limpio en recorrido, esperando recogida sucia
   | 'pendiente_pesar'  // recogido sucio, sin recepción vigente
   | 'pendiente_tratar' // pesado, esperando tratamiento

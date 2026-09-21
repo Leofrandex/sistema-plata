@@ -31,6 +31,7 @@ export default function TreatmentPage() {
   const [step, setStep] = useState<'select' | 'confirm' | 'done'>('select')
   const [submitting, setSubmitting] = useState(false)
   const [submittedCount, setSubmittedCount] = useState(0)
+  const [attemptedCount, setAttemptedCount] = useState(0)
 
   const candidates = useMemo(
     () => listTreatmentCandidates(
@@ -60,6 +61,7 @@ export default function TreatmentPage() {
   async function handleSubmit() {
     if (!currentProfileId || selectedCandidates.length === 0 || submitting) return
     setSubmitting(true)
+    const total = selectedCandidates.length
     const res = await treatContainers(
       selectedCandidates,
       currentProfileId,
@@ -70,6 +72,7 @@ export default function TreatmentPage() {
       console.error('[tratamiento] se cortó en', res.failedAt, res.error)
     }
     setSubmittedCount(res.treated)
+    setAttemptedCount(total)
     setSubmitting(false)
     setStep('done')
   }
@@ -78,24 +81,43 @@ export default function TreatmentPage() {
     setSelectedIds(new Set())
     setStep('select')
     setSubmittedCount(0)
+    setAttemptedCount(0)
   }
 
   if (step === 'done') {
+    const allSucceeded = submittedCount === attemptedCount && attemptedCount > 0
     return (
       <div className="max-w-md mx-auto space-y-6">
-        <Card className="border-green-200 bg-green-50">
-          <CardHeader>
-            <CardTitle className="text-green-800">Tratamiento registrado</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-green-700">
-              {submittedCount} tacho{submittedCount !== 1 ? 's' : ''} enviado{submittedCount !== 1 ? 's' : ''} a tratamiento correctamente.
-            </p>
-            <Button variant="outline" onClick={reset}>
-              Volver
-            </Button>
-          </CardContent>
-        </Card>
+        {allSucceeded ? (
+          <Card className="border-green-200 bg-green-50">
+            <CardHeader>
+              <CardTitle className="text-green-800">Tratamiento registrado</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-green-700">
+                {submittedCount} tacho{submittedCount !== 1 ? 's' : ''} enviado{submittedCount !== 1 ? 's' : ''} a tratamiento correctamente.
+              </p>
+              <Button variant="outline" onClick={reset}>
+                Volver
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-amber-200 bg-amber-50">
+            <CardHeader>
+              <CardTitle className="text-amber-900">Tratamiento incompleto</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-amber-800">
+                Se registraron {submittedCount} de {attemptedCount} tachos. El resto sigue en
+                la cola — vuelve a intentarlo.
+              </p>
+              <Button variant="outline" onClick={reset}>
+                Volver
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
     )
   }

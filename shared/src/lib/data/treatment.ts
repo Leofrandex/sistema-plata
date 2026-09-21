@@ -97,6 +97,13 @@ export function listTreatmentCandidates(
     )
     if (yaTrasladado) continue
 
+    // No se filtra por exit_at === null: se toma el storage_event más reciente
+    // desde la recepción y punto. Esto es correcto SOLO porque hoy tratamiento
+    // es el único escritor de exit_at (lo cierra al tratar, ver
+    // treat-containers.ts). Si alguna vez aparece un segundo escritor de
+    // exit_at (por ejemplo un traslado externo que cierre cámara fría por su
+    // cuenta), este filtro deja de garantizar que el evento esté abierto y hay
+    // que agregar la condición explícita.
     const storageEvent = slice.storageEvents
       .filter((s) => s.container_id === container.id && ms(s.entry_at) >= receptionAt)
       .sort((a, b) => ms(b.entry_at) - ms(a.entry_at))[0]

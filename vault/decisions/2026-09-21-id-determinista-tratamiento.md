@@ -48,6 +48,16 @@ de un UUID v4 aleatorio.
 - La derivación depende únicamente de datos ya presentes en el dispositivo
   (tacho + recepción), así que funciona completamente offline y sin
   coordinación con el servidor.
-- Dos tratamientos genuinamente distintos del mismo tacho requieren
-  recepciones distintas — ya es así en el modelo de datos, no es una
-  restricción nueva que introduzca esta decisión.
+- Dos tratamientos genuinamente distintos del mismo tacho ahora requieren
+  recepciones distintas para no colapsar en la misma fila. Esto **no** es
+  algo que ya impusiera el modelo de datos — nada en el esquema obliga a
+  "un tratamiento por recepción" — es esta decisión la que lo impone, como
+  efecto colateral de derivar el id de `tacho:recepción`.
+- Consecuencia de lo anterior: si alguna vez se tratara genuinamente dos
+  veces la **misma** recepción del mismo tacho (no solo un reintento del
+  outbox, sino dos tratamientos reales), el segundo upsert pisaría
+  silenciosamente `started_at`/`completed_at` del primero en vez de crear
+  una fila nueva — se perdería el primer registro sin error visible. Hoy
+  esto es inalcanzable desde la UI (el tacho sale de la cola de tratamiento
+  en cuanto se trata una vez), pero si ese flujo cambiara, este id
+  determinista deja de ser seguro sin revisar esta decisión.

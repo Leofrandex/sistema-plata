@@ -46,7 +46,7 @@ export async function treatContainers(
         started_at: nowIso,
         completed_at: nowIso,
         operator_id: operatorId,
-      }
+      } satisfies TreatmentRun
       await submitTreatmentRun(run)
       sink.addTreatmentRun(run)
 

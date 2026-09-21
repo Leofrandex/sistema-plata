@@ -91,3 +91,23 @@ No cambia nada en planta hasta desplegar el APK. Antes del rollout:
    `storage_event` correspondiente con `exit_at` no nulo.
 4. Tratar el mismo tacho dos veces seguidas → debe quedar **una sola** fila
    en `treatment_runs`.
+5. Forzar una escritura local fallida (o matar la app a mitad de un lote de
+   varios tachos) → la pantalla debe reportar el conteo real de tachos
+   escritos, con la tarjeta ámbar de "tratamiento incompleto" en vez de la
+   verde, y dejar claro que el resto sigue en la cola para reintentar — no
+   debe dar a entender que se perdió información.
+
+## Nota de rollout — flota mixta
+
+Mientras el despliegue del APK no sea de una sola vez, va a haber teléfonos
+en **APK v1.5** (ids aleatorios, sin outbox) y teléfonos con la build nueva
+(ids deterministas) operando en simultáneo. Si el mismo tacho con la misma
+recepción se trata desde un teléfono viejo y desde uno nuevo, el id
+determinista de la build nueva no puede colapsar con el id aleatorio que ya
+generó la build vieja: el resultado son **dos filas** en `treatment_runs`
+para el mismo tratamiento, no una. Esto es consecuencia directa de la
+decisión de id determinista (ver
+[[2026-09-21-id-determinista-tratamiento]]) — esa decisión solo deduplica
+entre escrituras que ya comparten el esquema de id nuevo. Un despliegue de
+una sola vez (todos los teléfonos a la vez) evita el problema; un despliegue
+escalonado no.
