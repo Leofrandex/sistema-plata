@@ -62,6 +62,26 @@ export async function submitStorageEvent(input: {
   notifyOutboxChanged()
 }
 
+/** Cierra la salida de cámara fría re-escribiendo la fila existente. El drain
+ *  upsertea sobre `id`, así que actualiza en vez de insertar.
+ *
+ *  El payload se arma CAMPO POR CAMPO a propósito: el `StorageEvent` del store
+ *  lleva `photo_ids`, que no es columna de `storage_events`. Un spread haría
+ *  fallar el upsert en el drain, en segundo plano y sin nadie mirando. */
+export async function submitStorageExit(input: {
+  id: string; container_id: string; entry_at: string; exit_at: string; operator_id: string
+}): Promise<void> {
+  const store = await getLocalStore()
+  await store.putRow('storage_events', input.id, {
+    id: input.id,
+    container_id: input.container_id,
+    entry_at: input.entry_at,
+    exit_at: input.exit_at,
+    operator_id: input.operator_id,
+  } satisfies TablesInsert<'storage_events'>)
+  notifyOutboxChanged()
+}
+
 export async function submitContainerLocation(
   input: TablesInsert<'container_locations'> & { id: string },
 ): Promise<void> {

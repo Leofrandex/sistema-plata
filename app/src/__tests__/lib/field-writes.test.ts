@@ -4,7 +4,7 @@
  */
 import 'fake-indexeddb/auto'
 import { getLocalStore } from '@hospiwaste/shared/lib/local-store'
-import { submitRouteEvent, submitWeighingSession, submitReception } from '@/lib/data/field-writes'
+import { submitRouteEvent, submitWeighingSession, submitReception, submitStorageExit } from '@/lib/data/field-writes'
 
 describe('field-writes → LocalStore', () => {
   it('submitRouteEvent inserta el evento y sus join rows con synced=0', async () => {
@@ -24,5 +24,19 @@ describe('field-writes → LocalStore', () => {
     const s = await getLocalStore()
     expect((await s.getRows('container_receptions'))[0].payload)
       .toMatchObject({ weighing_session_id: 'ws1' })
+  })
+
+  it('submitStorageExit escribe exactamente las columnas de la tabla, sin photo_ids', async () => {
+    await submitStorageExit({
+      id: 'se1', container_id: '001', entry_at: '2026-09-18T09:00:00Z',
+      exit_at: '2026-09-18T15:00:00Z', operator_id: 'op1',
+    })
+    const s = await getLocalStore()
+    const row = (await s.getRows('storage_events')).find((r) => r.id === 'se1')!
+    expect(row.payload).toEqual({
+      id: 'se1', container_id: '001', entry_at: '2026-09-18T09:00:00Z',
+      exit_at: '2026-09-18T15:00:00Z', operator_id: 'op1',
+    })
+    expect(row.payload).not.toHaveProperty('photo_ids')
   })
 })
