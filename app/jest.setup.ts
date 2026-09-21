@@ -26,3 +26,17 @@ if (typeof globalThis.structuredClone !== 'function') {
   }
   globalThis.structuredClone = deepClone
 }
+
+// jsdom no implementa crypto.subtle ni TextEncoder (sí crypto.randomUUID).
+// El WebView real sí los tiene: Capacitor sirve en https://localhost, que es
+// secure context. Sin esto, uuidV5 revienta solo en los tests.
+if (typeof globalThis.crypto?.subtle === 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { webcrypto } = require('node:crypto')
+  Object.defineProperty(globalThis, 'crypto', { value: webcrypto, configurable: true })
+}
+if (typeof globalThis.TextEncoder === 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { TextEncoder } = require('node:util')
+  Object.defineProperty(globalThis, 'TextEncoder', { value: TextEncoder, configurable: true })
+}
