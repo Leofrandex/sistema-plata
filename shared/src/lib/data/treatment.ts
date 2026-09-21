@@ -39,3 +39,76 @@ export function treatmentRunId(containerId: string, receptionId: string): Promis
 export function treatmentLocationId(containerId: string, receptionId: string): Promise<string> {
   return uuidV5(NAMESPACE_HOSPIWASTE, `treatment-location:${containerId}:${receptionId}`)
 }
+
+import type {
+  Container,
+  ContainerReception,
+  ExternalTransfer,
+  StorageEvent,
+  TreatmentRun,
+} from '@hospiwaste/shared/lib/types'
+
+export interface TreatmentCandidate {
+  container: Container
+  reception: ContainerReception
+  storageEvent: StorageEvent
+  coldStorageSinceMs: number
+}
+
+export interface TreatmentCandidateSlice {
+  containers: Container[]
+  receptions: ContainerReception[]
+  storageEvents: StorageEvent[]
+  treatmentRuns: TreatmentRun[]
+  externalTransfers: ExternalTransfer[]
+}
+
+const ms = (iso: string): number => new Date(iso).getTime()
+
+/** Cola del tratamiento: tachos infecciosos activos que están en cámara fría y
+ *  cuyo ciclo actual todavía no se cerró. Ordenados del más viejo al más nuevo.
+ *
+ *  La comparación con tratamientos y traslados es POR FECHA, no por existencia:
+ *  comparar existencia fue el bug de julio que escondió 41 tachos. */
+export function listTreatmentCandidates(
+  slice: TreatmentCandidateSlice,
+  nowMs: number,
+): TreatmentCandidate[] {
+  const out: TreatmentCandidate[] = []
+
+  for (const container of slice.containers) {
+    if (container.status !== 'active') continue
+
+    const reception = slice.receptions
+      .filter((r) => r.container_id === container.id && !r.voided_at)
+      .sort((a, b) => ms(b.arrived_at) - ms(a.arrived_at))[0]
+    if (!reception) continue
+    if (reception.waste_type !== 'infectious') continue
+
+    const receptionAt = ms(reception.arrived_at)
+
+    const yaTratado = slice.treatmentRuns.some(
+      (t) => t.container_id === container.id && ms(t.started_at) >= receptionAt,
+    )
+    if (yaTratado) continue
+
+    const yaTrasladado = slice.externalTransfers.some(
+      (t) => t.container_id === container.id && ms(t.storage_started_at) >= receptionAt,
+    )
+    if (yaTrasladado) continue
+
+    const storageEvent = slice.storageEvents
+      .filter((s) => s.container_id === container.id && ms(s.entry_at) >= receptionAt)
+      .sort((a, b) => ms(b.entry_at) - ms(a.entry_at))[0]
+    if (!storageEvent) continue
+
+    out.push({
+      container,
+      reception,
+      storageEvent,
+      coldStorageSinceMs: nowMs - ms(storageEvent.entry_at),
+    })
+  }
+
+  return out.sort((a, b) => ms(a.storageEvent.entry_at) - ms(b.storageEvent.entry_at))
+}
