@@ -14,10 +14,11 @@ import { computeNetWeight } from './containers'
 // ─── Circulación de tachos ────────────────────────────────────────────────
 
 export type CirculationBucket =
-  | 'en_planta'        // limpio físicamente en planta (recién dado de alta o tratado), sin entregar
+  | 'en_planta'        // tratado y listo para salir
   | 'en_cliente'       // entregado limpio en recorrido, esperando recogida sucia
   | 'pendiente_pesar'  // recogido sucio, sin recepción vigente
   | 'pendiente_tratar' // pesado, esperando tratamiento
+  | 'sin_actividad'    // dado de alta, sin ningún evento todavía
 
 export interface CirculationBreakdown {
   total: number
@@ -25,10 +26,11 @@ export interface CirculationBreakdown {
 }
 
 const BUCKET_DEFINITIONS: Array<{ key: CirculationBucket; label: string; color: string }> = [
-  { key: 'en_planta',        label: 'En planta',           color: '#16A34A' }, // verde
-  { key: 'en_cliente',       label: 'En cliente',          color: '#F97316' }, // naranja
-  { key: 'pendiente_pesar',  label: 'Pendiente por pesar', color: '#94A3B8' }, // gris
+  { key: 'en_planta',        label: 'En planta',            color: '#16A34A' }, // verde
+  { key: 'en_cliente',       label: 'En cliente',           color: '#F97316' }, // naranja
+  { key: 'pendiente_pesar',  label: 'Pendiente por pesar',  color: '#94A3B8' }, // gris
   { key: 'pendiente_tratar', label: 'Pendiente por tratar', color: '#DC2626' }, // rojo
+  { key: 'sin_actividad',    label: 'Sin actividad',        color: '#CBD5E1' }, // gris claro
 ]
 
 const BUCKET_BY_KEY = new Map(BUCKET_DEFINITIONS.map((d) => [d.key, d]))
@@ -104,7 +106,7 @@ export function computeCirculationStatus(
   const latest = Math.max(cleanDelivered, dirtyReceived, reception, closed)
   const sinceMs = latest === -Infinity ? null : latest
   let bucket: CirculationBucket
-  if (latest === -Infinity) bucket = 'en_planta'
+  if (latest === -Infinity) bucket = 'sin_actividad'
   else if (latest === closed) bucket = 'en_planta'
   else if (latest === reception) bucket = 'pendiente_tratar'
   else if (latest === dirtyReceived) bucket = 'pendiente_pesar'
@@ -123,7 +125,7 @@ export function computeCirculationBucket(
 
 export function computeCirculationBreakdown(store: CirculationStoreSlice): CirculationBreakdown {
   const counts: Record<CirculationBucket, number> = {
-    en_planta: 0, en_cliente: 0, pendiente_pesar: 0, pendiente_tratar: 0,
+    en_planta: 0, en_cliente: 0, pendiente_pesar: 0, pendiente_tratar: 0, sin_actividad: 0,
   }
   const activeContainers = store.containers.filter((c) => c.status === 'active')
   for (const container of activeContainers) {

@@ -20,6 +20,7 @@ const PHASE_OPTIONS: { value: CirculationBucket; label: string }[] = [
   { value: 'en_cliente', label: circulationLabel('en_cliente') },
   { value: 'pendiente_pesar', label: circulationLabel('pendiente_pesar') },
   { value: 'pendiente_tratar', label: circulationLabel('pendiente_tratar') },
+  { value: 'sin_actividad', label: circulationLabel('sin_actividad') },
 ]
 
 export interface ContainerFilters {

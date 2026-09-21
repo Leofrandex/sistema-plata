@@ -36,7 +36,7 @@ describe('computeCirculationBreakdown', () => {
     // M1-M15 + 26 Yaris Y1-Y26 (desde 2026-09-07 estos últimos entran al pool)
     expect(result.total).toBe(230)
     expect(result.buckets.map((b) => b.key)).toEqual([
-      'en_planta', 'en_cliente', 'pendiente_pesar', 'pendiente_tratar',
+      'en_planta', 'en_cliente', 'pendiente_pesar', 'pendiente_tratar', 'sin_actividad',
     ])
     const sum = result.buckets.reduce((acc, b) => acc + b.count, 0)
     expect(sum).toBe(result.total)
@@ -180,8 +180,8 @@ describe('computeCirculationBucket (línea de tiempo)', () => {
   })
   const base = { routeEvents: [] as RouteEvent[], receptions: [] as ContainerReception[], treatmentRuns: [] as TreatmentRun[], externalTransfers: [] as ExternalTransfer[] }
 
-  it('sin eventos → en_planta (limpio en planta)', () => {
-    expect(computeCirculationBucket(cont, base)).toBe('en_planta')
+  it('sin eventos → sin_actividad (nunca entró al sistema)', () => {
+    expect(computeCirculationBucket(cont, base)).toBe('sin_actividad')
   })
 
   it('último evento = entregado limpio → en_cliente', () => {
@@ -224,8 +224,8 @@ describe('computeCirculationStatus', () => {
   }
   const base = { routeEvents: [] as RouteEvent[], receptions: [] as ContainerReception[], treatmentRuns: [] as TreatmentRun[], externalTransfers: [] as ExternalTransfer[] }
 
-  it('sin eventos → en_planta y sinceMs null', () => {
-    expect(computeCirculationStatus(cont, base)).toEqual({ bucket: 'en_planta', sinceMs: null })
+  it('sin eventos → sin_actividad y sinceMs null', () => {
+    expect(computeCirculationStatus(cont, base)).toEqual({ bucket: 'sin_actividad', sinceMs: null })
   })
 
   it('pesado → pendiente_tratar y sinceMs = arrived_at de la recepción', () => {
@@ -236,6 +236,21 @@ describe('computeCirculationStatus', () => {
     const res = computeCirculationStatus(cont, { ...base, receptions })
     expect(res.bucket).toBe('pendiente_tratar')
     expect(res.sinceMs).toBe(new Date('2026-06-11T09:00:00Z').getTime())
+  })
+
+  it('distingue el tratado del que nunca tuvo actividad', () => {
+    const receptions = [{
+      id: 'r1', container_id: cont.id, weighing_session_id: null,
+      arrived_at: '2026-09-17T08:00:00Z', gross_weight_kg: 40, operator_id: 'op-1',
+      photo_ids: [], observations: '',
+    }]
+    const treatmentRuns = [{
+      id: 't1', container_id: cont.id, started_at: '2026-09-18T10:00:00Z',
+      completed_at: '2026-09-18T10:00:00Z', operator_id: 'op-1',
+    }]
+    expect(computeCirculationStatus(cont, { ...base, receptions, treatmentRuns }).bucket)
+      .toBe('en_planta')
+    expect(computeCirculationStatus(cont, base).bucket).toBe('sin_actividad')
   })
 })
 
