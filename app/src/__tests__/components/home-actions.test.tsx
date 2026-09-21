@@ -12,11 +12,12 @@ jest.mock('../../lib/active-session', () => ({
 }))
 
 describe('HomePage en modo interino', () => {
-  it('muestra Recorrido y Tratamiento como "En mantenimiento" y sin enlace', () => {
+  it('muestra Recorrido como "En mantenimiento" y deja Tratamiento navegable', () => {
     render(<HomePage />)
-    expect(screen.getAllByText('En mantenimiento')).toHaveLength(2)
+    expect(screen.getAllByText('En mantenimiento')).toHaveLength(1)
     expect(screen.queryByRole('link', { name: /recorrido/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: /tratamiento/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /tratamiento/i }))
+      .toHaveAttribute('href', '/register/treatment')
   })
 
   it('mantiene Pesaje y Traslado navegables', () => {

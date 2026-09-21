@@ -24,7 +24,7 @@ const TABS: TabDef[] = [
   { href: '/',                   label: 'Inicio',      icon: Home,      matchPrefix: '/' },
   { href: '/register/route',     label: 'Recorrido',   icon: RouteIcon, matchPrefix: '/register/route' },
   { href: '/register/weighing',  label: 'Pesaje',      icon: Scale,     matchPrefix: '/register/weighing' },
-  { href: '/register/treatment', label: 'Tratamiento', icon: Flame,     matchPrefix: '/register/treatment', disabled: true },
+  { href: '/register/treatment', label: 'Tratamiento', icon: Flame,     matchPrefix: '/register/treatment' },
   { href: '/register/transfer',  label: 'Traslado',    icon: Truck,     matchPrefix: '/register/transfer' },
 ]
 

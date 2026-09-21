@@ -14,7 +14,7 @@ import { INTERIM_MODE } from '@hospiwaste/shared/lib/config/interim-mode'
 const ACTIONS = [
   { href: '/register/route',     label: 'Recorrido',        icon: RouteIcon, style: 'bg-accent/10 text-accent',    disabled: INTERIM_MODE },
   { href: '/register/weighing',  label: 'Pesaje',           icon: Scale,     style: 'bg-amber-100 text-amber-700', disabled: false },
-  { href: '/register/treatment', label: 'Tratamiento',      icon: Flame,     style: 'bg-violet-100 text-violet-700', disabled: true },
+  { href: '/register/treatment', label: 'Tratamiento',      icon: Flame,     style: 'bg-violet-100 text-violet-700', disabled: false },
   { href: '/register/transfer',  label: 'Traslado externo', icon: Truck,     style: 'bg-emerald-100 text-emerald-700', disabled: false },
 ]
 
