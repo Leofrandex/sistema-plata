@@ -97,6 +97,7 @@ interface HospiwasteStore {
 
   // Eventos posteriores
   addStorageEvent: (event: StorageEvent) => void
+  updateStorageEvent: (id: string, updates: Partial<StorageEvent>) => void
   addTreatmentRun: (run: TreatmentRun) => void
   addExternalTransfer: (transfer: ExternalTransfer) => void
   addLocation: (location: ContainerLocation) => void
@@ -235,6 +236,11 @@ export const useStore = create<HospiwasteStore>((set) => ({
 
   addStorageEvent: (event) =>
     set((s) => ({ storageEvents: [...s.storageEvents, event] })),
+
+  updateStorageEvent: (id, updates) =>
+    set((s) => ({
+      storageEvents: s.storageEvents.map((e) => (e.id === id ? { ...e, ...updates } : e)),
+    })),
 
   addTreatmentRun: (run) =>
     set((s) => ({ treatmentRuns: [...s.treatmentRuns, run] })),
