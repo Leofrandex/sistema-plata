@@ -6,13 +6,13 @@ import { Button } from '@hospiwaste/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@hospiwaste/shared/components/ui/card'
 import { Badge } from '@hospiwaste/shared/components/ui/badge'
 import { useStore } from '@hospiwaste/shared/lib/store'
+import { formatTachoNumber } from '@hospiwaste/shared/lib/data/containers'
+import { formatDuration } from '@hospiwaste/shared/lib/data/dashboard-metrics'
 import {
-  computeContainerPhase,
-  getRouteEventIdsForContainer,
-  formatTachoNumber,
-} from '@hospiwaste/shared/lib/data/containers'
-import { createClient } from '@hospiwaste/shared/lib/supabase/client'
-import * as q from '@hospiwaste/shared/lib/supabase/queries'
+  listTreatmentCandidates,
+  type TreatmentCandidate,
+} from '@hospiwaste/shared/lib/data/treatment'
+import { treatContainers } from '@/lib/data/treat-containers'
 
 export default function TreatmentPage() {
   const {
@@ -21,9 +21,9 @@ export default function TreatmentPage() {
     storageEvents,
     treatmentRuns,
     externalTransfers,
-    routeEvents,
     currentProfileId,
     addTreatmentRun,
+    updateStorageEvent,
     addLocation,
   } = useStore()
 
@@ -32,40 +32,16 @@ export default function TreatmentPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submittedCount, setSubmittedCount] = useState(0)
 
-  // Memoized list of candidates: active containers in cold_storage with infectious waste_type
-  const candidates = useMemo(() => {
-    return containers.filter((c) => {
-      if (c.status !== 'active') return false
-      const routeIds = getRouteEventIdsForContainer(routeEvents, c.id)
-      const reception = [...receptions]
-        .filter((r) => r.container_id === c.id && !r.voided_at)
-        .sort((a, b) => new Date(b.arrived_at).getTime() - new Date(a.arrived_at).getTime())[0] ?? null
-      if (!reception || reception.waste_type !== 'infectious') return false
-      const storage = [...storageEvents]
-        .filter((s) => s.container_id === c.id)
-        .sort((a, b) => new Date(b.entry_at).getTime() - new Date(a.entry_at).getTime())[0] ?? null
-      // Un tratamiento/traslado posterior a la recepción actual cierra el ciclo,
-      // así que el tacho deja de ser candidato. Importante: se consideran también
-      // los tratamientos ya completados (el envío a tratamiento crea el run con
-      // started_at == completed_at). Antes el filtro `!t.completed_at` los ignoraba,
-      // por lo que un tacho recién tratado seguía apareciendo en la lista.
-      const receptionAt = new Date(reception.arrived_at).getTime()
-      const treatment =
-        [...treatmentRuns]
-          .filter((t) => t.container_id === c.id && new Date(t.started_at).getTime() >= receptionAt)
-          .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())[0] ??
-        [...externalTransfers]
-          .filter((t) => t.container_id === c.id && new Date(t.storage_started_at).getTime() >= receptionAt)
-          .sort((a, b) => new Date(b.storage_started_at).getTime() - new Date(a.storage_started_at).getTime())[0] ??
-        null
-      const phase = computeContainerPhase(routeIds, reception, storage, treatment)
-      return phase === 'cold_storage'
-    })
-  }, [containers, receptions, storageEvents, treatmentRuns, externalTransfers, routeEvents])
+  const candidates = useMemo(
+    () => listTreatmentCandidates(
+      { containers, receptions, storageEvents, treatmentRuns, externalTransfers },
+      Date.now(),
+    ),
+    [containers, receptions, storageEvents, treatmentRuns, externalTransfers],
+  )
 
-  // Tachos seleccionados que siguen siendo candidatos (para la pantalla de confirmación).
-  const selectedContainers = useMemo(
-    () => candidates.filter((c) => selectedIds.has(c.id)),
+  const selectedCandidates = useMemo<TreatmentCandidate[]>(
+    () => candidates.filter((c) => selectedIds.has(c.container.id)),
     [candidates, selectedIds],
   )
 
@@ -82,51 +58,18 @@ export default function TreatmentPage() {
   }
 
   async function handleSubmit() {
-    if (!currentProfileId || selectedIds.size === 0 || submitting) return
+    if (!currentProfileId || selectedCandidates.length === 0 || submitting) return
     setSubmitting(true)
-    const now = new Date().toISOString()
-    const supabase = createClient()
-    for (const id of selectedIds) {
-      try {
-        const tr = await q.createTreatmentRun(supabase, {
-          container_id: id,
-          started_at: now,
-          completed_at: now,
-          operator_id: currentProfileId,
-        })
-        addTreatmentRun({
-          id: tr.id,
-          container_id: id,
-          started_at: now,
-          completed_at: now,
-          operator_id: currentProfileId,
-        })
-        const loc = await q.createContainerLocation(supabase, {
-          container_id: id,
-          reported_at: now,
-          operator_id: currentProfileId,
-          location_type: 'treatment',
-          client_id: null,
-          floor: null,
-          area: null,
-          notes: 'Tratamiento',
-        })
-        addLocation({
-          id: loc.id,
-          container_id: id,
-          reported_at: now,
-          operator_id: currentProfileId,
-          location_type: 'treatment',
-          client_id: null,
-          floor: null,
-          area: null,
-          notes: 'Tratamiento',
-        })
-      } catch (err) {
-        console.error('[tratamiento] falló:', err)
-      }
+    const res = await treatContainers(
+      selectedCandidates,
+      currentProfileId,
+      new Date().toISOString(),
+      { addTreatmentRun, updateStorageEvent, addLocation },
+    )
+    if (res.failedAt) {
+      console.error('[tratamiento] se cortó en', res.failedAt, res.error)
     }
-    setSubmittedCount(selectedIds.size)
+    setSubmittedCount(res.treated)
     setSubmitting(false)
     setStep('done')
   }
@@ -158,7 +101,7 @@ export default function TreatmentPage() {
   }
 
   if (step === 'confirm') {
-    const numbers = selectedContainers.map((c) => formatTachoNumber(c.id))
+    const numbers = selectedCandidates.map((c) => formatTachoNumber(c.container.id))
     return (
       <div className="max-w-md mx-auto space-y-6">
         <Card className="border-amber-200 bg-amber-50">
@@ -217,13 +160,13 @@ export default function TreatmentPage() {
         </Card>
       ) : (
         <div className="space-y-2">
-          {candidates.map((c) => {
-            const isSelected = selectedIds.has(c.id)
+          {candidates.map((cand) => {
+            const isSelected = selectedIds.has(cand.container.id)
             return (
               <button
-                key={c.id}
+                key={cand.container.id}
                 type="button"
-                onClick={() => toggleSelect(c.id)}
+                onClick={() => toggleSelect(cand.container.id)}
                 className={`w-full text-left rounded-lg border px-4 py-3 flex items-center justify-between gap-3 transition-colors ${
                   isSelected
                     ? 'border-blue-400 bg-blue-50'
@@ -237,10 +180,15 @@ export default function TreatmentPage() {
                     <Circle className="h-5 w-5 text-slate-300 shrink-0" />
                   )}
                   <span className="font-mono font-semibold text-slate-800">
-                    {formatTachoNumber(c.id)}
+                    {formatTachoNumber(cand.container.id)}
                   </span>
                 </div>
-                <Badge variant="secondary">{c.size_liters} L</Badge>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs tabular-nums text-slate-500">
+                    {formatDuration(cand.coldStorageSinceMs)} en cámara
+                  </span>
+                  <Badge variant="secondary">{cand.container.size_liters} L</Badge>
+                </div>
               </button>
             )
           })}
