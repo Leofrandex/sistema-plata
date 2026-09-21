@@ -83,3 +83,6 @@ graphify-out/
 *.keystore
 *.jks
 /app/android/keystore.properties
+
+# Scratch de ejecucion de planes (subagent-driven development). No versionar.
+.superpowers/

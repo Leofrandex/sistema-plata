@@ -161,7 +161,7 @@ export function treatmentLocationId(containerId: string, receptionId: string): P
 - [ ] **Step 5: Correr el test y verificar que pasa**
 
 Run: `npm test -w shared -- src/__tests__/lib/treatment.test.ts`
-Expected: PASS, 5 tests.
+Expected: PASS, 6 tests.
 
 - [ ] **Step 6: Verificar que no rompiste nada más**
 
@@ -437,7 +437,7 @@ export function listTreatmentCandidates(
 - [ ] **Step 4: Correr y verificar que pasa**
 
 Run: `npm test -w shared -- src/__tests__/lib/treatment.test.ts`
-Expected: PASS, 14 tests en total (5 de Task 1 + 9 de ésta).
+Expected: PASS, 15 tests en total (6 de Task 1 + 9 de ésta).
 
 - [ ] **Step 5: Commit**
 
