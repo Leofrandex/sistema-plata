@@ -5,6 +5,7 @@ import { cn } from '@hospiwaste/shared/lib/utils'
 import { formatDuration } from '@hospiwaste/shared/lib/data/dashboard-metrics'
 import type { FleetBreakdown } from '@hospiwaste/shared/lib/data/dashboard-analytics'
 import { CardSkeleton } from './card-skeleton'
+import { PhysicalInventoryBlock } from './physical-inventory-block'
 
 interface Props {
   fleet: FleetBreakdown
@@ -14,7 +15,7 @@ interface Props {
 
 /** Composición de la flota y operaciones de planta (tratamientos, traslados). */
 export function FleetSection({ fleet, loading = false, className }: Props) {
-  if (loading) return <CardSkeleton rows={4} className={className} />
+  if (loading) return <CardSkeleton rows={6} className={className} />
 
   return (
     <section className={cn('rounded-2xl bg-card p-5 ring-1 ring-foreground/10', className)}>
@@ -60,6 +61,8 @@ export function FleetSection({ fleet, loading = false, className }: Props) {
           </ul>
         </div>
       </div>
+
+      <PhysicalInventoryBlock inventory={fleet.physicalInventory} />
 
       <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4">
         <div className="flex items-center gap-3 rounded-lg bg-muted/60 px-3 py-2.5">
