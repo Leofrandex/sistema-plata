@@ -6,6 +6,7 @@ import {
   computeKgByWasteType,
   computeMonthComparison,
   computeOperatorActivity,
+  computePhysicalInventory,
   computeQualityIndicators,
   computeRouteStats,
   computeSlotComplianceToday,
@@ -308,6 +309,103 @@ describe('computeFleetBreakdown', () => {
     expect(f.avgTreatmentDurationMs).toBe(1.5 * 3600 * 1000)
     expect(f.transfersPending).toBe(1)
     expect(f.transfersCompleted).toBe(1)
+  })
+})
+
+describe('computePhysicalInventory', () => {
+  const empty = { companies: [], routeEvents: [], receptions: [], treatmentRuns: [], externalTransfers: [] }
+
+  it('cruza llantas con limpio / en proceso para tachos de 240 L', () => {
+    const containers = [
+      makeContainer('001', { has_wheels: true }),   // sin eventos → limpio
+      makeContainer('002', { has_wheels: true }),   // pesado → en proceso
+      makeContainer('003', { has_wheels: false }),  // recogido sucio → en proceso
+      makeContainer('004', { has_wheels: false }),  // sin eventos → limpio
+    ]
+    const receptions = [
+      makeReception({ id: 'r1', container_id: '002', arrived_at: '2026-09-20T10:00:00Z', gross_weight_kg: 30 }),
+    ]
+    const routeEvents = [
+      makeRoute({ id: 'e1', date: '2026-09-20', containers_dirty_received: ['003'] }),
+    ]
+    const inv = computePhysicalInventory({ ...empty, containers, receptions, routeEvents })
+    expect(inv.tachos).toEqual([
+      { label: 'Con llantas', clean: 1, inProcess: 1 },
+      { label: 'Sin llantas', clean: 1, inProcess: 1 },
+    ])
+  })
+
+  it('un tacho tratado después de pesarse vuelve a limpio', () => {
+    const containers = [makeContainer('001', { has_wheels: true })]
+    const receptions = [
+      makeReception({ id: 'r1', container_id: '001', arrived_at: '2026-09-20T10:00:00Z', gross_weight_kg: 30 }),
+    ]
+    const treatmentRuns: TreatmentRun[] = [
+      { id: 't1', container_id: '001', started_at: '2026-09-20T11:00:00Z', completed_at: '2026-09-20T12:00:00Z', operator_id: 'op-1' },
+    ]
+    const inv = computePhysicalInventory({ ...empty, containers, receptions, treatmentRuns })
+    expect(inv.tachos).toEqual([
+      { label: 'Con llantas', clean: 1, inProcess: 0 },
+      { label: 'Sin llantas', clean: 0, inProcess: 0 },
+    ])
+  })
+
+  it('agrupa Yaris por color y muestra Verdes aunque sea cero', () => {
+    const containers = [
+      makeContainer('Y1', { size_liters: 1100, is_yaris_container: true, color: 'rojo' }),
+      makeContainer('Y2', { size_liters: 1100, is_yaris_container: true, color: 'rojo' }),
+    ]
+    const inv = computePhysicalInventory({ ...empty, containers })
+    expect(inv.yaris).toEqual([
+      { label: 'Rojos', clean: 2, inProcess: 0 },
+      { label: 'Verdes', clean: 0, inProcess: 0 },
+    ])
+  })
+
+  it('manda a "Sin dato" lo que no tiene llantas ni color cargados, y solo entonces muestra la fila', () => {
+    const containers = [
+      makeContainer('001', { has_wheels: true }),
+      makeContainer('005'),                                        // has_wheels undefined
+      makeContainer('006', { has_wheels: null }),
+      makeContainer('Y3', { size_liters: 1100, is_yaris_container: true }), // color undefined
+    ]
+    const inv = computePhysicalInventory({ ...empty, containers })
+    expect(inv.tachos).toEqual([
+      { label: 'Con llantas', clean: 1, inProcess: 0 },
+      { label: 'Sin llantas', clean: 0, inProcess: 0 },
+      { label: 'Sin dato', clean: 2, inProcess: 0 },
+    ])
+    expect(inv.yaris).toEqual([
+      { label: 'Rojos', clean: 0, inProcess: 0 },
+      { label: 'Verdes', clean: 0, inProcess: 0 },
+      { label: 'Sin dato', clean: 1, inProcess: 0 },
+    ])
+  })
+
+  it('excluye contenedores de baja, metálicos y de 750 L', () => {
+    const containers = [
+      makeContainer('200', { has_wheels: true, status: 'decommissioned' }),
+      makeContainer('M1', { size_liters: 120, is_metallic_dedicated: true }),
+      makeContainer('X1', { size_liters: 750 }),
+      makeContainer('Y26', { size_liters: 1100, is_yaris_container: true, color: 'rojo', status: 'decommissioned' }),
+    ]
+    const inv = computePhysicalInventory({ ...empty, containers })
+    expect(inv.tachos).toEqual([
+      { label: 'Con llantas', clean: 0, inProcess: 0 },
+      { label: 'Sin llantas', clean: 0, inProcess: 0 },
+    ])
+    expect(inv.yaris).toEqual([
+      { label: 'Rojos', clean: 0, inProcess: 0 },
+      { label: 'Verdes', clean: 0, inProcess: 0 },
+    ])
+  })
+
+  it('computeFleetBreakdown expone el desglose en physicalInventory', () => {
+    const f = computeFleetBreakdown(
+      { ...empty, containers: [makeContainer('001', { has_wheels: false })] },
+      '2026-09-24',
+    )
+    expect(f.physicalInventory.tachos[1]).toEqual({ label: 'Sin llantas', clean: 1, inProcess: 0 })
   })
 })
 

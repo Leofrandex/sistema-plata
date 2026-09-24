@@ -446,6 +446,61 @@ export function computeQualityIndicators(
 
 // ─── 7. Flota y operaciones de planta ────────────────────────────────────────
 
+export interface PhysicalInventoryRow {
+  label: string
+  clean: number
+  inProcess: number
+}
+
+/** Desglose del inventario físico de planta: tachos 240 L por llantas y Yaris
+ *  por color, cada fila partida en limpio / en proceso según la circulación
+ *  en vivo (no según el Excel). */
+export interface PhysicalInventory {
+  tachos: PhysicalInventoryRow[]
+  yaris: PhysicalInventoryRow[]
+}
+
+const IN_PROCESS_BUCKETS: ReadonlySet<CirculationBucket> = new Set(['pendiente_pesar', 'pendiente_tratar'])
+
+function tally(
+  rows: Map<string, PhysicalInventoryRow>,
+  label: string,
+  inProcess: boolean,
+): void {
+  const row = rows.get(label)
+  if (!row) return
+  if (inProcess) row.inProcess += 1
+  else row.clean += 1
+}
+
+function rowsFor(fixed: string[]): Map<string, PhysicalInventoryRow> {
+  return new Map([...fixed, 'Sin dato'].map((label) => [label, { label, clean: 0, inProcess: 0 }]))
+}
+
+/** "Sin dato" solo se muestra si tiene al menos un contenedor. */
+function visibleRows(rows: Map<string, PhysicalInventoryRow>): PhysicalInventoryRow[] {
+  return [...rows.values()].filter((r) => r.label !== 'Sin dato' || r.clean + r.inProcess > 0)
+}
+
+export function computePhysicalInventory(slice: FleetSlice): PhysicalInventory {
+  const tachos = rowsFor(['Con llantas', 'Sin llantas'])
+  const yaris = rowsFor(['Rojos', 'Verdes'])
+
+  for (const c of slice.containers) {
+    if (c.status !== 'active') continue
+    const inProcess = IN_PROCESS_BUCKETS.has(computeCirculationStatus(c, slice).bucket)
+    if (c.is_yaris_container) {
+      const label = c.color === 'rojo' ? 'Rojos' : c.color === 'verde' ? 'Verdes' : 'Sin dato'
+      tally(yaris, label, inProcess)
+    } else if (c.size_liters === 240 && !c.is_metallic_dedicated) {
+      const label = c.has_wheels === true ? 'Con llantas' : c.has_wheels === false ? 'Sin llantas' : 'Sin dato'
+      tally(tachos, label, inProcess)
+    }
+  }
+
+  return { tachos: visibleRows(tachos), yaris: visibleRows(yaris) }
+}
+
 export interface FleetBreakdown {
   activeCount: number
   decommissionedCount: number
@@ -455,6 +510,7 @@ export interface FleetBreakdown {
   avgTreatmentDurationMs: number | null
   transfersPending: number
   transfersCompleted: number
+  physicalInventory: PhysicalInventory
 }
 
 interface FleetSlice {
@@ -511,5 +567,6 @@ export function computeFleetBreakdown(slice: FleetSlice, today: string): FleetBr
     avgTreatmentDurationMs: durationCount > 0 ? Math.round(durationTotal / durationCount) : null,
     transfersPending: slice.externalTransfers.filter((t) => t.transferred_at === null).length,
     transfersCompleted: slice.externalTransfers.filter((t) => t.transferred_at !== null).length,
+    physicalInventory: computePhysicalInventory(slice),
   }
 }
