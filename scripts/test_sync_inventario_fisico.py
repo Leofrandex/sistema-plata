@@ -42,3 +42,11 @@ def test_preview_no_modifica():
     sql = build_preview_sql([('001', True, None)]).lower()
     assert sql.lstrip().startswith('with') or sql.lstrip().startswith('select')
     assert 'update' not in sql
+
+def test_apply_falla_con_lista_vacia():
+    with pytest.raises(ValueError, match='sin contenedores para cargar'):
+        build_apply_sql([])
+
+def test_preview_falla_con_lista_vacia():
+    with pytest.raises(ValueError, match='sin contenedores para cargar'):
+        build_preview_sql([])

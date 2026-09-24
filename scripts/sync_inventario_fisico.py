@@ -85,6 +85,8 @@ def _values(items: list[Item]) -> str:
 
 
 def build_preview_sql(items: list[Item]) -> str:
+    if not items:
+        raise ValueError('sin contenedores para cargar: el Excel no tiene filas con número')
     return f"""with t(id, has_wheels, color) as (values
   {_values(items)}
 )
@@ -105,6 +107,8 @@ order by 1, 2;"""
 
 
 def build_apply_sql(items: list[Item]) -> str:
+    if not items:
+        raise ValueError('sin contenedores para cargar: el Excel no tiene filas con número')
     return f"""with t(id, has_wheels, color) as (values
   {_values(items)}
 )
@@ -138,7 +142,12 @@ def main(argv: list[str]) -> int:
     print(f'{len(items)} contenedores leídos; {len(skipped)} filas sin número:', file=sys.stderr)
     for s in skipped:
         print(f'  - {s}', file=sys.stderr)
-    print(build_apply_sql(items) if '--apply' in argv else build_preview_sql(items))
+    try:
+        sql = build_apply_sql(items) if '--apply' in argv else build_preview_sql(items)
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    print(sql)
     return 0
 
 
