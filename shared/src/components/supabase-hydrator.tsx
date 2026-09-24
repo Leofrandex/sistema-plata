@@ -11,6 +11,7 @@ import { migrateOutboxToLocalStore } from '@hospiwaste/shared/lib/local-store/mi
 import { onConnectivityRestored } from '@hospiwaste/shared/lib/net-status'
 import type {
   Container,
+  ContainerColor,
   WeighingSession,
   ContainerReception,
   RouteEvent,
@@ -394,6 +395,8 @@ function rowToContainer(r: q.ContainerRow): Container {
     is_yaris_dedicated: r.is_yaris_dedicated,
     is_metallic_dedicated: r.is_metallic_dedicated,
     is_yaris_container: r.is_yaris_container,
+    has_wheels: r.has_wheels ?? null,
+    color: (r.color as ContainerColor | null) ?? null,
     created_by: r.created_by ?? null,
   }
 }

@@ -69,6 +69,9 @@ export interface Company {
   code_letter: string      // 'I', 'A' — prefijo de tachos
 }
 
+/** Color físico del contenedor según el inventario de planta. */
+export type ContainerColor = 'rojo' | 'verde'
+
 export interface Container {
   id: string             // identificador físico, ej: '001', 'M1', 'Y1'
   size_liters: ContainerSize
@@ -87,6 +90,11 @@ export interface Container {
    *  cola de pesaje y en el dashboard de circulación como cualquier tacho; la
    *  bandera solo lo identifica. Opcional para compat con mocks/histórico. */
   is_yaris_container?: boolean
+  /** Tacho con llantas (true) o sin llantas (false), según el último Excel de
+   *  inventario de planta. null/undefined = sin dato. */
+  has_wheels?: boolean | null
+  /** Color físico (Yaris: rojo/verde), según el mismo Excel. null/undefined = sin dato. */
+  color?: ContainerColor | null
   /** Perfil que registró el tacho. Null para históricos importados. */
   created_by?: string | null
 }

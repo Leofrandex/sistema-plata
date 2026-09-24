@@ -275,7 +275,9 @@ export type Database = {
       }
       containers: {
         Row: {
+          color: string | null
           created_by: string | null
+          has_wheels: boolean | null
           id: string
           is_metallic_dedicated: boolean
           is_yaris_container: boolean
@@ -286,7 +288,9 @@ export type Database = {
           tare_weight_kg: number
         }
         Insert: {
+          color?: string | null
           created_by?: string | null
+          has_wheels?: boolean | null
           id: string
           is_metallic_dedicated?: boolean
           is_yaris_container?: boolean
@@ -297,7 +301,9 @@ export type Database = {
           tare_weight_kg: number
         }
         Update: {
+          color?: string | null
           created_by?: string | null
+          has_wheels?: boolean | null
           id?: string
           is_metallic_dedicated?: boolean
           is_yaris_container?: boolean
