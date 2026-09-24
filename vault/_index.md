@@ -46,7 +46,9 @@ Punto de entrada. Leer al inicio de cada sesión, antes de tocar código.
 | Rediseño de la capa offline de recorridos (levanta el modo interino) | [[2026-09-01-modo-interino-solo-pesaje]] |
 | Hidratar por ventana de fechas en vez de traer las tablas enteras (`photos` crece ~200 filas/día) | [[2026-09-17-fotos-invisibles-paginado-postgrest]] |
 | Smoke en el navegador: abrir el reporte fotográfico del 11 al 17 de septiembre y confirmar que las fotos aparecen | [[2026-09-17-fotos-invisibles-paginado-postgrest]] |
-| Averiguar qué son los tachos `52.1` y `76.1` del inventario de planta y cuál es su número real — no existen en Supabase y sus taras (15.6 / 13.9 kg) no coinciden con las de `052` / `076` | `Inventario de Contenedores en Proceso.xlsx` (2026-09-18) |
+| Confirmar con planta qué contenedor se pesa como `Y26` — no está en el inventario pero se pesa a diario; no se dio de baja | [[2026-09-24-inventario-contenedores-bajas]] |
+| Yaris verdes (8, sin número): ¿se registran en el sistema y con qué ID? | [[2026-09-24-inventario-contenedores-bajas]] |
+| Botón "Reactivar" en Admin → Tachos — hoy un tacho que vuelve de reparación solo se reactiva por SQL | [[2026-09-24-inventario-contenedores-bajas]] |
 | Decidir si el radio de las tarjetas es 8px (ADR) o 16px (`rounded-2xl`, como está hoy) | [[2026-09-18-dashboard-operativo-vs-analitico]] |
 | Mantener `shared/src/lib/brand.ts` sincronizado con `tokens.css` a mano — o derivarlo en build | [[2026-09-18-reporte-pdf-identidad-y-grafico]] |
 | Ciclo del compactador — módulo nunca empezado | [[Roadmap]] |
@@ -120,6 +122,8 @@ Uno por feature o cambio mayor, en orden inverso. Obsidian lista la carpeta comp
 acá van solo los que siguen teniendo consecuencias abiertas o reglas que aplican hoy.
 
 ### Vigentes — leer antes de tocar el APK
+- [[2026-09-24-inventario-fisico-dashboard]] — la tarjeta Flota y planta muestra llantas (240 L) y color (Yaris) × limpio / en proceso en vivo; llantas y color se recargan desde el Excel con un script
+- [[2026-09-24-inventario-contenedores-bajas]] — solo el tacho `200` está de baja; los tachos sin llantas y los metálicos siguen activos; `52.1`/`76.1` son unidades perdidas
 - [[2026-09-21-reactivacion-tratamiento]] — el módulo de tratamiento vuelve a estar activo en el código: cola oldest-first, id determinista, outbox, cierra `exit_at` de cámara fría
 - [[2026-09-18-reporte-pdf-identidad-y-grafico]] — el PDF usa la tipografía y los colores de la app, y suma el comparativo año contra año
 - [[2026-09-18-dashboard-operativo-vs-analitico]] — el dashboard se queda con el día a día; el histórico y el navegador de meses se van a `/analytics`

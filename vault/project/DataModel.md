@@ -4,7 +4,7 @@ tags:
   - project
   - data
   - types
-updated: 2026-05-17
+updated: 2026-09-24
 ---
 
 # Modelo de Datos Conceptual
@@ -37,6 +37,11 @@ tacho pasa por distintas empresas a lo largo de su vida. Ver
 | is_metallic_dedicated | boolean | Tacho dedicado a "Metálicos No reutilizables" |
 | is_yaris_container | boolean | **Contenedor físico** de la flota Yaris (`Y1`…`Y26`, 1100 L): sin empresa, con tara real desde 2026-09-07. Desde esa fecha se pesa directamente y entra en la cola de pesaje y en el dashboard como cualquier tacho; la bandera solo lo identifica. Ver [[2026-09-07-yaris-pesaje-directo]] |
 | created_by | FK → Profile / null | Quién registró el tacho. Null para históricos importados. Ver [[2026-06-10-recorrido-fotos-persistencia-traza]] |
+
+- **Atributos físicos (desde 2026-09-24):** `has_wheels` (con/sin llantas) y `color` (Yaris rojo/verde).
+  Vienen del Excel de inventario de planta y se cargan con `scripts/sync_inventario_fisico.py`;
+  no hay pantalla de edición. `null` = sin dato. El estado limpio / en proceso **no** se guarda:
+  se deriva en vivo de la circulación. Ver [[2026-09-24-inventario-fisico-dashboard]].
 
 > [!note] Desactualizado en esta tabla: `waste_type` ya **no** es columna de `containers`
 > (se eliminó; el tipo de desecho es input de pesaje). Ver [[2026-05-30-empresa-tipo-dinamicos-tacho]].
