@@ -26,7 +26,8 @@ export async function getCameraPhoto(): Promise<string | null> {
       source: CameraSource.Camera, // solo cámara, sin galería
       resultType: CameraResultType.DataUrl,
       quality: 70,
-      width: 1920,
+      // Mismo tope que photo-watermark: si el sello falla, se sube esta foto tal cual.
+      width: 1280,
       correctOrientation: true,
       saveToGallery: false,
       // format por defecto = jpeg

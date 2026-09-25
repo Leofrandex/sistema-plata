@@ -6,7 +6,11 @@
  * imagen corrupta), devuelve el dataURL original.
  */
 
-const MAX_DIMENSION = 1920 // redimensionamos también para limitar peso
+// 1280 px / JPEG 0,75 ≈ 110 KB por foto (antes 1920 px / 0,9 ≈ 340 KB). Sigue
+// sirviendo como evidencia (se leen visor y número de tacho) y baja 3× lo que
+// se sube desde planta y lo que el hub descarga para el informe (2026-09-25).
+const MAX_DIMENSION = 1280
+const JPEG_QUALITY = 0.75
 
 export async function watermarkPhoto(
   fileOrDataUrl: File | string,
@@ -33,7 +37,7 @@ export async function watermarkPhoto(
     ctx.drawImage(img, 0, 0, width, height)
     drawTimestamp(ctx, width, height, capturedAt)
 
-    return canvas.toDataURL('image/jpeg', 0.9)
+    return canvas.toDataURL('image/jpeg', JPEG_QUALITY)
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('[watermark] falló, usando foto sin sello:', err)
