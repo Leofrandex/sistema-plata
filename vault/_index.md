@@ -122,6 +122,7 @@ Uno por feature o cambio mayor, en orden inverso. Obsidian lista la carpeta comp
 acá van solo los que siguen teniendo consecuencias abiertas o reglas que aplican hoy.
 
 ### Vigentes — leer antes de tocar el APK
+- [[2026-09-25-pesaje-sobrevive-camara]] — si Android cierra el APK con la cámara abierta, al reabrir vuelve a Pesaje con el borrador y la foto; `/diagnostico` muestra por qué se cerró
 - [[2026-09-25-informe-fotografico-liviano]] — el hub reduce las fotos a 480 px y reintenta antes de armar el PDF (semana de Airkem: 290 MB → 16,6 MB); el APK captura a 1280 px / 0,75
 - [[2026-09-24-inventario-fisico-dashboard]] — la tarjeta Flota y planta muestra llantas (240 L) y color (Yaris) × limpio / en proceso en vivo; llantas y color se recargan desde el Excel con un script
 - [[2026-09-24-inventario-contenedores-bajas]] — solo el tacho `200` está de baja; los tachos sin llantas y los metálicos siguen activos; `52.1`/`76.1` son unidades perdidas
