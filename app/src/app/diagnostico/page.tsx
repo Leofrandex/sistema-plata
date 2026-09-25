@@ -12,7 +12,7 @@ import {
   CONTROL_URL, CRASH_LABEL, HEALTH_INIT, HEALTH_URL, SUPABASE_URL,
   formatReport, hostOf, probe, summarize, type CheckResult, type CheckStatus,
 } from '@/lib/diagnostics'
-import { clearLastCrash, getLastCrash } from '@/lib/diag-plugin'
+import { clearLastCrash, getExitReasons, getLastCrash } from '@/lib/diag-plugin'
 
 /**
  * Pantalla de diagnóstico de campo. Pública (sin sesión): justamente hace
@@ -55,6 +55,18 @@ export default function DiagnosticoPage() {
     push(crash
       ? { label: CRASH_LABEL, status: 'fail', detail: `${new Date(crash.at).toLocaleString('es-VE')} · ${crash.crash}` }
       : { label: CRASH_LABEL, status: 'info', detail: 'ninguno registrado' })
+
+    // ── 0b. Por qué Android cerró la app las últimas veces ─────────────
+    const exits = await getExitReasons()
+    push(exits.length
+      ? {
+          label: 'Últimos cierres de la app (Android)',
+          status: exits.some((e) => e.reason === 'LOW_MEMORY' || e.reason.startsWith('CRASH')) ? 'warn' : 'info',
+          detail: exits
+            .map((e) => `${new Date(e.at).toLocaleString('es-VE')} · ${e.reason}${e.importance >= 400 ? ' (en segundo plano)' : ''}`)
+            .join(' | '),
+        }
+      : { label: 'Últimos cierres de la app (Android)', status: 'info', detail: 'sin datos (Android < 11 o sin cierres)' })
 
     // ── 1. Red según el sistema ─────────────────────────────────────────
     try {
