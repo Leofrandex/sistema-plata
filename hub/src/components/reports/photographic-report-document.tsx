@@ -145,7 +145,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: { color: '#64748b', fontSize: 10 },
+  missing: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '0.5 dashed #cbd5e1',
+  },
+  missingText: { fontSize: 6, color: '#94a3b8', textAlign: 'center' },
 })
+
+/** url original → data URL reducido; null si la foto no se pudo descargar. */
+export type ReportImages = Map<string, string | null>
+
+/**
+ * Dibuja una foto ya reducida. Si falta (descarga fallida), muestra un aviso en
+ * vez de dejar el recuadro en blanco, así el hueco no pasa desapercibido.
+ */
+function ReportPhoto({ url, images }: { url: string; images: ReportImages }) {
+  const src = images.get(url)
+  if (!src) {
+    return (
+      <View style={styles.missing}>
+        <Text style={styles.missingText}>Foto no disponible</Text>
+      </View>
+    )
+  }
+  // eslint-disable-next-line jsx-a11y/alt-text
+  return <Image src={src} style={styles.photo} />
+}
 
 interface Cuadro {
   label: string
@@ -197,7 +225,7 @@ function MetaBar({ companyName, fecha }: { companyName: string; fecha: string })
     <View style={styles.metaBar} fixed>
       <View style={styles.metaCell}>
         <Text style={styles.metaLabel}>Edificio</Text>
-        <Text style={styles.metaValue}>—</Text>
+        <Text style={styles.metaValue}>4E</Text>
       </View>
       <View style={styles.metaCell}>
         <Text style={styles.metaLabel}>Ubicación</Text>
@@ -215,7 +243,7 @@ function MetaBar({ companyName, fecha }: { companyName: string; fecha: string })
   )
 }
 
-function CuadroView({ cuadro }: { cuadro: Cuadro }) {
+function CuadroView({ cuadro, images }: { cuadro: Cuadro; images: ReportImages }) {
   return (
     <View style={styles.cuadro} wrap={false}>
       <Text style={styles.cuadroHeader}>{cuadro.label}</Text>
@@ -224,20 +252,17 @@ function CuadroView({ cuadro }: { cuadro: Cuadro }) {
           ? (cuadro.pairs ?? []).map((pair, i) => (
               <View key={`${pair.container_id}-${i}`} style={styles.photoCell}>
                 <View style={[styles.photoBox, { marginBottom: 2 }]}>
-                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                  {pair.scale && <Image src={pair.scale.url} style={styles.photo} />}
+                  <ReportPhoto url={pair.scale?.url ?? ''} images={images} />
                 </View>
                 <View style={styles.photoBox}>
-                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                  {pair.tacho && <Image src={pair.tacho.url} style={styles.photo} />}
+                  <ReportPhoto url={pair.tacho?.url ?? ''} images={images} />
                 </View>
               </View>
             ))
           : (cuadro.photos ?? []).map((entry) => (
               <View key={entry.photo.id} style={styles.photoCell}>
                 <View style={styles.photoBox}>
-                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                  <Image src={entry.photo.url} style={styles.photo} />
+                  <ReportPhoto url={entry.photo.url} images={images} />
                 </View>
               </View>
             ))}
@@ -250,7 +275,7 @@ function CuadroView({ cuadro }: { cuadro: Cuadro }) {
   )
 }
 
-function DayPages({ day, companyName }: { day: ReportDay; companyName: string }) {
+function DayPages({ day, companyName, images }: { day: ReportDay; companyName: string; images: ReportImages }) {
   const cuadros = buildCuadros(day)
   const pages = chunk(cuadros, CUADROS_PER_PAGE)
   return (
@@ -261,7 +286,7 @@ function DayPages({ day, companyName }: { day: ReportDay; companyName: string })
           <MetaBar companyName={companyName} fecha={day.date} />
           <View style={styles.cuadrosWrap}>
             {pageCuadros.map((c, i) => (
-              <CuadroView key={`${day.date}-${idx}-${i}`} cuadro={c} />
+              <CuadroView key={`${day.date}-${idx}-${i}`} cuadro={c} images={images} />
             ))}
           </View>
           <Text
@@ -277,14 +302,16 @@ function DayPages({ day, companyName }: { day: ReportDay; companyName: string })
 
 interface Props {
   data: PhotographicReportData
+  /** Fotos ya descargadas y reducidas (ver `prepareReportImages`). */
+  images: ReportImages
 }
 
-export function PhotographicReportDocument({ data }: Props) {
+export function PhotographicReportDocument({ data, images }: Props) {
   const { company, days, meta } = data
   return (
     <Document title={`${APP_NAME} — Registro Fotográfico — ${company.name}`}>
       {days.map((day) => (
-        <DayPages key={day.date} day={day} companyName={company.name} />
+        <DayPages key={day.date} day={day} companyName={company.name} images={images} />
       ))}
       {meta.totalPhotos === 0 && (
         <Page size="A4" orientation="landscape" style={styles.page}>

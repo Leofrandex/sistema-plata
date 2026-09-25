@@ -1,27 +1,65 @@
 'use client'
 
-import dynamic from 'next/dynamic'
+import { useState } from 'react'
 import { Download, Loader2, FileText, Route, Scale } from 'lucide-react'
 import { Button } from '@hospiwaste/shared/components/ui/button'
 import { Card, CardContent } from '@hospiwaste/shared/components/ui/card'
 import { APP_NAME } from '@hospiwaste/shared/lib/constants'
-import type { PhotographicReportData } from '@/lib/data/reports'
+import { reportPhotoUrls, type PhotographicReportData } from '@/lib/data/reports'
+import { prepareReportImages } from '@/lib/report-images'
 import { PhotographicReportDocument } from './photographic-report-document'
-
-const PDFDownloadLink = dynamic(
-  () => import('@react-pdf/renderer').then((mod) => mod.PDFDownloadLink),
-  { ssr: false },
-)
 
 interface Props {
   data: PhotographicReportData
 }
 
+type GenerationState =
+  | { phase: 'idle' }
+  | { phase: 'photos'; done: number; total: number }
+  | { phase: 'pdf' }
+  | { phase: 'done'; missing: number }
+  | { phase: 'error'; message: string }
+
+function triggerDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
 export function ReportPreview({ data }: Props) {
   const { company, client, rangeStart, rangeEnd, meta } = data
+  const [state, setState] = useState<GenerationState>({ phase: 'idle' })
 
   const safeName = company.name.replace(/[^a-z0-9]/gi, '_')
   const filename = `${APP_NAME}_RegistroFotografico_${safeName}_${rangeStart}_${rangeEnd}.pdf`
+  const busy = state.phase === 'photos' || state.phase === 'pdf'
+
+  // El PDF se arma recién al hacer clic: primero se descargan y reducen las
+  // fotos (con reintentos), después se genera el archivo. Antes @react-pdf
+  // bajaba todas las fotos a tamaño original apenas se abría la vista previa.
+  async function handleGenerate() {
+    try {
+      const urls = reportPhotoUrls(data)
+      setState({ phase: 'photos', done: 0, total: urls.length })
+      const images = await prepareReportImages(urls, {
+        onProgress: (done, total) => setState({ phase: 'photos', done, total }),
+      })
+      setState({ phase: 'pdf' })
+      const { pdf } = await import('@react-pdf/renderer')
+      const blob = await pdf(<PhotographicReportDocument data={data} images={images} />).toBlob()
+      triggerDownload(blob, filename)
+      const missing = [...images.values()].filter((v) => v === null).length
+      setState({ phase: 'done', missing })
+    } catch (err) {
+      console.error('[reports] generar PDF falló:', err)
+      setState({ phase: 'error', message: 'No se pudo generar el PDF. Intenta de nuevo.' })
+    }
+  }
 
   return (
     <Card>
@@ -68,29 +106,38 @@ export function ReportPreview({ data }: Props) {
         )}
 
         <div className="pt-2 border-t">
-          <PDFDownloadLink
-            document={<PhotographicReportDocument data={data} />}
-            fileName={filename}
-          >
-            {({ loading }) => (
-              <Button disabled={loading} className="gap-2 w-full sm:w-auto" size="lg">
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Generando PDF…
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4" />
-                    Descargar reporte PDF
-                  </>
-                )}
-              </Button>
+          <Button onClick={handleGenerate} disabled={busy} className="gap-2 w-full sm:w-auto" size="lg">
+            {state.phase === 'photos' ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Preparando fotos {state.done} de {state.total}…
+              </>
+            ) : state.phase === 'pdf' ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Generando PDF…
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4" />
+                Descargar reporte PDF
+              </>
             )}
-          </PDFDownloadLink>
+          </Button>
           <p className="text-xs text-muted-foreground mt-2">
             El archivo se guardará como <code className="font-mono">{filename}</code>
           </p>
+          {state.phase === 'done' && state.missing > 0 && (
+            <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              {state.missing} foto{state.missing !== 1 ? 's' : ''} no se pudo descargar y sale como
+              “Foto no disponible” en el PDF. Vuelve a generarlo para reintentar.
+            </p>
+          )}
+          {state.phase === 'error' && (
+            <p className="mt-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+              {state.message}
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>

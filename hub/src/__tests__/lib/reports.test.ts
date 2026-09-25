@@ -3,6 +3,7 @@ import {
   getMondayOfWeek,
   isoDate,
   chunk,
+  reportPhotoUrls,
 } from '@/lib/data/reports'
 import type { ReportStoreSlice } from '@/lib/data/reports'
 import {
@@ -328,5 +329,19 @@ describe('buildPhotographicReportData (por empresa)', () => {
     expect(allPhotoIds).not.toContain('photo-ion-sig')
     // sigue contando solo las 5 fotos de ruta reales (no la firma)
     expect(data.meta.routePhotoCount).toBe(5)
+  })
+
+  it('junta las urls de recorrido y de los pares de pesaje, sin repetir', () => {
+    const data = buildPhotographicReportData('company-ion', ionStore, range)!
+    const urls = reportPhotoUrls(data)
+    const expected = new Set(
+      data.days.flatMap((d) => d.groups).flatMap((g) => [
+        ...g.photos.map((e) => e.photo.url),
+        ...(g.pairs ?? []).flatMap((p) => [p.scale?.url, p.tacho?.url]),
+      ]).filter((u): u is string => !!u),
+    )
+    expect(urls.length).toBeGreaterThan(0)
+    expect(new Set(urls)).toEqual(expected)
+    expect(urls.length).toBe(new Set(urls).size)
   })
 })

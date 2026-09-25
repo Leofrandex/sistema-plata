@@ -103,6 +103,21 @@ export function chunk<T>(arr: T[], size: number): T[][] {
   return out
 }
 
+/** Todas las urls de fotos que el PDF va a dibujar, sin repetir. */
+export function reportPhotoUrls(data: PhotographicReportData): string[] {
+  const urls = new Set<string>()
+  for (const day of data.days) {
+    for (const group of day.groups) {
+      for (const entry of group.photos) urls.add(entry.photo.url)
+      for (const pair of group.pairs ?? []) {
+        if (pair.scale) urls.add(pair.scale.url)
+        if (pair.tacho) urls.add(pair.tacho.url)
+      }
+    }
+  }
+  return [...urls].filter(Boolean)
+}
+
 /**
  * Arma el reporte fotográfico de una empresa para un rango.
  * - Default: [lunes 00:00 de la semana de `now`, `now`].
