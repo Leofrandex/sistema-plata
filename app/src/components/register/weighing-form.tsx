@@ -10,6 +10,7 @@ import { filterContainers } from '@/components/register/container-selector'
 import { cn } from '@hospiwaste/shared/lib/utils'
 import { computeNetWeight, formatTachoNumber } from '@hospiwaste/shared/lib/data/containers'
 import type { Container, Company, WasteType } from '@hospiwaste/shared/lib/types'
+import type { CameraSlot } from '@/lib/weighing-draft'
 
 const WASTE_LABELS: Record<WasteType, string> = {
   infectious: 'Peligroso infeccioso',
@@ -62,6 +63,8 @@ interface Props {
   onSubmit: () => void
   onCancelEdit?: () => void
   onDelete?: () => void
+  /** Se espera antes de abrir la cámara nativa: guarda el borrador por si Android mata la app. */
+  onBeforeCamera?: (slot: CameraSlot) => Promise<void>
 }
 
 export function WeighingForm({
@@ -77,6 +80,7 @@ export function WeighingForm({
   onSubmit,
   onCancelEdit,
   onDelete,
+  onBeforeCamera,
 }: Props) {
   const selectedContainer = allContainers.find((c) => c.id === state.container_id) ?? null
 
@@ -341,6 +345,7 @@ export function WeighingForm({
           preview={state.photo_scale}
           onCapture={(url) => onChange({ photo_scale: url })}
           onRemove={() => onChange({ photo_scale: null })}
+          onBeforeCamera={onBeforeCamera && (() => onBeforeCamera('photo_scale'))}
         />
         <PhotoCapture
           label="Foto del tacho"
@@ -348,6 +353,7 @@ export function WeighingForm({
           preview={state.photo_container}
           onCapture={(url) => onChange({ photo_container: url })}
           onRemove={() => onChange({ photo_container: null })}
+          onBeforeCamera={onBeforeCamera && (() => onBeforeCamera('photo_container'))}
         />
       </div>
 

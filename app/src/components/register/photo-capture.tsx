@@ -13,15 +13,18 @@ interface Props {
   onCapture: (dataUrl: string) => void
   onRemove: () => void
   preview: string | null
+  /** Se espera antes de abrir la cámara nativa (el APK puede morir mientras está abierta). */
+  onBeforeCamera?: () => Promise<void>
 }
 
-export function PhotoCapture({ label, required, onCapture, onRemove, preview }: Props) {
+export function PhotoCapture({ label, required, onCapture, onRemove, preview, onBeforeCamera }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [processing, setProcessing] = useState(false)
 
   // En el APK: cámara nativa (solo cámara, JPEG). En web: abre el file input.
   async function handleCaptureClick() {
     if (await isNativeApp()) {
+      await onBeforeCamera?.()
       const dataUrl = await getCameraPhoto()
       if (!dataUrl) return
       setProcessing(true)

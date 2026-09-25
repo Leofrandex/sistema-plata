@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Play, StopCircle, AlertCircle, X, History } from 'lucide-react'
@@ -32,6 +32,16 @@ import { deleteLocalWeighingSession } from '@/lib/data/local-deletes'
 import { createClient } from '@hospiwaste/shared/lib/supabase/client'
 import * as q from '@hospiwaste/shared/lib/supabase/queries'
 import { ConfirmVoidDialog } from '@hospiwaste/shared/components/ui/confirm-void-dialog'
+import {
+  DRAFT_RESTORED_EVENT,
+  clearDraft,
+  isDraftRestorable,
+  isDraftWorthSaving,
+  loadDraft,
+  saveDraft,
+  type CameraSlot,
+  type WeighingDraft,
+} from '@/lib/weighing-draft'
 
 /**
  * Pantalla a la que se vuelve al cerrar o cancelar el pesaje: el Home del
@@ -94,6 +104,72 @@ export default function WeighingPage() {
     ? receptions.filter((r) => session.reception_ids.includes(r.id))
     : []
 
+  // ── Borrador: el formulario sobrevive a que Android mate la app mientras la
+  // cámara está abierta (ver lib/weighing-draft). `draftLoaded` evita que el
+  // guardado automático pise el borrador antes de haberlo leído.
+  const draftLoaded = useRef(false)
+  const cameraSlot = useRef<CameraSlot | null>(null)
+
+  useEffect(() => {
+    if (!sessionId || draftLoaded.current) return
+    let cancelled = false
+    loadDraft().then((d) => {
+      if (cancelled) return
+      draftLoaded.current = true
+      if (d && isDraftRestorable(d, Date.now(), sessionId)) {
+        setFormState(d.form)
+        setEditingReceptionId(d.editingReceptionId)
+      } else if (d) {
+        void clearDraft()
+      }
+    })
+    return () => { cancelled = true }
+  }, [sessionId])
+
+  // La foto que Android devolvió al reabrir la app llega por AppLifecycle.
+  useEffect(() => {
+    if (!sessionId) return
+    const onRestored = () => {
+      loadDraft().then((d) => {
+        if (d && isDraftRestorable(d, Date.now(), sessionId)) {
+          setFormState(d.form)
+          setEditingReceptionId(d.editingReceptionId)
+        }
+      })
+    }
+    window.addEventListener(DRAFT_RESTORED_EVENT, onRestored)
+    return () => window.removeEventListener(DRAFT_RESTORED_EVENT, onRestored)
+  }, [sessionId])
+
+  function buildDraft(): WeighingDraft | null {
+    if (!sessionId) return null
+    return {
+      v: 1,
+      savedAt: Date.now(),
+      weighingSessionId: sessionId,
+      editingReceptionId,
+      form: formState,
+      cameraSlot: cameraSlot.current,
+    }
+  }
+
+  useEffect(() => {
+    if (!sessionId || !draftLoaded.current) return
+    const t = setTimeout(() => {
+      const d = buildDraft()
+      if (d && isDraftWorthSaving(formState, editingReceptionId)) void saveDraft(d)
+      else void clearDraft()
+    }, 400)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formState, editingReceptionId, sessionId])
+
+  async function handleBeforeCamera(slot: CameraSlot) {
+    cameraSlot.current = slot
+    const d = buildDraft()
+    if (d) await saveDraft(d)
+  }
+
   const isRunning = !!activeSession
   const isEditing = editingReceptionId != null
   const elapsed = useElapsed(activeSession?.started_at ?? null)
@@ -130,6 +206,7 @@ export default function WeighingPage() {
   })()
 
   function updateForm(updates: Partial<WeighingFormState>) {
+    if ('photo_scale' in updates || 'photo_container' in updates) cameraSlot.current = null
     setFormState((prev) => {
       const next = { ...prev, ...updates }
       if (updates.container_id && updates.container_id !== prev.container_id) {
@@ -145,6 +222,8 @@ export default function WeighingPage() {
   function resetForm() {
     setFormState(EMPTY_WEIGHING_FORM)
     setEditingReceptionId(null)
+    cameraSlot.current = null
+    void clearDraft()
   }
 
   async function handleStart() {
@@ -342,6 +421,7 @@ export default function WeighingPage() {
     }
     await deleteLocalWeighingSession(ctx.weighing_session_id)
     deleteWeighingSession(ctx.weighing_session_id)
+    await clearDraft()
     await endSession(activeSession.key)
     setActiveSession(null)
     resetForm()
@@ -381,6 +461,7 @@ export default function WeighingPage() {
       }
     }
 
+    await clearDraft()
     await endSession(activeSession.key)
     setActiveSession(null)
     router.push(HOME)
@@ -481,6 +562,7 @@ export default function WeighingPage() {
             onSubmit={handleSubmitForm}
             onCancelEdit={handleCancelEdit}
             onDelete={() => setConfirmingVoid(true)}
+            onBeforeCamera={handleBeforeCamera}
           />
 
           {/* Drawer lateral */}

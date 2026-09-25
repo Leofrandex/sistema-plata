@@ -7,6 +7,50 @@ import { isSessionExpired } from '@hospiwaste/shared/lib/supabase/preferences-st
 import { getLocalStore } from '@hospiwaste/shared/lib/local-store'
 import { signOut } from '@hospiwaste/shared/lib/auth/sign-out'
 import { clearCredentialsIfDrained, getNativeCredentials, handOffCredentials, kickNativeSync } from '@/lib/native-sync'
+import { watermarkPhoto } from '@hospiwaste/shared/lib/photo-watermark'
+import {
+  DRAFT_RESTORED_EVENT,
+  applyRestoredPhoto,
+  isDraftFresh,
+  loadDraft,
+  saveDraft,
+} from '@/lib/weighing-draft'
+
+const WEIGHING_ROUTE = '/register/weighing'
+
+/**
+ * Android mató la app mientras la cámara estaba abierta y la reabrió en el
+ * Home. Si hay un pesaje a medio llenar, vuelve a Pesaje: la página restaura
+ * el borrador (ver lib/weighing-draft).
+ */
+async function resumeInterruptedWeighing(goTo: (path: string) => void) {
+  const draft = await loadDraft()
+  if (!isDraftFresh(draft, Date.now())) return
+  const path = window.location.pathname.replace(/\/index\.html$/, '/')
+  if (path === '/') goTo(WEIGHING_ROUTE)
+}
+
+interface RestoredResult {
+  pluginId: string
+  methodName: string
+  success: boolean
+  data?: { dataUrl?: string }
+}
+
+/**
+ * Android entrega la foto que la cámara sacó mientras la app estaba muerta.
+ * Se sella, se coloca en el hueco que se estaba fotografiando y se avisa a Pesaje.
+ */
+async function recoverCameraPhoto(result: RestoredResult, goTo: (path: string) => void) {
+  if (result.pluginId !== 'Camera' || result.methodName !== 'getPhoto') return
+  if (!result.success || !result.data?.dataUrl) return
+  const draft = await loadDraft()
+  if (!draft || !draft.cameraSlot || !isDraftFresh(draft, Date.now())) return
+  const stamped = await watermarkPhoto(result.data.dataUrl, new Date())
+  await saveDraft(applyRestoredPhoto(draft, stamped, Date.now()))
+  window.dispatchEvent(new Event(DRAFT_RESTORED_EVENT))
+  goTo(WEIGHING_ROUTE)
+}
 
 /**
  * En el APK (Capacitor):
@@ -22,6 +66,8 @@ import { clearCredentialsIfDrained, getNativeCredentials, handOffCredentials, ki
  *   resetea rotatedAt (C1). Sin esto, el RT que guarda el WebView queda de
  *   una familia vieja y el próximo refresh JS forzaría un logout a mitad de
  *   turno.
+ * - si Android mató la app con la cámara abierta, vuelve a Pesaje y recupera
+ *   la foto pendiente (`appRestoredResult`); el formulario lo restaura la página.
  * - re-entrega el refresh token al plugin nativo cuando Supabase lo rota
  *   (TOKEN_REFRESHED). El handoff inicial del login lo hace /login (C1: no
  *   escuchar SIGNED_IN acá evita handoffs duplicados que pisen un token ya
@@ -33,7 +79,7 @@ export function AppLifecycle() {
 
   useEffect(() => {
     let cancelled = false
-    let removeListener: (() => void) | undefined
+    const removers: Array<() => void> = []
     let removeAuthListener: (() => void) | undefined
 
     async function checkExpiry() {
@@ -79,6 +125,16 @@ export function AppLifecycle() {
       .then(([{ Capacitor }, { App }]) => {
         if (cancelled || !Capacitor.isNativePlatform()) return
         checkExpiry()
+        const goTo = (path: string) => { if (!cancelled) router.replace(path) }
+        resumeInterruptedWeighing(goTo).catch((err) =>
+          console.error('[lifecycle] retomar pesaje falló', err))
+        App.addListener('appRestoredResult', (result) => {
+          recoverCameraPhoto(result as RestoredResult, goTo).catch((err) =>
+            console.error('[lifecycle] recuperar foto falló', err))
+        }).then((h) => {
+          if (cancelled) h.remove()
+          else removers.push(() => h.remove())
+        })
         App.addListener('appStateChange', ({ isActive }) => {
           if (isActive) {
             adoptNativeRotation()
@@ -89,7 +145,7 @@ export function AppLifecycle() {
           }
         }).then((h) => {
           if (cancelled) h.remove()
-          else removeListener = () => h.remove()
+          else removers.push(() => h.remove())
         })
 
         const { data: sub } = createClient().auth.onAuthStateChange((event, session) => {
@@ -104,7 +160,7 @@ export function AppLifecycle() {
       .catch(() => { /* @capacitor no disponible (web): no-op */ })
     return () => {
       cancelled = true
-      removeListener?.()
+      removers.forEach((r) => r())
       removeAuthListener?.()
     }
   }, [router])
