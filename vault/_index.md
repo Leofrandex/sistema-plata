@@ -28,7 +28,7 @@ Punto de entrada. Leer al inicio de cada sesión, antes de tocar código.
 (recorridos congelados mientras se rehace la capa offline). Ver [[2026-09-01-modo-interino-solo-pesaje]].
 
 **Rama de trabajo:** `main` · último commit `e88f2c4`
-**APK:** v1.9 (build 10) compilado: pesaje que sobrevive a la cámara, fotos a 1280 px, diagnóstico de cierres · **los teléfonos de planta siguen en v1.5**
+**APK:** v1.10 (build 11) compilado: cámara dentro de la app y recuperación del renderer (v1.9 seguía cerrándose); fotos a 1280 px · **los teléfonos de planta siguen en v1.5**
 
 ### Pendientes abiertos
 
