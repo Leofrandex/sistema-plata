@@ -6,6 +6,7 @@ import { Camera, X, Loader2 } from 'lucide-react'
 import { Button } from '@hospiwaste/shared/components/ui/button'
 import { watermarkPhoto } from '@hospiwaste/shared/lib/photo-watermark'
 import { isNativeApp, getCameraPhoto } from '@hospiwaste/shared/lib/capture-photo'
+import { InAppCamera } from '@/components/register/in-app-camera'
 
 interface Props {
   label: string
@@ -20,22 +21,38 @@ interface Props {
 export function PhotoCapture({ label, required, onCapture, onRemove, preview, onBeforeCamera }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [processing, setProcessing] = useState(false)
+  const [inAppCamera, setInAppCamera] = useState(false)
 
-  // En el APK: cámara nativa (solo cámara, JPEG). En web: abre el file input.
+  // En el APK: cámara dentro de la app (el APK no sale de primer plano, ver
+  // in-app-camera). Si no se puede abrir, cámara del sistema. En web: file input.
   async function handleCaptureClick() {
     if (await isNativeApp()) {
-      await onBeforeCamera?.()
-      const dataUrl = await getCameraPhoto()
-      if (!dataUrl) return
-      setProcessing(true)
-      try {
-        onCapture(await watermarkPhoto(dataUrl, new Date()))
-      } finally {
-        setProcessing(false)
-      }
+      setInAppCamera(true)
     } else {
       inputRef.current?.click()
     }
+  }
+
+  async function stampAndCapture(dataUrl: string) {
+    setProcessing(true)
+    try {
+      onCapture(await watermarkPhoto(dataUrl, new Date()))
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  function handleInAppCapture(dataUrl: string) {
+    setInAppCamera(false)
+    void stampAndCapture(dataUrl)
+  }
+
+  async function handleInAppUnavailable(err: unknown) {
+    console.warn('[foto] cámara dentro de la app no disponible, uso la del sistema:', err)
+    setInAppCamera(false)
+    await onBeforeCamera?.()
+    const dataUrl = await getCameraPhoto()
+    if (dataUrl) await stampAndCapture(dataUrl)
   }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -94,6 +111,13 @@ export function PhotoCapture({ label, required, onCapture, onRemove, preview, on
             </>
           )}
         </button>
+      )}
+      {inAppCamera && (
+        <InAppCamera
+          onCapture={handleInAppCapture}
+          onCancel={() => setInAppCamera(false)}
+          onUnavailable={handleInAppUnavailable}
+        />
       )}
       <input
         ref={inputRef}
