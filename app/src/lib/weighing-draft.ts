@@ -57,6 +57,16 @@ export function applyRestoredPhoto(draft: WeighingDraft, dataUrl: string, now: n
   }
 }
 
+/**
+ * Un borrador guardado por un APK viejo puede no tener `container_ref` (agregado
+ * junto con el contenedor descartable). Restaurarlo tal cual deja `container_ref`
+ * en `undefined` y `state.container_ref.trim()` explota al renderizar el form.
+ * Se completa con EMPTY_WEIGHING_FORM para cubrir cualquier campo faltante.
+ */
+export function restoreDraftForm(form: Partial<WeighingFormState>): WeighingFormState {
+  return { ...EMPTY_WEIGHING_FORM, ...form }
+}
+
 export function isDraftWorthSaving(form: WeighingFormState, editingReceptionId: string | null): boolean {
   if (editingReceptionId) return true
   return (Object.keys(EMPTY_WEIGHING_FORM) as (keyof WeighingFormState)[])

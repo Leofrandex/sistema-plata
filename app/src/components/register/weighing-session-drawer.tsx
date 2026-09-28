@@ -93,7 +93,7 @@ export function WeighingSessionDrawer({
               Registros de la sesión
             </h2>
             <p className="text-xs text-muted-foreground">
-              {receptions.length} tacho{receptions.length !== 1 ? 's' : ''} pesado{receptions.length !== 1 ? 's' : ''}
+              {receptions.length} pesaje{receptions.length !== 1 ? 's' : ''} registrado{receptions.length !== 1 ? 's' : ''}
             </p>
           </div>
           <Button variant="ghost" size="icon" aria-label="Cerrar" onClick={() => onOpenChange(false)}>

@@ -40,6 +40,7 @@ import {
   isDraftRestorable,
   isDraftWorthSaving,
   loadDraft,
+  restoreDraftForm,
   saveDraft,
   type CameraSlot,
   type WeighingDraft,
@@ -120,7 +121,7 @@ export default function WeighingPage() {
       if (cancelled) return
       draftLoaded.current = true
       if (d && isDraftRestorable(d, Date.now(), sessionId)) {
-        setFormState(d.form)
+        setFormState(restoreDraftForm(d.form))
         setEditingReceptionId(d.editingReceptionId)
       } else if (d) {
         void clearDraft()
@@ -135,7 +136,7 @@ export default function WeighingPage() {
     const onRestored = () => {
       loadDraft().then((d) => {
         if (d && isDraftRestorable(d, Date.now(), sessionId)) {
-          setFormState(d.form)
+          setFormState(restoreDraftForm(d.form))
           setEditingReceptionId(d.editingReceptionId)
         }
       })
@@ -528,7 +529,7 @@ export default function WeighingPage() {
                     {formatElapsed(elapsed)}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {sessionReceptions.length} tacho{sessionReceptions.length !== 1 ? 's' : ''} registrado{sessionReceptions.length !== 1 ? 's' : ''}
+                    {sessionReceptions.length} pesaje{sessionReceptions.length !== 1 ? 's' : ''} registrado{sessionReceptions.length !== 1 ? 's' : ''}
                   </p>
                   {controls?.ownerIsOther && (
                     <p className="text-xs text-amber-700 mt-1">
@@ -578,7 +579,7 @@ export default function WeighingPage() {
           {/* Banner de modo edición */}
           {isEditing && (
             <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-2.5 text-sm text-amber-800">
-              Editando {formState.container_id ? `tacho ${formState.container_id}` : `contenedor ${formState.container_ref}`}.
+              Editando {isDisposableWaste(formState.waste_type) ? `contenedor ${formState.container_ref}` : `tacho ${formState.container_id}`}.
               Los cambios se guardan en la sesión actual.
             </div>
           )}
@@ -639,7 +640,9 @@ export default function WeighingPage() {
           {confirmingVoid && (
             <ConfirmVoidDialog
               title="¿Deshacer el pesaje?"
-              description={<>El tacho <strong className="font-mono">{formState.container_id}</strong> volverá a quedar disponible para pesar. El registro no se borra: queda anulado con motivo para trazabilidad.</>}
+              description={isDisposableWaste(formState.waste_type)
+                ? <>El contenedor <strong className="font-mono">{formState.container_ref}</strong> se anulará. El registro no se borra: queda anulado con motivo para trazabilidad.</>
+                : <>El tacho <strong className="font-mono">{formState.container_id}</strong> volverá a quedar disponible para pesar. El registro no se borra: queda anulado con motivo para trazabilidad.</>}
               confirmLabel="Deshacer pesaje"
               onCancel={() => setConfirmingVoid(false)}
               onConfirm={async (reason) => { setConfirmingVoid(false); await handleVoidEditing(reason) }}

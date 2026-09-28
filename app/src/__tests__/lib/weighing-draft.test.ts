@@ -3,6 +3,7 @@ import {
   applyRestoredPhoto,
   isDraftRestorable,
   isDraftWorthSaving,
+  restoreDraftForm,
   type WeighingDraft,
 } from '@/lib/weighing-draft'
 import { EMPTY_WEIGHING_FORM } from '@/components/register/weighing-form'
@@ -53,6 +54,22 @@ describe('applyRestoredPhoto', () => {
   it('no toca el borrador si no había una foto en curso', () => {
     const d = draft()
     expect(applyRestoredPhoto(d, 'data:x', NOW)).toBe(d)
+  })
+})
+
+describe('restoreDraftForm', () => {
+  it('completa container_ref vacío cuando falta en un borrador de un APK viejo', () => {
+    const oldForm = { ...EMPTY_WEIGHING_FORM, container_id: '075', gross_weight: '31.5' } as Partial<typeof EMPTY_WEIGHING_FORM>
+    delete (oldForm as Record<string, unknown>).container_ref
+    const restored = restoreDraftForm(oldForm)
+    expect(restored.container_ref).toBe('')
+    expect(restored.container_id).toBe('075')
+    expect(restored.gross_weight).toBe('31.5')
+  })
+
+  it('no toca un borrador que ya trae todos los campos', () => {
+    const form = { ...EMPTY_WEIGHING_FORM, container_ref: '5501', waste_type: 'morgue' as const }
+    expect(restoreDraftForm(form)).toEqual(form)
   })
 })
 

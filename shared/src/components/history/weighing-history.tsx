@@ -58,6 +58,17 @@ export function WeighingHistory() {
   }
   function cancelEdit() { setEditingRecId(null); setDraft(null); setConfirmingSave(false) }
 
+  /** Motivo por el que el draft no se puede guardar aún, o null si está completo. */
+  function draftInvalidReason(d: RecDraft): string | null {
+    if (isDisposableWaste(d.waste_type)) {
+      const ref = d.container_ref.trim()
+      if (!ref || ref.length > 30) return 'Falta el N° de contenedor'
+      return null
+    }
+    if (!d.container_id) return 'Falta el tacho'
+    return null
+  }
+
   async function persist(r: ContainerReception) {
     if (!draft) return
     const gross = parseFloat(draft.gross_weight_kg)
@@ -111,7 +122,7 @@ export function WeighingHistory() {
           <div key={s.id} className={s.voided_at ? 'rounded-lg border border-border bg-muted/40 p-4 opacity-70' : 'rounded-lg border border-border bg-card p-4'}>
             <button type="button" className="w-full text-left" onClick={() => setOpenId(isOpen ? null : s.id)}>
               <p className="text-sm font-semibold text-foreground">
-                {s.date} · {live.length} tacho{live.length !== 1 ? 's' : ''}
+                {s.date} · {live.length} pesaje{live.length !== 1 ? 's' : ''}
                 {s.voided_at && <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700">ANULADA</span>}
               </p>
             </button>
@@ -178,13 +189,23 @@ export function WeighingHistory() {
                                 onChange={(e) => setDraft({ ...draft, container_id: e.target.value })}
                                 className="rounded border border-foreground/15 bg-background px-2 py-1 font-mono"
                               >
+                                <option value="" disabled>Elegí tacho…</option>
                                 {containerOptions.map((c) => <option key={c.id} value={c.id}>{formatTachoNumber(c.id)}</option>)}
                               </select>
                             )}
                           </div>
+                          {draftInvalidReason(draft) && (
+                            <p className="text-red-600">{draftInvalidReason(draft)}</p>
+                          )}
                           <div className="flex justify-end gap-2">
                             <Button variant="outline" size="sm" onClick={cancelEdit}>Cancelar</Button>
-                            <Button size="sm" onClick={() => setConfirmingSave(true)}>Guardar cambios</Button>
+                            <Button
+                              size="sm"
+                              disabled={draftInvalidReason(draft) != null}
+                              onClick={() => setConfirmingSave(true)}
+                            >
+                              Guardar cambios
+                            </Button>
                           </div>
                         </div>
                       )}
