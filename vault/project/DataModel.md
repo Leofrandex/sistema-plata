@@ -4,7 +4,7 @@ tags:
   - project
   - data
   - types
-updated: 2026-09-24
+updated: 2026-09-28
 ---
 
 # Modelo de Datos Conceptual
@@ -121,6 +121,9 @@ Agrupa todas las recepciones pesadas durante una misma sesión (cronómetro entr
 | net_weight_kg | decimal (computed) | `gross_weight - container.tare_weight` |
 | operator_id | FK → User | |
 | photo_ids | array FK → Photo | Foto del envase + foto de balanza |
+
+- `container_id` es **opcional** desde 2026-09-28: null en citotóxico/anatomopatológico/morgue, que
+  guardan `container_ref` (número escrito del contenedor descartable). Sin tacho: neto = bruto.
 
 ### StorageEvent, TreatmentRun, ExternalTransfer
 Sin cambios estructurales — solo se quitó el `batch_id` (que ya no existe).

@@ -3,7 +3,7 @@ title: Índice del Vault — Hospiwaste
 tags:
   - index
   - meta
-updated: 2026-09-21
+updated: 2026-09-28
 ---
 
 # Vault — Hospiwaste
@@ -28,7 +28,7 @@ Punto de entrada. Leer al inicio de cada sesión, antes de tocar código.
 (recorridos congelados mientras se rehace la capa offline). Ver [[2026-09-01-modo-interino-solo-pesaje]].
 
 **Rama de trabajo:** `main` · último commit `e88f2c4`
-**APK:** v1.11 (build 12) compilado: "Cancelar" ya no borra pesajes y la sesión ajena se muestra con su dueño; cámara dentro de la app (v1.10) · **los teléfonos de planta siguen en v1.5**
+**APK:** v1.12 (build 13) compilado: N° de contenedor para cito/anato/morgue (sin tara); "Cancelar" no borra pesajes (v1.11) · **los teléfonos de planta siguen en v1.5**
 
 ### Pendientes abiertos
 
@@ -56,6 +56,7 @@ Punto de entrada. Leer al inicio de cada sesión, antes de tocar código.
 | Preguntar a Francesca si el tratamiento es por carga de autoclave o tacho por tacho — define si hace falta una tabla "corrida" con duración propia | [[2026-09-21-reactivacion-tratamiento]] |
 | Si es por carga: ¿planta cronometra el ciclo? | [[2026-09-21-reactivacion-tratamiento]] |
 | Qué debe mostrar la foto de un tacho tratado — el tacho, la carga, el equipo | [[2026-09-21-reactivacion-tratamiento]] |
+| Aplicar la regla CHECK de container_ref cuando todos los teléfonos tengan v1.12 | [[2026-09-28-contenedor-descartable]] |
 
 > [!warning] Ventana abierta
 > La migración de taras Yaris ya está aplicada en el piloto, pero planta corre el APK v1.5.
@@ -122,6 +123,7 @@ Uno por feature o cambio mayor, en orden inverso. Obsidian lista la carpeta comp
 acá van solo los que siguen teniendo consecuencias abiertas o reglas que aplican hoy.
 
 ### Vigentes — leer antes de tocar el APK
+- [[2026-09-28-contenedor-descartable]] — cito/anato/morgue sin tacho ni tara; aplicar la regla CHECK después del rollout de v1.12
 - [[2026-09-28-cancelar-pesaje-borraba-registros]] — "Cancelar" borraba sesión + pesajes del servidor; en teléfonos compartidos se perdieron 35 pesajes (16–26/09). Solo se cancela una sesión vacía
 - [[2026-09-25-pesaje-sobrevive-camara]] — si Android cierra el APK con la cámara abierta, al reabrir vuelve a Pesaje con el borrador y la foto; `/diagnostico` muestra por qué se cerró
 - [[2026-09-25-informe-fotografico-liviano]] — el hub reduce las fotos a 480 px y reintenta antes de armar el PDF (semana de Airkem: 290 MB → 16,6 MB); el APK captura a 1280 px / 0,75
