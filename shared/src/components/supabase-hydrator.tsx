@@ -405,6 +405,7 @@ function rowToReception(r: q.ReceptionRow): ContainerReception {
   return {
     id: r.id,
     container_id: r.container_id,
+    container_ref: r.container_ref ?? null,
     weighing_session_id: r.weighing_session_id,
     arrived_at: r.arrived_at,
     gross_weight_kg: Number(r.gross_weight_kg),

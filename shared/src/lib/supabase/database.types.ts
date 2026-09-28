@@ -169,7 +169,8 @@ export type Database = {
         Row: {
           arrived_at: string
           company_id: string | null
-          container_id: string
+          container_id: string | null
+          container_ref: string | null
           created_at: string
           gross_weight_kg: number
           id: string
@@ -185,7 +186,8 @@ export type Database = {
         Insert: {
           arrived_at?: string
           company_id?: string | null
-          container_id: string
+          container_id?: string | null
+          container_ref?: string | null
           created_at?: string
           gross_weight_kg: number
           id?: string
@@ -201,7 +203,8 @@ export type Database = {
         Update: {
           arrived_at?: string
           company_id?: string | null
-          container_id?: string
+          container_id?: string | null
+          container_ref?: string | null
           created_at?: string
           gross_weight_kg?: number
           id?: string
