@@ -40,6 +40,21 @@ Las reglas viven en `app/src/lib/weighing-session-rules.ts`:
 - **La sesión de otro operador se muestra como tal:** "Sesión abierta de Gregory Tenorio · N tachos",
   con el formulario bloqueado. Se puede finalizar (guarda sus pesajes) y después iniciar la propia.
 
-## Pendiente
-- Recuperar los 35 pesajes desde sus 70 fotos (tacho + visor de la balanza): cargarlos como
-  recepciones con la hora de la foto, previa confirmación del usuario.
+## Recuperación (2026-09-28)
+Se leyeron las 70 fotos: número de tacho y visor de la balanza. El usuario aprobó la tabla y se
+cargaron **34 pesajes** en 5 sesiones `completed` (una por operador y día):
+- `id` de la recepción = `event_id` de sus fotos, así que las fotos quedan vinculadas.
+- `arrived_at` = hora de la foto; operador = quien la subió.
+- `infectious`, Airkem (ION para 193 y 195).
+- Observación "Recuperado desde fotos — sesión borrada con Cancelar (2026-09-28)".
+
+Total: 946,5 kg netos. El #27 (085, 20-09, 39,5 kg) **no se cargó**: Aldair lo re-registró a las
+07:20 con el mismo peso; sus 2 fotos quedan sueltas a propósito.
+
+Lecturas dudosas, a confirmar con planta:
+- 18-09 07:18 → `021` (número ilegible).
+- 18-09 07:08 → `008` (un solo dígito pintado).
+
+> [!warning] Zona horaria
+> Planta está en **America/Panama (UTC−5)**, no en Caracas. Las horas de reportes y análisis se
+> expresan en hora de Panamá: el sello de las fotos y el locale `es-PA` ya lo usan.
