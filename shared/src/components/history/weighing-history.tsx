@@ -6,9 +6,10 @@ import { useStore } from '@hospiwaste/shared/lib/store'
 import { Button } from '@hospiwaste/shared/components/ui/button'
 import { ConfirmVoidDialog } from '@hospiwaste/shared/components/ui/confirm-void-dialog'
 import { ConfirmDialog } from '@hospiwaste/shared/components/ui/confirm-dialog'
-import { formatTachoNumber, computeNetWeight } from '@hospiwaste/shared/lib/data/containers'
+import { formatTachoNumber, receptionNetWeight, wasteTypeChange } from '@hospiwaste/shared/lib/data/containers'
 import { createClient } from '@hospiwaste/shared/lib/supabase/client'
 import * as q from '@hospiwaste/shared/lib/supabase/queries'
+import { isDisposableWaste } from '@hospiwaste/shared/lib/types'
 import type { ContainerReception, WasteType } from '@hospiwaste/shared/lib/types'
 
 const WASTE_TYPES: { value: WasteType; label: string }[] = [
@@ -24,6 +25,7 @@ interface RecDraft {
   gross_weight_kg: string
   waste_type: WasteType
   container_id: string
+  container_ref: string
 }
 
 export function WeighingHistory() {
@@ -43,10 +45,16 @@ export function WeighingHistory() {
     () => [...weighingSessions].sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime()),
     [weighingSessions],
   )
+  const containerById = new Map(containers.map((c) => [c.id, c]))
 
   function startEdit(r: ContainerReception) {
     setEditingRecId(r.id)
-    setDraft({ gross_weight_kg: String(r.gross_weight_kg), waste_type: r.waste_type ?? 'infectious', container_id: r.container_id ?? '' })
+    setDraft({
+      gross_weight_kg: String(r.gross_weight_kg),
+      waste_type: r.waste_type ?? 'infectious',
+      container_id: r.container_id ?? '',
+      container_ref: r.container_ref ?? '',
+    })
   }
   function cancelEdit() { setEditingRecId(null); setDraft(null); setConfirmingSave(false) }
 
@@ -54,7 +62,15 @@ export function WeighingHistory() {
     if (!draft) return
     const gross = parseFloat(draft.gross_weight_kg)
     if (Number.isNaN(gross)) { console.error('[historial pesaje] peso inválido'); return }
-    const patch = { gross_weight_kg: gross, waste_type: draft.waste_type, container_id: draft.container_id }
+    const disposable = isDisposableWaste(draft.waste_type)
+    const ref = draft.container_ref.trim()
+    if (disposable && (!ref || ref.length > 30)) { console.error('[historial pesaje] número de contenedor inválido'); return }
+    if (!disposable && !draft.container_id) { console.error('[historial pesaje] falta tacho'); return }
+    const patch = {
+      gross_weight_kg: gross, waste_type: draft.waste_type,
+      container_id: disposable ? null : draft.container_id,
+      container_ref: disposable ? ref : null,
+    }
     try {
       await q.updateReception(createClient(), r.id, patch)
     } catch (err) { console.error('[historial pesaje] guardar falló:', err); return }
@@ -103,11 +119,13 @@ export function WeighingHistory() {
             {isOpen && (
               <div className="mt-3 space-y-2 border-t border-border pt-3">
                 {recs.map((r) => {
-                  const cont = containers.find((c) => c.id === r.container_id)
-                  const net = cont ? computeNetWeight(r.gross_weight_kg, cont.tare_weight_kg) : null
+                  const net = receptionNetWeight(r, containerById)
                   const isEditing = editingRecId === r.id && isCoordinator && draft != null
                   const takenContainerIds = new Set(
-                    receptions.filter((x) => !x.voided_at && x.id !== r.id).map((x) => x.container_id),
+                    receptions
+                      .filter((x) => !x.voided_at && x.id !== r.id)
+                      .map((x) => x.container_id)
+                      .filter((id): id is string => !!id),
                   )
                   const containerOptions = containers.filter(
                     (c) => c.status === 'active' && (!takenContainerIds.has(c.id) || c.id === r.container_id),
@@ -115,7 +133,7 @@ export function WeighingHistory() {
                   return (
                     <div key={r.id} className={r.voided_at ? 'rounded-md bg-muted/40 p-2 text-xs opacity-60' : 'rounded-md bg-muted/20 p-2 text-xs'}>
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-mono font-semibold">{r.container_id ? formatTachoNumber(r.container_id) : (r.container_ref ?? '—')}</span>
+                        <span className="font-mono font-semibold">{r.container_id ? formatTachoNumber(r.container_id) : `Contenedor ${r.container_ref ?? 'S/N'}`}</span>
                         <span className="tabular-nums">{r.gross_weight_kg} kg bruto{net !== null ? ` · ${net} kg neto` : ''}</span>
                         {isCoordinator && !r.voided_at && !s.voided_at && !isEditing && (
                           <div className="flex gap-1">
@@ -143,18 +161,26 @@ export function WeighingHistory() {
                             />
                             <select
                               value={draft.waste_type} aria-label="Tipo de desecho"
-                              onChange={(e) => setDraft({ ...draft, waste_type: e.target.value as WasteType })}
+                              onChange={(e) => setDraft({ ...draft, ...wasteTypeChange(draft.waste_type, e.target.value as WasteType) })}
                               className="rounded border border-foreground/15 bg-background px-2 py-1"
                             >
                               {WASTE_TYPES.map((w) => <option key={w.value} value={w.value}>{w.label}</option>)}
                             </select>
-                            <select
-                              value={draft.container_id} aria-label="Tacho"
-                              onChange={(e) => setDraft({ ...draft, container_id: e.target.value })}
-                              className="rounded border border-foreground/15 bg-background px-2 py-1 font-mono"
-                            >
-                              {containerOptions.map((c) => <option key={c.id} value={c.id}>{formatTachoNumber(c.id)}</option>)}
-                            </select>
+                            {isDisposableWaste(draft.waste_type) ? (
+                              <input
+                                type="text" maxLength={30} value={draft.container_ref} aria-label="N° de contenedor"
+                                onChange={(e) => setDraft({ ...draft, container_ref: e.target.value })}
+                                className="rounded border border-foreground/15 bg-background px-2 py-1 font-mono"
+                              />
+                            ) : (
+                              <select
+                                value={draft.container_id} aria-label="Tacho"
+                                onChange={(e) => setDraft({ ...draft, container_id: e.target.value })}
+                                className="rounded border border-foreground/15 bg-background px-2 py-1 font-mono"
+                              >
+                                {containerOptions.map((c) => <option key={c.id} value={c.id}>{formatTachoNumber(c.id)}</option>)}
+                              </select>
+                            )}
                           </div>
                           <div className="flex justify-end gap-2">
                             <Button variant="outline" size="sm" onClick={cancelEdit}>Cancelar</Button>
@@ -199,7 +225,7 @@ export function WeighingHistory() {
             description={
               r.container_id
                 ? <>El tacho <strong className="font-mono">{formatTachoNumber(r.container_id)}</strong> volverá a quedar pendiente por pesar. El registro queda anulado con motivo.</>
-                : <>El registro queda anulado con motivo.</>
+                : <>El contenedor <strong>{r.container_ref}</strong> se anulará. El registro queda anulado con motivo.</>
             }
             confirmLabel="Anular pesaje"
             onCancel={() => setVoiding(null)}
