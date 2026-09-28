@@ -28,7 +28,7 @@ Punto de entrada. Leer al inicio de cada sesión, antes de tocar código.
 (recorridos congelados mientras se rehace la capa offline). Ver [[2026-09-01-modo-interino-solo-pesaje]].
 
 **Rama de trabajo:** `main` · último commit `e88f2c4`
-**APK:** v1.10 (build 11) compilado: cámara dentro de la app y recuperación del renderer (v1.9 seguía cerrándose); fotos a 1280 px · **los teléfonos de planta siguen en v1.5**
+**APK:** v1.11 (build 12) compilado: "Cancelar" ya no borra pesajes y la sesión ajena se muestra con su dueño; cámara dentro de la app (v1.10) · **los teléfonos de planta siguen en v1.5**
 
 ### Pendientes abiertos
 
@@ -122,6 +122,7 @@ Uno por feature o cambio mayor, en orden inverso. Obsidian lista la carpeta comp
 acá van solo los que siguen teniendo consecuencias abiertas o reglas que aplican hoy.
 
 ### Vigentes — leer antes de tocar el APK
+- [[2026-09-28-cancelar-pesaje-borraba-registros]] — "Cancelar" borraba sesión + pesajes del servidor; en teléfonos compartidos se perdieron 35 pesajes (16–26/09). Solo se cancela una sesión vacía
 - [[2026-09-25-pesaje-sobrevive-camara]] — si Android cierra el APK con la cámara abierta, al reabrir vuelve a Pesaje con el borrador y la foto; `/diagnostico` muestra por qué se cerró
 - [[2026-09-25-informe-fotografico-liviano]] — el hub reduce las fotos a 480 px y reintenta antes de armar el PDF (semana de Airkem: 290 MB → 16,6 MB); el APK captura a 1280 px / 0,75
 - [[2026-09-24-inventario-fisico-dashboard]] — la tarjeta Flota y planta muestra llantas (240 L) y color (Yaris) × limpio / en proceso en vivo; llantas y color se recargan desde el Excel con un script
