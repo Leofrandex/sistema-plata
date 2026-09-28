@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PhotoCapture } from '@/components/register/photo-capture'
 import { filterContainers } from '@/components/register/container-selector'
 import { cn } from '@hospiwaste/shared/lib/utils'
-import { computeNetWeight, formatTachoNumber } from '@hospiwaste/shared/lib/data/containers'
+import { computeNetWeight, formatTachoNumber, wasteTypeChange } from '@hospiwaste/shared/lib/data/containers'
+import { isDisposableWaste } from '@hospiwaste/shared/lib/types'
 import type { Container, Company, WasteType } from '@hospiwaste/shared/lib/types'
 import type { CameraSlot } from '@/lib/weighing-draft'
 
@@ -23,6 +24,8 @@ const WASTE_LABELS: Record<WasteType, string> = {
 
 export interface WeighingFormState {
   container_id: string
+  /** Número del contenedor descartable (cito/anato/morgue), escrito por el operador. */
+  container_ref: string
   /** Empresa a la que se atribuye este pesaje. En modo interino la elige el
    *  operador; con recorridos activos se precarga con la empresa heredada. */
   company_id: string
@@ -36,6 +39,7 @@ export interface WeighingFormState {
 
 export const EMPTY_WEIGHING_FORM: WeighingFormState = {
   container_id: '',
+  container_ref: '',
   company_id: '',
   photo_container: null,
   photo_scale: null,
@@ -97,32 +101,27 @@ export function WeighingForm({
     return base
   })()
 
-  const grossWeight = parseFloat(state.gross_weight)
-  const hasValidWeight =
-    !!state.gross_weight &&
-    !Number.isNaN(grossWeight) &&
-    selectedContainer != null &&
-    grossWeight > selectedContainer.tare_weight_kg
+  const isDisposable = isDisposableWaste(state.waste_type)
+  const ref = state.container_ref.trim()
 
-  const netWeight = selectedContainer && hasValidWeight
-    ? computeNetWeight(grossWeight, selectedContainer.tare_weight_kg)
-    : null
+  const grossWeight = parseFloat(state.gross_weight)
+  const hasValidWeight = !!state.gross_weight && !Number.isNaN(grossWeight) && (
+    isDisposable ? grossWeight > 0 : selectedContainer != null && grossWeight > selectedContainer.tare_weight_kg
+  )
+
+  const netWeight = !hasValidWeight ? null
+    : isDisposable ? Math.round(grossWeight * 100) / 100
+    : computeNetWeight(grossWeight, selectedContainer!.tare_weight_kg)
 
   const canSubmit =
-    !!state.container_id &&
-    !!state.company_id &&
-    !!state.photo_container &&
-    !!state.photo_scale &&
-    hasValidWeight
+    (isDisposable ? ref.length > 0 && ref.length <= 30 : !!state.container_id) &&
+    !!state.company_id && !!state.photo_container && !!state.photo_scale && hasValidWeight
 
   function changeWasteType(v: string | null) {
     const next = (v ?? 'infectious') as WasteType
-    const crossingMetallic = (state.waste_type === 'metallic') !== (next === 'metallic')
-    if (crossingMetallic) setTachoSearch('')
-    onChange({
-      waste_type: next,
-      ...(crossingMetallic ? { container_id: '' } : {}),
-    })
+    const patch = wasteTypeChange(state.waste_type, next)
+    if ('container_id' in patch) setTachoSearch('')
+    onChange(patch)
   }
 
   const [tachoSearch, setTachoSearch] = useState('')
@@ -136,7 +135,24 @@ export function WeighingForm({
       )}
       aria-disabled={locked}
     >
-      {/* Tacho: buscador por número (la flota Yaris Y1..Y26 vive en la misma lista) */}
+      {/* Tacho, o N° de contenedor descartable para cito/anato/morgue (sin tara) */}
+      {isDisposable ? (
+        <div className="space-y-1.5">
+          <label htmlFor="container-ref" className="text-sm font-medium text-foreground">
+            N° de contenedor <span className="text-red-500">*</span>
+          </label>
+          <Input
+            id="container-ref"
+            value={state.container_ref}
+            onChange={(e) => onChange({ container_ref: e.target.value })}
+            maxLength={30}
+            placeholder="Número escrito en el contenedor"
+            className="h-10"
+          />
+          <p className="text-xs text-muted-foreground">Contenedor descartable: no lleva tara.</p>
+        </div>
+      ) : (
+      <>
       <div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-foreground">
@@ -239,6 +255,8 @@ export function WeighingForm({
           {duplicateWarning}
         </p>
       )}
+      </>
+      )}
 
       {/* Tipo de desecho — input del operador (ya no es propiedad del tacho) */}
       <div className="space-y-1.5">
@@ -304,9 +322,14 @@ export function WeighingForm({
               Peso neto
             </span>
             {netWeight != null ? (
-              <span className="text-2xl sm:text-3xl font-bold tabular-nums text-accent leading-tight">
-                {netWeight} <span className="text-base font-semibold text-accent/80">kg</span>
-              </span>
+              <>
+                <span className="text-2xl sm:text-3xl font-bold tabular-nums text-accent leading-tight">
+                  {netWeight} <span className="text-base font-semibold text-accent/80">kg</span>
+                </span>
+                {isDisposable && (
+                  <span className="text-[10px] text-muted-foreground">sin tara</span>
+                )}
+              </>
             ) : (
               <span className="text-sm text-muted-foreground/70">
                 —
@@ -314,7 +337,7 @@ export function WeighingForm({
             )}
           </div>
         </div>
-        {state.gross_weight && selectedContainer && !hasValidWeight && (
+        {!isDisposable && state.gross_weight && selectedContainer && !hasValidWeight && (
           <p className="text-xs text-red-600">
             El peso bruto debe ser mayor que la tara ({selectedContainer.tare_weight_kg} kg).
           </p>
@@ -348,7 +371,7 @@ export function WeighingForm({
           onBeforeCamera={onBeforeCamera && (() => onBeforeCamera('photo_scale'))}
         />
         <PhotoCapture
-          label="Foto del tacho"
+          label={isDisposable ? 'Foto del contenedor' : 'Foto del tacho'}
           required
           preview={state.photo_container}
           onCapture={(url) => onChange({ photo_container: url })}

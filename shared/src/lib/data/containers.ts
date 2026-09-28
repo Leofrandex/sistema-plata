@@ -8,7 +8,24 @@ import type {
   TreatmentRun,
   ExternalTransfer,
   RouteEvent,
+  WasteType,
 } from '@hospiwaste/shared/lib/types'
+import { isDisposableWaste } from '@hospiwaste/shared/lib/types'
+
+/** Qué se limpia al cambiar el tipo de desecho en un formulario de pesaje. */
+export function wasteTypeChange(
+  prev: WasteType,
+  next: WasteType,
+): { waste_type: WasteType; container_id?: ''; container_ref?: '' } {
+  const crossingMetallic = (prev === 'metallic') !== (next === 'metallic')
+  const toDisposable = !isDisposableWaste(prev) && isDisposableWaste(next)
+  const fromDisposable = isDisposableWaste(prev) && !isDisposableWaste(next)
+  return {
+    waste_type: next,
+    ...(crossingMetallic || toDisposable ? { container_id: '' as const } : {}),
+    ...(fromDisposable ? { container_ref: '' as const } : {}),
+  }
+}
 
 export function computeNetWeight(
   gross_weight_kg: number,

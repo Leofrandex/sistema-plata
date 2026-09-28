@@ -25,7 +25,9 @@ import {
 } from '@/lib/active-session'
 import { INTERIM_MODE } from '@hospiwaste/shared/lib/config/interim-mode'
 import { getPendingWeighingContainerIds, getWeighableContainerIds, getContainerCurrentCompanyId, getMetallicContainers, findTodayReceptionForContainer } from '@hospiwaste/shared/lib/data/containers'
+import { isDisposableWaste } from '@hospiwaste/shared/lib/types'
 import { saveEventPhotosLocal } from '@hospiwaste/shared/lib/data/photos'
+import { receptionsNeedingStorage } from '@/lib/weighing-finish'
 import { submitWeighingSession, submitReception, submitTreatmentRun, submitStorageEvent, submitContainerLocation } from '@/lib/data/field-writes'
 import { applyFieldEdit } from '@/lib/data/field-edits'
 import { deleteLocalWeighingSession } from '@/lib/data/local-deletes'
@@ -193,14 +195,15 @@ export default function WeighingPage() {
   )
   const metallicContainers = getMetallicContainers(containers)
 
-  const inheritedCompanyId = formState.container_id
+  const inheritedCompanyId = formState.container_id && !isDisposableWaste(formState.waste_type)
     ? getContainerCurrentCompanyId(formState.container_id, routeEvents, treatmentRuns, externalTransfers)
     : null
 
   // Aviso no bloqueante: el tacho elegido ya tiene un pesaje vigente de hoy.
   // Solo en modo creación — al editar, la recepción propia siempre coincidiría consigo misma.
+  // No aplica a contenedores descartables: no tienen tacho.
   const duplicateWarning = (() => {
-    if (isEditing || !formState.container_id) return null
+    if (isEditing || !formState.container_id || isDisposableWaste(formState.waste_type)) return null
     const previa = findTodayReceptionForContainer(
       receptions, formState.container_id, new Date().toISOString(),
     )
@@ -259,7 +262,10 @@ export default function WeighingPage() {
   async function handleSubmitForm() {
     if (!sessionId || !session || !currentProfileId) return
     const gross = parseFloat(formState.gross_weight)
-    if (!formState.container_id || !formState.photo_container || !formState.photo_scale || Number.isNaN(gross)) return
+    const hasContainerRef = isDisposableWaste(formState.waste_type)
+      ? formState.container_ref.trim().length > 0
+      : !!formState.container_id
+    if (!hasContainerRef || !formState.photo_container || !formState.photo_scale || Number.isNaN(gross)) return
 
     if (editingReceptionId) {
       await handleSaveEdit(editingReceptionId, gross)
@@ -284,9 +290,12 @@ export default function WeighingPage() {
     const now = new Date().toISOString()
     const label = buildPhotoLabel()
     const receptionId = crypto.randomUUID()
+    const disposable = isDisposableWaste(formState.waste_type)
+    const container_id = disposable ? null : formState.container_id
+    const container_ref = disposable ? formState.container_ref.trim() : null
 
     await submitReception({
-      id: receptionId, container_id: formState.container_id, weighing_session_id: currentSessionId,
+      id: receptionId, container_id, container_ref, weighing_session_id: currentSessionId,
       arrived_at: now, gross_weight_kg: gross, operator_id: currentProfileId,
       observations: formState.observations, company_id: formState.company_id || inheritedCompanyId,
       waste_type: formState.waste_type, treat_immediately: formState.treat_immediately,
@@ -297,7 +306,7 @@ export default function WeighingPage() {
     ])
 
     addReception({
-      id: receptionId, container_id: formState.container_id, weighing_session_id: currentSessionId,
+      id: receptionId, container_id, container_ref, weighing_session_id: currentSessionId,
       arrived_at: now, gross_weight_kg: gross, operator_id: currentProfileId, photo_ids: photoIds,
       observations: formState.observations, company_id: formState.company_id || inheritedCompanyId,
       waste_type: formState.waste_type, treat_immediately: formState.treat_immediately,
@@ -314,13 +323,17 @@ export default function WeighingPage() {
     if (!existing) return
     const now = new Date().toISOString()
     const label = buildPhotoLabel()
+    const disposable = isDisposableWaste(formState.waste_type)
+    const container_id = disposable ? null : formState.container_id
+    const container_ref = disposable ? formState.container_ref.trim() : null
 
     // 1) Reescribir localmente si aún no sincronizó; si ya sincronizó, editar online
     // (el error se muestra: nunca falla en silencio).
     try {
       await applyFieldEdit('container_receptions', receptionId, {
         id: receptionId,
-        container_id: formState.container_id,
+        container_id,
+        container_ref,
         weighing_session_id: existing.weighing_session_id,
         arrived_at: existing.arrived_at,
         gross_weight_kg: gross,
@@ -332,7 +345,8 @@ export default function WeighingPage() {
       }, async () => {
         const supabase = createClient()
         await q.updateReception(supabase, receptionId, {
-          container_id: formState.container_id,
+          container_id,
+          container_ref,
           gross_weight_kg: gross,
           observations: formState.observations,
           company_id: formState.company_id || existing.company_id,
@@ -352,7 +366,8 @@ export default function WeighingPage() {
       formState.photo_scale,
     ])
     updateReception(receptionId, {
-      container_id: formState.container_id,
+      container_id,
+      container_ref,
       gross_weight_kg: gross,
       photo_ids: photoIds,
       observations: formState.observations,
@@ -374,6 +389,7 @@ export default function WeighingPage() {
 
     setFormState({
       container_id: r.container_id ?? '',
+      container_ref: r.container_ref ?? '',
       company_id: r.company_id ?? '',
       photo_container: containerPhoto,
       photo_scale: scalePhoto,
@@ -451,25 +467,25 @@ export default function WeighingPage() {
     })
 
     // Derivados por reception: TreatmentRun (inmediato) o StorageEvent + ContainerLocation.
-    for (const r of sessionReceptions) {
-      // Contenedor descartable (cito/anato/morgue): no hay tacho, así que no hay
-      // ciclo de vida de tacho que mover a tratamiento/cámara fría. Task 3
-      // revisará este flujo cuando el formulario soporte el tipo descartable.
-      if (r.container_id == null) continue
+    // Contenedores descartables (cito/anato/morgue) no tienen tacho: no hay ciclo de
+    // vida de tacho que mover a tratamiento/cámara fría (receptionsNeedingStorage los excluye).
+    for (const r of receptionsNeedingStorage(sessionReceptions)) {
+      // Filtrado arriba por receptionsNeedingStorage: container_id != null.
+      const cid = r.container_id as string
       if (r.treat_immediately && r.waste_type === 'infectious') {
         const trId = crypto.randomUUID()
-        await submitTreatmentRun({ id: trId, container_id: r.container_id, started_at: now, completed_at: now, operator_id: currentProfileId })
-        addTreatmentRun({ id: trId, container_id: r.container_id, started_at: now, completed_at: now, operator_id: currentProfileId })
+        await submitTreatmentRun({ id: trId, container_id: cid, started_at: now, completed_at: now, operator_id: currentProfileId })
+        addTreatmentRun({ id: trId, container_id: cid, started_at: now, completed_at: now, operator_id: currentProfileId })
         const locId = crypto.randomUUID()
-        await submitContainerLocation({ id: locId, container_id: r.container_id, reported_at: now, operator_id: currentProfileId, location_type: 'treatment', client_id: null, floor: null, area: null, notes: 'Tratado al finalizar pesaje' })
-        addLocation({ id: locId, container_id: r.container_id, reported_at: now, operator_id: currentProfileId, location_type: 'treatment', client_id: null, floor: null, area: null, notes: 'Tratado al finalizar pesaje' })
+        await submitContainerLocation({ id: locId, container_id: cid, reported_at: now, operator_id: currentProfileId, location_type: 'treatment', client_id: null, floor: null, area: null, notes: 'Tratado al finalizar pesaje' })
+        addLocation({ id: locId, container_id: cid, reported_at: now, operator_id: currentProfileId, location_type: 'treatment', client_id: null, floor: null, area: null, notes: 'Tratado al finalizar pesaje' })
       } else {
         const stId = crypto.randomUUID()
-        await submitStorageEvent({ id: stId, container_id: r.container_id, entry_at: now, operator_id: currentProfileId })
-        addStorageEvent({ id: stId, container_id: r.container_id, entry_at: now, exit_at: null, operator_id: currentProfileId, photo_ids: [] })
+        await submitStorageEvent({ id: stId, container_id: cid, entry_at: now, operator_id: currentProfileId })
+        addStorageEvent({ id: stId, container_id: cid, entry_at: now, exit_at: null, operator_id: currentProfileId, photo_ids: [] })
         const locId = crypto.randomUUID()
-        await submitContainerLocation({ id: locId, container_id: r.container_id, reported_at: now, operator_id: currentProfileId, location_type: 'cold_storage', client_id: null, floor: null, area: null, notes: 'Cámara fría (auto tras pesaje)' })
-        addLocation({ id: locId, container_id: r.container_id, reported_at: now, operator_id: currentProfileId, location_type: 'cold_storage', client_id: null, floor: null, area: null, notes: 'Cámara fría (auto tras pesaje)' })
+        await submitContainerLocation({ id: locId, container_id: cid, reported_at: now, operator_id: currentProfileId, location_type: 'cold_storage', client_id: null, floor: null, area: null, notes: 'Cámara fría (auto tras pesaje)' })
+        addLocation({ id: locId, container_id: cid, reported_at: now, operator_id: currentProfileId, location_type: 'cold_storage', client_id: null, floor: null, area: null, notes: 'Cámara fría (auto tras pesaje)' })
       }
     }
 
@@ -562,7 +578,7 @@ export default function WeighingPage() {
           {/* Banner de modo edición */}
           {isEditing && (
             <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-2.5 text-sm text-amber-800">
-              Editando tacho <strong className="font-mono">{formState.container_id}</strong>.
+              Editando {formState.container_id ? `tacho ${formState.container_id}` : `contenedor ${formState.container_ref}`}.
               Los cambios se guardan en la sesión actual.
             </div>
           )}

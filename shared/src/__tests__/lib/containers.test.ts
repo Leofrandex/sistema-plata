@@ -10,6 +10,7 @@ import {
   findTodayReceptionForContainer,
   deriveContainerCompanyId,
   receptionNetWeight,
+  wasteTypeChange,
 } from '@hospiwaste/shared/lib/data/containers'
 import { isDisposableWaste } from '@hospiwaste/shared/lib/types'
 import type {
@@ -459,3 +460,19 @@ describe('getPendingWeighingContainerIds con recepciones sin tacho', () => {
 
 // Keep baseContainer referenced so import isn't pruned
 void baseContainer
+
+describe('wasteTypeChange', () => {
+  it('limpia el número al salir de un tipo descartable', () => {
+    expect(wasteTypeChange('anatomopathological', 'infectious')).toEqual({ waste_type: 'infectious', container_ref: '' })
+  })
+  it('limpia el tacho al entrar a un tipo descartable o cruzar metálicos', () => {
+    expect(wasteTypeChange('infectious', 'morgue')).toEqual({ waste_type: 'morgue', container_id: '' })
+    expect(wasteTypeChange('infectious', 'metallic')).toEqual({ waste_type: 'metallic', container_id: '' })
+  })
+  it('entre tipos con tacho no limpia nada', () => {
+    expect(wasteTypeChange('infectious', 'liquid')).toEqual({ waste_type: 'liquid' })
+  })
+  it('entre dos tipos descartables conserva el número', () => {
+    expect(wasteTypeChange('morgue', 'cytotoxic')).toEqual({ waste_type: 'cytotoxic' })
+  })
+})

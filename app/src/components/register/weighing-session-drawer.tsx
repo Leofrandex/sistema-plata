@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { ChevronRight, ChevronLeft, ListChecks, Pencil } from 'lucide-react'
 import { Button } from '@hospiwaste/shared/components/ui/button'
 import { cn } from '@hospiwaste/shared/lib/utils'
-import { computeNetWeight } from '@hospiwaste/shared/lib/data/containers'
+import { receptionNetWeight, formatTachoNumber } from '@hospiwaste/shared/lib/data/containers'
 import type { Container, ContainerReception } from '@hospiwaste/shared/lib/types'
 
 interface Props {
@@ -31,7 +31,7 @@ export function WeighingSessionDrawer({
   onOpenChange,
   onSelectReception,
 }: Props) {
-  const containerMap = Object.fromEntries(containers.map((c) => [c.id, c]))
+  const containerById = new Map(containers.map((c) => [c.id, c]))
 
   // Cerrar con Escape
   useEffect(() => {
@@ -108,9 +108,7 @@ export function WeighingSessionDrawer({
             </p>
           ) : (
             receptions.map((r) => {
-              const container = r.container_id != null ? containerMap[r.container_id] : undefined
-              const tare = container?.tare_weight_kg ?? 0
-              const net = computeNetWeight(r.gross_weight_kg, tare)
+              const net = receptionNetWeight(r, containerById) ?? r.gross_weight_kg
               const isSelected = r.id === selectedReceptionId
               return (
                 <button
@@ -126,7 +124,7 @@ export function WeighingSessionDrawer({
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="font-mono font-semibold text-foreground">{r.container_id ?? r.container_ref ?? '—'}</p>
+                      <p className="font-mono font-semibold text-foreground">{r.container_id ? formatTachoNumber(r.container_id) : `Cont. ${r.container_ref ?? 'S/N'}`}</p>
                       <p className="text-xs text-muted-foreground">
                         Bruto {r.gross_weight_kg} kg · Neto <strong className="text-foreground">{net} kg</strong>
                       </p>
