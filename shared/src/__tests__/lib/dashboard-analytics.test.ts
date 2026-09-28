@@ -92,6 +92,17 @@ describe('computeKgByWasteType', () => {
     expect(buckets).toEqual([])
     expect(totalKg).toBe(0)
   })
+
+  it('cuenta los kg de un contenedor descartable como bruto (sin tara)', () => {
+    const containers = [makeContainer('001', { tare_weight_kg: 10 })]
+    const receptions = [
+      makeReception({ id: 'r1', container_id: '001', arrived_at: '2026-07-22T10:00:00Z', gross_weight_kg: 30, waste_type: 'infectious' }),
+      makeReception({ id: 'r2', container_id: null as unknown as string, arrived_at: '2026-07-22T11:00:00Z', gross_weight_kg: 7.5, waste_type: 'morgue' }),
+    ]
+    const { buckets } = computeKgByWasteType({ receptions, containers }, '2026-07-22', '2026-07-22')
+    expect(buckets.find((b) => b.type === 'infectious')?.kg).toBe(20)
+    expect(buckets.find((b) => b.type === 'morgue')?.kg).toBe(7.5)
+  })
 })
 
 // ─── Serie diaria y agregados ────────────────────────────────────────────────

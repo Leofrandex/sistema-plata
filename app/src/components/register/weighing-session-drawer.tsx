@@ -108,7 +108,7 @@ export function WeighingSessionDrawer({
             </p>
           ) : (
             receptions.map((r) => {
-              const container = containerMap[r.container_id]
+              const container = r.container_id != null ? containerMap[r.container_id] : undefined
               const tare = container?.tare_weight_kg ?? 0
               const net = computeNetWeight(r.gross_weight_kg, tare)
               const isSelected = r.id === selectedReceptionId
@@ -126,7 +126,7 @@ export function WeighingSessionDrawer({
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="font-mono font-semibold text-foreground">{r.container_id}</p>
+                      <p className="font-mono font-semibold text-foreground">{r.container_id ?? r.container_ref ?? '—'}</p>
                       <p className="text-xs text-muted-foreground">
                         Bruto {r.gross_weight_kg} kg · Neto <strong className="text-foreground">{net} kg</strong>
                       </p>

@@ -46,7 +46,7 @@ export function WeighingHistory() {
 
   function startEdit(r: ContainerReception) {
     setEditingRecId(r.id)
-    setDraft({ gross_weight_kg: String(r.gross_weight_kg), waste_type: r.waste_type ?? 'infectious', container_id: r.container_id })
+    setDraft({ gross_weight_kg: String(r.gross_weight_kg), waste_type: r.waste_type ?? 'infectious', container_id: r.container_id ?? '' })
   }
   function cancelEdit() { setEditingRecId(null); setDraft(null); setConfirmingSave(false) }
 
@@ -115,7 +115,7 @@ export function WeighingHistory() {
                   return (
                     <div key={r.id} className={r.voided_at ? 'rounded-md bg-muted/40 p-2 text-xs opacity-60' : 'rounded-md bg-muted/20 p-2 text-xs'}>
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-mono font-semibold">{formatTachoNumber(r.container_id)}</span>
+                        <span className="font-mono font-semibold">{r.container_id ? formatTachoNumber(r.container_id) : (r.container_ref ?? '—')}</span>
                         <span className="tabular-nums">{r.gross_weight_kg} kg bruto{net !== null ? ` · ${net} kg neto` : ''}</span>
                         {isCoordinator && !r.voided_at && !s.voided_at && !isEditing && (
                           <div className="flex gap-1">
@@ -196,7 +196,11 @@ export function WeighingHistory() {
         return (
           <ConfirmVoidDialog
             title="¿Anular este pesaje?"
-            description={<>El tacho <strong className="font-mono">{formatTachoNumber(r.container_id)}</strong> volverá a quedar pendiente por pesar. El registro queda anulado con motivo.</>}
+            description={
+              r.container_id
+                ? <>El tacho <strong className="font-mono">{formatTachoNumber(r.container_id)}</strong> volverá a quedar pendiente por pesar. El registro queda anulado con motivo.</>
+                : <>El registro queda anulado con motivo.</>
+            }
             confirmLabel="Anular pesaje"
             onCancel={() => setVoiding(null)}
             onConfirm={(reason) => voidReception(r, reason)}

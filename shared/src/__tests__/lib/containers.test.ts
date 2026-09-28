@@ -9,7 +9,9 @@ import {
   getWeighableContainerIds,
   findTodayReceptionForContainer,
   deriveContainerCompanyId,
+  receptionNetWeight,
 } from '@hospiwaste/shared/lib/data/containers'
+import { isDisposableWaste } from '@hospiwaste/shared/lib/types'
 import type {
   Container,
   ContainerReception,
@@ -418,6 +420,40 @@ describe('findTodayReceptionForContainer', () => {
 
   it('sin recepciones devuelve null', () => {
     expect(findTodayReceptionForContainer([], '001', now)).toBeNull()
+  })
+})
+
+describe('receptionNetWeight', () => {
+  const byId = new Map([['001', { tare_weight_kg: 9.5 }]])
+
+  it('con tacho resta la tara', () => {
+    expect(receptionNetWeight({ gross_weight_kg: 30, container_id: '001' }, byId)).toBe(20.5)
+  })
+  it('sin tacho (contenedor descartable) devuelve el bruto', () => {
+    expect(receptionNetWeight({ gross_weight_kg: 12.3, container_id: null }, byId)).toBe(12.3)
+  })
+  it('tacho referenciado que no existe → null (se excluye, como hoy)', () => {
+    expect(receptionNetWeight({ gross_weight_kg: 30, container_id: '999' }, byId)).toBeNull()
+  })
+})
+
+describe('isDisposableWaste', () => {
+  it('solo cito, anato y morgue', () => {
+    expect(isDisposableWaste('cytotoxic')).toBe(true)
+    expect(isDisposableWaste('anatomopathological')).toBe(true)
+    expect(isDisposableWaste('morgue')).toBe(true)
+    expect(isDisposableWaste('liquid')).toBe(false)
+    expect(isDisposableWaste('infectious')).toBe(false)
+    expect(isDisposableWaste(undefined)).toBe(false)
+  })
+})
+
+describe('getPendingWeighingContainerIds con recepciones sin tacho', () => {
+  it('no cambia la cola ni falla', () => {
+    const containers = [{ id: '001', size_liters: 240, tare_weight_kg: 9.5, status: 'active', registered_at: '2026-01-01T00:00:00Z' }] as never
+    const routeEvents = [{ id: 'e1', client_id: 'c', kind: 'anden', slot: '06:30', date: '2026-09-20', started_at: '2026-09-20T06:30:00Z', ended_at: null, operator_id: 'op', status: 'completed', containers_dirty_received: ['001'], containers_clean_delivered: [], area: '', photo_ids: [], voided_at: null }] as never
+    const receptions = [{ id: 'r1', container_id: null, container_ref: '1234', weighing_session_id: null, arrived_at: '2026-09-20T08:00:00Z', gross_weight_kg: 5, operator_id: 'op', photo_ids: [], observations: '', waste_type: 'morgue' }] as never
+    expect(getPendingWeighingContainerIds(containers, routeEvents, receptions)).toEqual(['001'])
   })
 })
 

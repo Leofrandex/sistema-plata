@@ -331,6 +331,22 @@ describe('buildPhotographicReportData (por empresa)', () => {
     expect(data.meta.routePhotoCount).toBe(5)
   })
 
+  it('incluye en pares de pesaje las recepciones sin tacho (contenedor descartable)', () => {
+    const rec = ionStore.receptions[0]
+    const store = {
+      ...ionStore,
+      receptions: [...ionStore.receptions, { ...rec, id: 'rec-descartable', container_id: null, container_ref: '5501', waste_type: 'morgue' as const, photo_ids: ['ph-d-t', 'ph-d-s'] }],
+      photos: [
+        ...ionStore.photos,
+        { id: 'ph-d-t', url: 'u-t', event_type: 'weighing' as const, event_id: 'rec-descartable', taken_at: rec.arrived_at, label: '' },
+        { id: 'ph-d-s', url: 'u-s', event_type: 'weighing' as const, event_id: 'rec-descartable', taken_at: rec.arrived_at, label: '' },
+      ],
+    }
+    const data = buildPhotographicReportData('company-ion', store, range)!
+    const urls = data.days.flatMap((d) => d.groups).flatMap((g) => g.pairs ?? []).flatMap((p) => [p.tacho?.url, p.scale?.url])
+    expect(urls).toEqual(expect.arrayContaining(['u-t', 'u-s']))
+  })
+
   it('junta las urls de recorrido y de los pares de pesaje, sin repetir', () => {
     const data = buildPhotographicReportData('company-ion', ionStore, range)!
     const urls = reportPhotoUrls(data)

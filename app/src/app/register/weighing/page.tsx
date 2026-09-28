@@ -373,7 +373,7 @@ export default function WeighingPage() {
     const scalePhoto = photos.find((p) => p.id === r.photo_ids[1])?.url ?? null
 
     setFormState({
-      container_id: r.container_id,
+      container_id: r.container_id ?? '',
       company_id: r.company_id ?? '',
       photo_container: containerPhoto,
       photo_scale: scalePhoto,
@@ -452,6 +452,10 @@ export default function WeighingPage() {
 
     // Derivados por reception: TreatmentRun (inmediato) o StorageEvent + ContainerLocation.
     for (const r of sessionReceptions) {
+      // Contenedor descartable (cito/anato/morgue): no hay tacho, así que no hay
+      // ciclo de vida de tacho que mover a tratamiento/cámara fría. Task 3
+      // revisará este flujo cuando el formulario soporte el tipo descartable.
+      if (r.container_id == null) continue
       if (r.treat_immediately && r.waste_type === 'infectious') {
         const trId = crypto.randomUUID()
         await submitTreatmentRun({ id: trId, container_id: r.container_id, started_at: now, completed_at: now, operator_id: currentProfileId })

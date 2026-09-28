@@ -98,7 +98,7 @@ export function QualitySection({ indicators, windowLabel, loading = false, class
                   {DATETIME_FORMATTER.format(new Date(o.arrivedAt))}
                 </span>
                 <span className="shrink-0 font-semibold tabular-nums text-foreground">
-                  {formatTachoNumber(o.containerId)}
+                  {o.containerId ? formatTachoNumber(o.containerId) : '—'}
                 </span>
                 <span className="truncate text-foreground/80" title={o.observations}>
                   {o.observations}
