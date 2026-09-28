@@ -42,6 +42,7 @@ import {
   type CameraSlot,
   type WeighingDraft,
 } from '@/lib/weighing-draft'
+import { weighingSessionControls } from '@/lib/weighing-session-rules'
 
 /**
  * Pantalla a la que se vuelve al cerrar o cancelar el pesaje: el Home del
@@ -62,7 +63,7 @@ export default function WeighingPage() {
     addWeighingSession, updateWeighingSession, deleteWeighingSession,
     addReception, updateReception,
     addPhoto, addStorageEvent, addLocation, addTreatmentRun,
-    currentProfileId,
+    currentProfileId, users,
   } = useStore()
 
   const [today] = useState<string>(todayLocal)
@@ -172,6 +173,11 @@ export default function WeighingPage() {
 
   const isRunning = !!activeSession
   const isEditing = editingReceptionId != null
+  const sessionOperatorId = activeSession?.context.type === 'weighing' ? activeSession.context.operator_id : null
+  const controls = sessionOperatorId
+    ? weighingSessionControls({ sessionOperatorId, currentProfileId, receptionCount: sessionReceptions.length })
+    : null
+  const sessionOwnerName = users.find((u) => u.id === sessionOperatorId)?.name ?? 'otro operador'
   const elapsed = useElapsed(activeSession?.started_at ?? null)
 
   // Tachos disponibles para pesar = cola de trabajo del pesador (helper compartido con dashboard).
@@ -410,6 +416,8 @@ export default function WeighingPage() {
 
   async function handleCancel() {
     if (!activeSession || activeSession.context.type !== 'weighing') return
+    // Cancelar borra la sesión y sus pesajes del servidor: solo con la sesión vacía.
+    if (!controls?.canCancel) return
     const ctx = activeSession.context
     // Borra sesión + receptions en Supabase, luego en store
     try {
@@ -494,7 +502,7 @@ export default function WeighingPage() {
               <CardContent className="pt-4 flex items-center justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-accent">
-                    Sesión de pesaje en curso
+                    {controls?.ownerIsOther ? `Sesión abierta de ${sessionOwnerName}` : 'Sesión de pesaje en curso'}
                   </p>
                   <p className="text-3xl font-bold tabular-nums text-foreground mt-1">
                     {formatElapsed(elapsed)}
@@ -502,19 +510,26 @@ export default function WeighingPage() {
                   <p className="text-xs text-muted-foreground mt-1">
                     {sessionReceptions.length} tacho{sessionReceptions.length !== 1 ? 's' : ''} registrado{sessionReceptions.length !== 1 ? 's' : ''}
                   </p>
+                  {controls?.ownerIsOther && (
+                    <p className="text-xs text-amber-700 mt-1">
+                      No es tu sesión. Finalízala para guardar sus pesajes y empezar la tuya.
+                    </p>
+                  )}
                 </div>
                 <div className="flex gap-2 shrink-0 flex-wrap justify-end">
-                  <Button
-                    variant="outline"
-                    onClick={() => setConfirmingCancel(true)}
-                    className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                  >
-                    <X className="h-4 w-4" />
-                    Cancelar
-                  </Button>
+                  {controls?.canCancel && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setConfirmingCancel(true)}
+                      className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                    >
+                      <X className="h-4 w-4" />
+                      Cancelar
+                    </Button>
+                  )}
                   <Button
                     onClick={() => setConfirmingFinish(true)}
-                    disabled={sessionReceptions.length === 0}
+                    disabled={!controls?.canFinish}
                     className="gap-2"
                   >
                     <StopCircle className="h-4 w-4" />
@@ -557,7 +572,7 @@ export default function WeighingPage() {
             allContainers={containers}
             companies={companies}
             duplicateWarning={duplicateWarning}
-            locked={!isRunning}
+            locked={!isRunning || !controls?.canRegister}
             mode={isEditing ? 'edit' : 'create'}
             onSubmit={handleSubmitForm}
             onCancelEdit={handleCancelEdit}
