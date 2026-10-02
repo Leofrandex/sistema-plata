@@ -4,7 +4,7 @@ tags:
   - project
   - architecture
   - tech
-updated: 2026-09-17
+updated: 2026-10-02
 ---
 
 # Arquitectura del Sistema
@@ -84,5 +84,7 @@ Monorepo de npm workspaces desde el 2026-07-22 — ver [[2026-07-22-separacion-h
 **Decisiones clave:** ver [[2026-05-21-supabase-integracion]].
 
 ## Dependencias principales
+
+- **`@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities`** (hub, 2026-10-02) — arrastrar y soltar del editor del registro fotográfico. Elegida sobre el drag & drop nativo de HTML5 por el reordenamiento animado de los cuadros. Ver [[2026-10-02-editor-registro-fotografico]].
 
 Ver `package.json` en la raíz del proyecto.
