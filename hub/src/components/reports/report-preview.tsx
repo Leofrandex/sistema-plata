@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Download, Loader2, FileText, Route, Scale } from 'lucide-react'
 import { Button } from '@hospiwaste/shared/components/ui/button'
 import { Card, CardContent } from '@hospiwaste/shared/components/ui/card'
 import { APP_NAME } from '@hospiwaste/shared/lib/constants'
-import { reportPhotoUrls, type PhotographicReportData } from '@/lib/data/reports'
+import type { PhotographicReportData } from '@/lib/data/reports'
+import { buildReportLayout, layoutPhotoUrls } from '@/lib/data/report-layout'
 import { prepareReportImages } from '@/lib/report-images'
 import { PhotographicReportDocument } from './photographic-report-document'
 
@@ -34,6 +35,7 @@ function triggerDownload(blob: Blob, filename: string) {
 export function ReportPreview({ data }: Props) {
   const { company, client, rangeStart, rangeEnd, meta } = data
   const [state, setState] = useState<GenerationState>({ phase: 'idle' })
+  const layout = useMemo(() => buildReportLayout(data), [data])
 
   const safeName = company.name.replace(/[^a-z0-9]/gi, '_')
   const filename = `${APP_NAME}_RegistroFotografico_${safeName}_${rangeStart}_${rangeEnd}.pdf`
@@ -44,14 +46,14 @@ export function ReportPreview({ data }: Props) {
   // bajaba todas las fotos a tamaño original apenas se abría la vista previa.
   async function handleGenerate() {
     try {
-      const urls = reportPhotoUrls(data)
+      const urls = layoutPhotoUrls(layout)
       setState({ phase: 'photos', done: 0, total: urls.length })
       const images = await prepareReportImages(urls, {
         onProgress: (done, total) => setState({ phase: 'photos', done, total }),
       })
       setState({ phase: 'pdf' })
       const { pdf } = await import('@react-pdf/renderer')
-      const blob = await pdf(<PhotographicReportDocument data={data} images={images} />).toBlob()
+      const blob = await pdf(<PhotographicReportDocument data={data} layout={layout} images={images} />).toBlob()
       triggerDownload(blob, filename)
       const missing = [...images.values()].filter((v) => v === null).length
       setState({ phase: 'done', missing })

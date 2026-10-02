@@ -3,9 +3,9 @@ import {
   getMondayOfWeek,
   isoDate,
   chunk,
-  reportPhotoUrls,
 } from '@/lib/data/reports'
 import type { ReportStoreSlice } from '@/lib/data/reports'
+import { buildReportLayout, layoutPhotoUrls } from '@/lib/data/report-layout'
 import {
   MOCK_CLIENTS,
   MOCK_COMPANIES,
@@ -362,14 +362,14 @@ describe('buildPhotographicReportData (por empresa)', () => {
         { id: 'ph-c', url: 'u-c', event_type: 'weighing' as const, event_id: 'rec-cito', taken_at: rec.arrived_at, label: '' },
       ],
     }
-    const urls = reportPhotoUrls(buildPhotographicReportData('company-ion', store, range)!)
+    const urls = layoutPhotoUrls(buildReportLayout(buildPhotographicReportData('company-ion', store, range)!))
     expect(urls).not.toContain('u-a')
     expect(urls).not.toContain('u-c')
   })
 
   it('junta las urls de recorrido y de los pares de pesaje, sin repetir', () => {
     const data = buildPhotographicReportData('company-ion', ionStore, range)!
-    const urls = reportPhotoUrls(data)
+    const urls = layoutPhotoUrls(buildReportLayout(data))
     const expected = new Set(
       data.days.flatMap((d) => d.groups).flatMap((g) => [
         ...g.photos.map((e) => e.photo.url),
