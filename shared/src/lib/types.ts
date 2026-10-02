@@ -8,6 +8,14 @@ export type WasteType =
   | 'morgue'              // 5 — Morgue (external transfer)
   | 'metallic'            // 6 — Metálicos No reutilizables (tachos M dedicados)
 
+/** Tipos que se pesan en un contenedor propio que se desecha con el residuo:
+ *  no hay tacho ni tara; el operador escribe el número del contenedor. */
+export const DISPOSABLE_CONTAINER_WASTE_TYPES: readonly WasteType[] = ['cytotoxic', 'anatomopathological', 'morgue']
+
+export function isDisposableWaste(t: WasteType | undefined | null): boolean {
+  return !!t && DISPOSABLE_CONTAINER_WASTE_TYPES.includes(t)
+}
+
 export type ContainerSize = 120 | 240 | 750 | 1100
 
 export type ContainerStatus = 'active' | 'decommissioned'
@@ -161,7 +169,10 @@ export interface WeighingSession {
 
 export interface ContainerReception {
   id: string
-  container_id: string
+  /** Tacho pesado. null en contenedores descartables (cito/anato/morgue): no hay tara. */
+  container_id: string | null
+  /** Número del contenedor descartable escrito por el operador. Solo con container_id null. */
+  container_ref?: string | null
   weighing_session_id: string | null   // ahora puede pertenecer a una sesión
   arrived_at: string
   gross_weight_kg: number

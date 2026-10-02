@@ -8,13 +8,44 @@ import type {
   TreatmentRun,
   ExternalTransfer,
   RouteEvent,
+  WasteType,
 } from '@hospiwaste/shared/lib/types'
+import { isDisposableWaste } from '@hospiwaste/shared/lib/types'
+
+/** Qué se limpia al cambiar el tipo de desecho en un formulario de pesaje. */
+export function wasteTypeChange(
+  prev: WasteType,
+  next: WasteType,
+): { waste_type: WasteType; container_id?: ''; container_ref?: '' } {
+  const crossingMetallic = (prev === 'metallic') !== (next === 'metallic')
+  const toDisposable = !isDisposableWaste(prev) && isDisposableWaste(next)
+  const fromDisposable = isDisposableWaste(prev) && !isDisposableWaste(next)
+  return {
+    waste_type: next,
+    ...(crossingMetallic || toDisposable ? { container_id: '' as const } : {}),
+    ...(fromDisposable ? { container_ref: '' as const } : {}),
+  }
+}
 
 export function computeNetWeight(
   gross_weight_kg: number,
   tare_weight_kg: number
 ): number {
   return Math.round((gross_weight_kg - tare_weight_kg) * 100) / 100
+}
+
+/**
+ * Peso neto de una recepción. Sin tacho (contenedor descartable de
+ * cito/anato/morgue) no hay tara: neto = bruto. Con un tacho que no está en el
+ * catálogo devuelve null y quien llama excluye la recepción (comportamiento previo).
+ */
+export function receptionNetWeight(
+  r: Pick<ContainerReception, 'gross_weight_kg' | 'container_id'>,
+  containerById: Map<string, Pick<Container, 'tare_weight_kg'>>,
+): number | null {
+  if (r.container_id == null) return Math.round(r.gross_weight_kg * 100) / 100
+  const c = containerById.get(r.container_id)
+  return c ? computeNetWeight(r.gross_weight_kg, c.tare_weight_kg) : null
 }
 
 export function getContainerCurrentLocation(
@@ -117,6 +148,7 @@ export function getPendingWeighingContainerIds(
   const ultimoPesajePorTacho = new Map<string, number>()
   for (const r of receptions) {
     if (r.voided_at) continue
+    if (r.container_id == null) continue
     const ts = new Date(r.arrived_at).getTime()
     const previo = ultimoPesajePorTacho.get(r.container_id) ?? -Infinity
     if (ts > previo) ultimoPesajePorTacho.set(r.container_id, ts)

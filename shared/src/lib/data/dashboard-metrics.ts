@@ -9,7 +9,7 @@ import type {
   StorageEvent,
   TreatmentRun,
 } from '@hospiwaste/shared/lib/types'
-import { computeNetWeight } from './containers'
+import { computeNetWeight, receptionNetWeight } from './containers'
 
 // ─── Circulación de tachos ────────────────────────────────────────────────
 
@@ -163,9 +163,9 @@ export function computeDailyKg(store: DailyKgStoreSlice, today: string): DailyKg
   for (const r of store.receptions) {
     if (r.voided_at) continue
     if (isoDayOf(r.arrived_at) !== today) continue
-    const c = containerMap.get(r.container_id)
-    if (!c) continue
-    receivedKg += computeNetWeight(r.gross_weight_kg, c.tare_weight_kg)
+    const kg = receptionNetWeight(r, containerMap)
+    if (kg == null) continue
+    receivedKg += kg
   }
 
   let processedKg = 0
@@ -230,11 +230,11 @@ export function computeMonthlyKgByCompany(
     if (r.voided_at) continue
     const day = isoDayOf(r.arrived_at)
     if (!day.startsWith(month)) continue
-    const container = containerMap.get(r.container_id)
-    if (!container) continue
+    const kg = receptionNetWeight(r, containerMap)
+    if (kg == null) continue
     const bucket = r.company_id ? buckets.get(r.company_id) : undefined
     if (!bucket) continue
-    bucket.receivedKg += computeNetWeight(r.gross_weight_kg, container.tare_weight_kg)
+    bucket.receivedKg += kg
   }
 
   // Procesados: treatments completados del mes. La empresa se toma de la recepción

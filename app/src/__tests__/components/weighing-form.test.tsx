@@ -11,11 +11,11 @@ const companies: Company[] = [
   { id: 'company-airkem', client_id: 'cli', name: 'Airkem', code_letter: 'A' },
 ]
 
-function renderForm(state = EMPTY_WEIGHING_FORM) {
+function renderForm({ state = EMPTY_WEIGHING_FORM, onChange = () => {} }: { state?: typeof EMPTY_WEIGHING_FORM; onChange?: (u: Partial<typeof EMPTY_WEIGHING_FORM>) => void } = {}) {
   return render(
     <WeighingForm
       state={state}
-      onChange={() => {}}
+      onChange={onChange}
       availableContainers={containers}
       metallicContainers={[]}
       allContainers={containers}
@@ -35,24 +35,28 @@ describe('WeighingForm — empresa', () => {
 
   it('no permite guardar sin empresa aunque el resto esté completo', () => {
     renderForm({
-      ...EMPTY_WEIGHING_FORM,
-      container_id: '001',
-      company_id: '',
-      photo_container: 'data:image/png;base64,x',
-      photo_scale: 'data:image/png;base64,y',
-      gross_weight: '40',
+      state: {
+        ...EMPTY_WEIGHING_FORM,
+        container_id: '001',
+        company_id: '',
+        photo_container: 'data:image/png;base64,x',
+        photo_scale: 'data:image/png;base64,y',
+        gross_weight: '40',
+      },
     })
     expect(screen.getByRole('button', { name: /guardar y agregar otro/i })).toBeDisabled()
   })
 
   it('permite guardar cuando la empresa está elegida', () => {
     renderForm({
-      ...EMPTY_WEIGHING_FORM,
-      container_id: '001',
-      company_id: 'company-ion',
-      photo_container: 'data:image/png;base64,x',
-      photo_scale: 'data:image/png;base64,y',
-      gross_weight: '40',
+      state: {
+        ...EMPTY_WEIGHING_FORM,
+        container_id: '001',
+        company_id: 'company-ion',
+        photo_container: 'data:image/png;base64,x',
+        photo_scale: 'data:image/png;base64,y',
+        gross_weight: '40',
+      },
     })
     expect(screen.getByRole('button', { name: /guardar y agregar otro/i })).toBeEnabled()
   })
@@ -181,5 +185,26 @@ describe('WeighingForm — aviso de duplicado', () => {
       />,
     )
     expect(screen.getByRole('button', { name: /guardar y agregar otro/i })).toBeEnabled()
+  })
+})
+
+describe('contenedor descartable', () => {
+  it('con Morgue muestra "N° de contenedor" y no el buscador de tacho', () => {
+    renderForm({ state: { ...EMPTY_WEIGHING_FORM, waste_type: 'morgue' } })
+    expect(screen.getByLabelText(/n° de contenedor/i)).toBeInTheDocument()
+    expect(screen.queryByPlaceholderText(/número de tacho/i)).not.toBeInTheDocument()
+  })
+
+  it('no deja enviar sin número o con solo espacios; neto = bruto', () => {
+    const state = {
+      ...EMPTY_WEIGHING_FORM, waste_type: 'cytotoxic' as const, company_id: 'company-airkem',
+      gross_weight: '7.5', photo_container: 'data:c', photo_scale: 'data:s', container_ref: '   ',
+    }
+    renderForm({ state })
+    expect(screen.getByRole('button', { name: /registrar|guardar/i })).toBeDisabled()
+    renderForm({ state: { ...state, container_ref: 'C-12' } })
+    expect(screen.getAllByRole('button', { name: /registrar|guardar/i }).at(-1)).toBeEnabled()
+    expect(screen.getAllByText(/7\.5/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/sin tara/i).length).toBeGreaterThan(0)
   })
 })

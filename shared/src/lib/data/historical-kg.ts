@@ -1,6 +1,6 @@
 import type { Company, Container, ContainerReception } from '@hospiwaste/shared/lib/types'
 import type { HistoricalDailyKgRow } from '@hospiwaste/shared/lib/supabase/queries/historical-kg'
-import { computeNetWeight } from './containers'
+import { receptionNetWeight } from './containers'
 
 /**
  * Serie unica de kilos por dia y empresa, uniendo las dos fuentes:
@@ -81,8 +81,8 @@ export function dailyKgFromLive(store: LiveSlice): DailyKgEntry[] {
   const acc = new Map<string, DailyKgEntry>()
   for (const r of store.receptions) {
     if (r.voided_at) continue
-    const container = containerById.get(r.container_id)
-    if (!container) continue
+    const kg = receptionNetWeight(r, containerById)
+    if (kg == null) continue
 
     const date = r.arrived_at.slice(0, 10)
     if (date < HISTORICAL_CUTOVER) continue
@@ -91,7 +91,6 @@ export function dailyKgFromLive(store: LiveSlice): DailyKgEntry[] {
     const key = `${date}|${companyName}`
 
     const entry = acc.get(key)
-    const kg = computeNetWeight(r.gross_weight_kg, container.tare_weight_kg)
     if (entry) {
       entry.kg += kg
       entry.records += 1

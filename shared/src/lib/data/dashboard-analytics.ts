@@ -9,7 +9,7 @@ import type {
   WasteType,
   WeighingSession,
 } from '@hospiwaste/shared/lib/types'
-import { computeNetWeight, deriveContainerCompanyId } from './containers'
+import { receptionNetWeight, deriveContainerCompanyId } from './containers'
 import { computeCirculationStatus, type CirculationBucket } from './dashboard-metrics'
 import { computeSlotStatus, type SlotStatus } from './route-sessions'
 import { ROUTE_SLOTS } from '@hospiwaste/shared/lib/constants'
@@ -76,10 +76,10 @@ export function computeKgByWasteType(
   for (const r of slice.receptions) {
     if (r.voided_at) continue
     if (!inRange(isoDayOf(r.arrived_at), startDay, endDay)) continue
-    const container = containerMap.get(r.container_id)
-    if (!container) continue
+    const kg = receptionNetWeight(r, containerMap)
+    if (kg == null) continue
     const key = r.waste_type ?? 'unclassified'
-    sums.set(key, (sums.get(key) ?? 0) + computeNetWeight(r.gross_weight_kg, container.tare_weight_kg))
+    sums.set(key, (sums.get(key) ?? 0) + kg)
   }
 
   const totalKg = round2([...sums.values()].reduce((a, b) => a + b, 0))
@@ -113,9 +113,9 @@ export function computeDailyKgSeries(slice: KgSlice, endDay: string, days: numbe
     if (r.voided_at) continue
     const day = isoDayOf(r.arrived_at)
     if (!inRange(day, startDay, endDay)) continue
-    const container = containerMap.get(r.container_id)
-    if (!container) continue
-    byDay.set(day, (byDay.get(day) ?? 0) + computeNetWeight(r.gross_weight_kg, container.tare_weight_kg))
+    const kg = receptionNetWeight(r, containerMap)
+    if (kg == null) continue
+    byDay.set(day, (byDay.get(day) ?? 0) + kg)
   }
 
   const series: DailyKgPoint[] = []
@@ -132,9 +132,9 @@ function monthKg(slice: KgSlice, month: string): number {
   for (const r of slice.receptions) {
     if (r.voided_at) continue
     if (!isoDayOf(r.arrived_at).startsWith(month)) continue
-    const container = containerMap.get(r.container_id)
-    if (!container) continue
-    total += computeNetWeight(r.gross_weight_kg, container.tare_weight_kg)
+    const kg = receptionNetWeight(r, containerMap)
+    if (kg == null) continue
+    total += kg
   }
   return round2(total)
 }
@@ -195,9 +195,9 @@ export function computeAvgWeightPerContainer(
   for (const r of slice.receptions) {
     if (r.voided_at) continue
     if (!inRange(isoDayOf(r.arrived_at), startDay, endDay)) continue
-    const container = containerMap.get(r.container_id)
-    if (!container) continue
-    total += computeNetWeight(r.gross_weight_kg, container.tare_weight_kg)
+    const kg = receptionNetWeight(r, containerMap)
+    if (kg == null) continue
+    total += kg
     count += 1
   }
   return count > 0 ? round2(total / count) : null
@@ -361,7 +361,7 @@ export function computeOperatorActivity(
 
 export interface ObservationEntry {
   receptionId: string
-  containerId: string
+  containerId: string | null
   arrivedAt: string
   observations: string
 }

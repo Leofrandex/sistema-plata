@@ -7,13 +7,17 @@ import type {
   ContainerReception,
   Photo,
   RouteSlot,
+  WasteType,
 } from '@hospiwaste/shared/lib/types'
 import { getRouteSlotDefinition } from '@hospiwaste/shared/lib/constants'
+
+/** Anatomopatológicos y citotóxicos no van al registro fotográfico (pedido del cliente). */
+const EXCLUDED_WASTE_TYPES: readonly WasteType[] = ['anatomopathological', 'cytotoxic']
 
 /** Una foto enriquecida con metadatos del contexto. */
 export interface ReportPhotoEntry {
   photo: Photo
-  container_id: string
+  container_id: string | null
   container: Container | null
   taken_at: string
   comment: string
@@ -21,7 +25,7 @@ export interface ReportPhotoEntry {
 
 /** Par peso/tacho de un pesaje, para render columnar en el reporte. */
 export interface WeighingPair {
-  container_id: string
+  container_id: string | null
   container: Container | null
   scale: Photo | null   // foto del peso/balanza (photo_ids[1])
   tacho: Photo | null   // foto del tacho (photo_ids[0])
@@ -152,12 +156,16 @@ export function buildPhotographicReportData(
     (r) => !r.voided_at && r.kind === 'anden' && withinRange(r.started_at, start, end) && routeBelongs(r),
   )
   const receptions = store.receptions.filter(
-    (r) => !r.voided_at && withinRange(r.arrived_at, start, end) && recBelongs(r),
+    (r) =>
+      !r.voided_at &&
+      !EXCLUDED_WASTE_TYPES.includes(r.waste_type as WasteType) &&
+      withinRange(r.arrived_at, start, end) &&
+      recBelongs(r),
   )
 
   // Universo de tachos relevantes (para mapear fotos de ruta y datos del tacho)
   const relevantContainerIds = new Set<string>([
-    ...receptions.map((r) => r.container_id),
+    ...receptions.map((r) => r.container_id).filter((id): id is string => id != null),
     ...routeEvents.flatMap((e) => [...e.containers_dirty_received, ...e.containers_clean_delivered]),
   ])
   const containers = store.containers.filter((c) => relevantContainerIds.has(c.id))
@@ -195,7 +203,7 @@ export function buildPhotographicReportData(
   const receptionsByRuta = new Map<RutaKey, ContainerReception[]>()
   const orphanReceptions: ContainerReception[] = []
   for (const rec of receptions) {
-    const ruta = rutaOfContainer.get(rec.container_id)
+    const ruta = rec.container_id ? rutaOfContainer.get(rec.container_id) : undefined
     if (ruta) {
       const key = `${ruta.date}__${ruta.slot}`
       const arr = receptionsByRuta.get(key) ?? []
@@ -237,7 +245,7 @@ export function buildPhotographicReportData(
     const pairs: WeighingPair[] = []
     const photos: ReportPhotoEntry[] = []
     for (const rec of sorted) {
-      const container = containerMap.get(rec.container_id) ?? null
+      const container = rec.container_id ? containerMap.get(rec.container_id) ?? null : null
       const tacho = rec.photo_ids[0] ? photoMap.get(rec.photo_ids[0]) ?? null : null
       const scale = rec.photo_ids[1] ? photoMap.get(rec.photo_ids[1]) ?? null : null
       if (!tacho && !scale) continue

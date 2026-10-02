@@ -3,7 +3,7 @@ title: Tipos de Desecho
 tags:
   - processes
   - domain
-updated: 2026-06-01
+updated: 2026-09-28
 ---
 
 # Tipos de Desecho
@@ -33,6 +33,13 @@ El sistema debe registrar, para tipos 2–5: fecha inicio almacenaje, fecha sali
 ## Asignación contenedor–tipo de desecho
 
 Cada contenedor está **casado con un tipo de desecho**. Un mismo contenedor no se usa para dos tipos distintos. La excepción histórica es morgue (puede venir en bolsa o cooler de foam sin contenedor fijo), pero Francesca confirmó que **todos los tipos sí se pueden casar al contenedor**.
+
+> [!warning] INCOHERENCIA DETECTADA
+> **Fecha:** 2026-09-28
+> **Problema:** esta nota decía que todos los tipos se casan a un contenedor. El usuario aclaró que
+> citotóxico, anatomopatológico y morgue van en contenedores propios que se desechan con el residuo.
+> **Resolución:** en el pesaje esos tres tipos no usan tacho ni tara; se escribe el número del
+> contenedor (`container_ref`) y neto = bruto. Ver [[2026-09-28-contenedor-descartable]].
 
 ## Tachos metálicos (M1-M15)
 
