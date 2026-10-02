@@ -100,6 +100,26 @@ export function withinRange(value: string, start: Date, end: Date): boolean {
   return t >= start.getTime() && t <= end.getTime()
 }
 
+/**
+ * Recepciones que entran al registro: no anuladas, de la empresa, dentro del
+ * rango y sin anatomopatológicos ni citotóxicos. La empresa es propiedad del
+ * registro (snapshot al pesar); un pesaje sin empresa no pertenece a ningún reporte.
+ */
+export function selectReportReceptions(
+  companyId: string,
+  receptions: ContainerReception[],
+  start: Date,
+  end: Date,
+): ContainerReception[] {
+  return receptions.filter(
+    (r) =>
+      !r.voided_at &&
+      !EXCLUDED_WASTE_TYPES.includes(r.waste_type as WasteType) &&
+      withinRange(r.arrived_at, start, end) &&
+      r.company_id === companyId,
+  )
+}
+
 /** Parte un array en sub-arrays de tamaño `size`. */
 export function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = []
@@ -132,21 +152,14 @@ export function buildPhotographicReportData(
 
   const photoMap = new Map(store.photos.map((p) => [p.id, p]))
 
-  // La empresa es propiedad del registro (snapshot en pesaje / recorrido). El tacho
-  // es independiente, así que un registro sin empresa no pertenece a ningún reporte.
-  const recBelongs = (r: ContainerReception): boolean => r.company_id === companyId
+  // La empresa es propiedad del registro (snapshot en recorrido). El tacho es
+  // independiente, así que un registro sin empresa no pertenece a ningún reporte.
   const routeBelongs = (e: RouteEvent): boolean => e.company_id === companyId
 
   const routeEvents = store.routeEvents.filter(
     (r) => !r.voided_at && r.kind === 'anden' && withinRange(r.started_at, start, end) && routeBelongs(r),
   )
-  const receptions = store.receptions.filter(
-    (r) =>
-      !r.voided_at &&
-      !EXCLUDED_WASTE_TYPES.includes(r.waste_type as WasteType) &&
-      withinRange(r.arrived_at, start, end) &&
-      recBelongs(r),
-  )
+  const receptions = selectReportReceptions(companyId, store.receptions, start, end)
 
   // Universo de tachos relevantes (para mapear fotos de ruta y datos del tacho)
   const relevantContainerIds = new Set<string>([
