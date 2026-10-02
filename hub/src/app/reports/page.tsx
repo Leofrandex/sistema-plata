@@ -10,6 +10,7 @@ import {
   buildPhotographicReportData,
   getMondayOfWeek,
   isoDate,
+  parseReportRange,
 } from '@/lib/data/reports'
 import { ReportPreview } from '@/components/reports/report-preview'
 
@@ -35,16 +36,14 @@ export default function ReportsPage() {
   const invalidRange = startStr > endStr
 
   const reportData = useMemo(() => {
-    if (!companyId || invalidRange) return null
-    // input date (YYYY-MM-DD) → rango local [00:00, 23:59:59]
-    const start = new Date(`${startStr}T00:00:00`)
-    const end = new Date(`${endStr}T23:59:59`)
+    const range = parseReportRange(startStr, endStr)
+    if (!companyId || !range) return null
     return buildPhotographicReportData(
       companyId,
       { clients, companies, containers, routeEvents, weighingSessions, receptions, photos },
-      { start, end },
+      range,
     )
-  }, [companyId, startStr, endStr, invalidRange, clients, companies, containers, routeEvents, weighingSessions, receptions, photos])
+  }, [companyId, startStr, endStr, clients, companies, containers, routeEvents, weighingSessions, receptions, photos])
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">

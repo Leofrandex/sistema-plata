@@ -3,9 +3,11 @@ import {
   getMondayOfWeek,
   isoDate,
   chunk,
-  reportPhotoUrls,
+  parseReportRange,
+  reportFilename,
 } from '@/lib/data/reports'
 import type { ReportStoreSlice } from '@/lib/data/reports'
+import { buildReportLayout, layoutPhotoUrls } from '@/lib/data/report-layout'
 import {
   MOCK_CLIENTS,
   MOCK_COMPANIES,
@@ -362,14 +364,14 @@ describe('buildPhotographicReportData (por empresa)', () => {
         { id: 'ph-c', url: 'u-c', event_type: 'weighing' as const, event_id: 'rec-cito', taken_at: rec.arrived_at, label: '' },
       ],
     }
-    const urls = reportPhotoUrls(buildPhotographicReportData('company-ion', store, range)!)
+    const urls = layoutPhotoUrls(buildReportLayout(buildPhotographicReportData('company-ion', store, range)!))
     expect(urls).not.toContain('u-a')
     expect(urls).not.toContain('u-c')
   })
 
   it('junta las urls de recorrido y de los pares de pesaje, sin repetir', () => {
     const data = buildPhotographicReportData('company-ion', ionStore, range)!
-    const urls = reportPhotoUrls(data)
+    const urls = layoutPhotoUrls(buildReportLayout(data))
     const expected = new Set(
       data.days.flatMap((d) => d.groups).flatMap((g) => [
         ...g.photos.map((e) => e.photo.url),
@@ -379,5 +381,28 @@ describe('buildPhotographicReportData (por empresa)', () => {
     expect(urls.length).toBeGreaterThan(0)
     expect(new Set(urls)).toEqual(expected)
     expect(urls.length).toBe(new Set(urls).size)
+  })
+})
+
+describe('parseReportRange', () => {
+  it('YYYY-MM-DD → [00:00, 23:59:59] local', () => {
+    const r = parseReportRange('2026-09-28', '2026-10-02')!
+    expect(r.start).toEqual(new Date(2026, 8, 28, 0, 0, 0))
+    expect(r.end).toEqual(new Date(2026, 9, 2, 23, 59, 59))
+  })
+  it('null si falta, está mal escrito o Desde > Hasta', () => {
+    expect(parseReportRange(null, '2026-10-02')).toBeNull()
+    expect(parseReportRange('2026-10-02', '')).toBeNull()
+    expect(parseReportRange('28/09/2026', '2026-10-02')).toBeNull()
+    expect(parseReportRange('2026-13-40', '2026-10-02')).toBeNull()
+    expect(parseReportRange('2026-10-03', '2026-10-02')).toBeNull()
+  })
+})
+
+describe('reportFilename', () => {
+  const data = { company: { name: 'ION Airkem' }, rangeStart: '2026-09-28', rangeEnd: '2026-10-02' } as Parameters<typeof reportFilename>[0]
+  it('nombre del automático y del editado', () => {
+    expect(reportFilename(data)).toMatch(/_RegistroFotografico_ION_Airkem_2026-09-28_2026-10-02\.pdf$/)
+    expect(reportFilename(data, '_editado')).toMatch(/_2026-10-02_editado\.pdf$/)
   })
 })

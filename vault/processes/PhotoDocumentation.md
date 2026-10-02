@@ -5,7 +5,7 @@ tags:
   - domain
   - reports
   - regulatory
-updated: 2026-10-01
+updated: 2026-10-02
 ---
 
 # Memoria Fotográfica (Informe Fotográfico)
@@ -38,6 +38,7 @@ Layout replicado de los reportes históricos del cliente:
 - **Rango**: lunes 00:00 → hoy 23:59 (el viernes cubre la semana completa).
 - **Fotos completas, nunca recortadas** (2026-10-01): cada foto se encaja entera en su recuadro, sea vertical u horizontal, para que se vea el sello de fecha/hora de la esquina inferior derecha. Antes se recortaban para llenar el recuadro y las fotos verticales del tacho perdían la fecha.
 - **Sin anatomopatológicos ni citotóxicos** (2026-10-01, pedido del cliente): sus pesajes no aparecen en el registro. Morgue sí.
+- **Editor** (2026-10-02): "Editar reporte" abre un editor donde coordinación reacomoda cuadros y fotos antes de descargar. Arranca con el reporte automático, usa los mismos filtros y no guarda nada: cerrar la pestaña pierde la edición. "Descargar reporte" sigue bajando el automático.
 
 ## Nomenclatura en las fotos
 

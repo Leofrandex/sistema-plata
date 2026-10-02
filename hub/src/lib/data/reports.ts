@@ -9,7 +9,7 @@ import type {
   RouteSlot,
   WasteType,
 } from '@hospiwaste/shared/lib/types'
-import { getRouteSlotDefinition } from '@hospiwaste/shared/lib/constants'
+import { APP_NAME, getRouteSlotDefinition } from '@hospiwaste/shared/lib/constants'
 
 /** Anatomopatológicos y citotóxicos no van al registro fotográfico (pedido del cliente). */
 const EXCLUDED_WASTE_TYPES: readonly WasteType[] = ['anatomopathological', 'cytotoxic']
@@ -100,26 +100,51 @@ export function withinRange(value: string, start: Date, end: Date): boolean {
   return t >= start.getTime() && t <= end.getTime()
 }
 
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/
+
+/**
+ * Fechas `YYYY-MM-DD` (inputs de fecha o query string) → rango local
+ * [00:00, 23:59:59]. null si falta alguna, está mal escrita o Desde > Hasta.
+ */
+export function parseReportRange(start: string | null, end: string | null): ReportRange | null {
+  if (!start || !end || !ISO_DAY.test(start) || !ISO_DAY.test(end) || start > end) return null
+  const s = new Date(`${start}T00:00:00`)
+  const e = new Date(`${end}T23:59:59`)
+  if (isNaN(s.getTime()) || isNaN(e.getTime()) || isoDate(s) !== start || isoDate(e) !== end) return null
+  return { start: s, end: e }
+}
+
+/** Nombre del PDF del registro; el editor agrega `_editado`. */
+export function reportFilename(data: PhotographicReportData, suffix = ''): string {
+  const safeName = data.company.name.replace(/[^a-z0-9]/gi, '_')
+  return `${APP_NAME}_RegistroFotografico_${safeName}_${data.rangeStart}_${data.rangeEnd}${suffix}.pdf`
+}
+
+/**
+ * Recepciones que entran al registro: no anuladas, de la empresa, dentro del
+ * rango y sin anatomopatológicos ni citotóxicos. La empresa es propiedad del
+ * registro (snapshot al pesar); un pesaje sin empresa no pertenece a ningún reporte.
+ */
+export function selectReportReceptions(
+  companyId: string,
+  receptions: ContainerReception[],
+  start: Date,
+  end: Date,
+): ContainerReception[] {
+  return receptions.filter(
+    (r) =>
+      !r.voided_at &&
+      !EXCLUDED_WASTE_TYPES.includes(r.waste_type as WasteType) &&
+      withinRange(r.arrived_at, start, end) &&
+      r.company_id === companyId,
+  )
+}
+
 /** Parte un array en sub-arrays de tamaño `size`. */
 export function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = []
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
   return out
-}
-
-/** Todas las urls de fotos que el PDF va a dibujar, sin repetir. */
-export function reportPhotoUrls(data: PhotographicReportData): string[] {
-  const urls = new Set<string>()
-  for (const day of data.days) {
-    for (const group of day.groups) {
-      for (const entry of group.photos) urls.add(entry.photo.url)
-      for (const pair of group.pairs ?? []) {
-        if (pair.scale) urls.add(pair.scale.url)
-        if (pair.tacho) urls.add(pair.tacho.url)
-      }
-    }
-  }
-  return [...urls].filter(Boolean)
 }
 
 /**
@@ -147,21 +172,14 @@ export function buildPhotographicReportData(
 
   const photoMap = new Map(store.photos.map((p) => [p.id, p]))
 
-  // La empresa es propiedad del registro (snapshot en pesaje / recorrido). El tacho
-  // es independiente, así que un registro sin empresa no pertenece a ningún reporte.
-  const recBelongs = (r: ContainerReception): boolean => r.company_id === companyId
+  // La empresa es propiedad del registro (snapshot en recorrido). El tacho es
+  // independiente, así que un registro sin empresa no pertenece a ningún reporte.
   const routeBelongs = (e: RouteEvent): boolean => e.company_id === companyId
 
   const routeEvents = store.routeEvents.filter(
     (r) => !r.voided_at && r.kind === 'anden' && withinRange(r.started_at, start, end) && routeBelongs(r),
   )
-  const receptions = store.receptions.filter(
-    (r) =>
-      !r.voided_at &&
-      !EXCLUDED_WASTE_TYPES.includes(r.waste_type as WasteType) &&
-      withinRange(r.arrived_at, start, end) &&
-      recBelongs(r),
-  )
+  const receptions = selectReportReceptions(companyId, store.receptions, start, end)
 
   // Universo de tachos relevantes (para mapear fotos de ruta y datos del tacho)
   const relevantContainerIds = new Set<string>([

@@ -3,7 +3,7 @@ title: Índice del Vault — Hospiwaste
 tags:
   - index
   - meta
-updated: 2026-09-28
+updated: 2026-10-02
 ---
 
 # Vault — Hospiwaste
@@ -57,6 +57,7 @@ Punto de entrada. Leer al inicio de cada sesión, antes de tocar código.
 | Si es por carga: ¿planta cronometra el ciclo? | [[2026-09-21-reactivacion-tratamiento]] |
 | Qué debe mostrar la foto de un tacho tratado — el tacho, la carga, el equipo | [[2026-09-21-reactivacion-tratamiento]] |
 | Aplicar la regla CHECK de container_ref cuando todos los teléfonos tengan v1.12 | [[2026-09-28-contenedor-descartable]] |
+| Preguntar a coordinación si el editor del registro fotográfico les sirve (si sí: ¿guardar ediciones?) | [[2026-10-02-editor-registro-fotografico]] |
 
 > [!warning] Ventana abierta
 > La migración de taras Yaris ya está aplicada en el piloto, pero planta corre el APK v1.5.

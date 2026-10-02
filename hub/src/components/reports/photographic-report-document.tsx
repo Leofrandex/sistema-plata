@@ -2,12 +2,8 @@ import {
   Document, Page, Text, View, Image, StyleSheet,
 } from '@react-pdf/renderer'
 import { APP_NAME } from '@hospiwaste/shared/lib/constants'
-import { chunk } from '@/lib/data/reports'
-import type { PhotographicReportData, ReportDay, ReportPhotoEntry, WeighingPair } from '@/lib/data/reports'
-
-const PHOTOS_PER_CUADRO = 8 // 4 columnas × 2 filas (recorrido)
-const PAIRS_PER_CUADRO = 4  // 4 pesajes por bloque (peso arriba / tacho abajo)
-const CUADROS_PER_PAGE = 4 // 2 × 2
+import type { PhotographicReportData } from '@/lib/data/reports'
+import { paginateDay, type LayoutCuadro, type LayoutDay, type ReportLayout } from '@/lib/data/report-layout'
 
 const styles = StyleSheet.create({
   page: {
@@ -97,7 +93,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     padding: 2,
-    minHeight: 150,
   },
   photoCell: {
     width: '25%',
@@ -117,6 +112,10 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     objectFit: 'contain',
+  },
+  // Recuadro sin foto: mismo alto que uno con foto, en blanco.
+  emptyBox: {
+    height: 96,
   },
   comentario: {
     flexDirection: 'row',
@@ -179,32 +178,6 @@ function ReportPhoto({ url, images }: { url: string; images: ReportImages }) {
   return <Image src={src} style={styles.photo} />
 }
 
-interface Cuadro {
-  label: string
-  stage: 'route' | 'weighing'
-  photos?: ReportPhotoEntry[]
-  pairs?: WeighingPair[]
-}
-
-/** Convierte los grupos de un día en cuadros (recorrido: 8 fotos; pesaje: 4 pares). */
-function buildCuadros(day: ReportDay): Cuadro[] {
-  const cuadros: Cuadro[] = []
-  for (const group of day.groups) {
-    if (group.stage === 'weighing' && group.pairs) {
-      const parts = chunk(group.pairs, PAIRS_PER_CUADRO)
-      parts.forEach((pairs, i) => {
-        cuadros.push({ label: i === 0 ? group.label : `${group.label} (cont.)`, stage: 'weighing', pairs })
-      })
-    } else {
-      const parts = chunk(group.photos, PHOTOS_PER_CUADRO)
-      parts.forEach((photos, i) => {
-        cuadros.push({ label: i === 0 ? group.label : `${group.label} (cont.)`, stage: 'route', photos })
-      })
-    }
-  }
-  return cuadros
-}
-
 /** Banda superior: logo RIGA (contratista) · título · logo CPCH (Ciudad de la Salud). */
 function PageHeader() {
   return (
@@ -247,50 +220,41 @@ function MetaBar({ companyName, fecha }: { companyName: string; fecha: string })
   )
 }
 
-function CuadroView({ cuadro, images }: { cuadro: Cuadro; images: ReportImages }) {
+function CuadroView({ cuadro, images }: { cuadro: LayoutCuadro; images: ReportImages }) {
   return (
     <View style={styles.cuadro} wrap={false}>
       <Text style={styles.cuadroHeader}>{cuadro.label}</Text>
       <View style={styles.photoGrid}>
-        {cuadro.stage === 'weighing'
-          ? (cuadro.pairs ?? []).map((pair, i) => (
-              <View key={`${pair.container_id}-${i}`} style={styles.photoCell}>
-                <View style={[styles.photoBox, { marginBottom: 2 }]}>
-                  <ReportPhoto url={pair.scale?.url ?? ''} images={images} />
-                </View>
-                <View style={styles.photoBox}>
-                  <ReportPhoto url={pair.tacho?.url ?? ''} images={images} />
-                </View>
+        {cuadro.slots.map((photo, i) => (
+          <View key={i} style={styles.photoCell}>
+            {photo ? (
+              <View style={styles.photoBox}>
+                <ReportPhoto url={photo.url} images={images} />
               </View>
-            ))
-          : (cuadro.photos ?? []).map((entry) => (
-              <View key={entry.photo.id} style={styles.photoCell}>
-                <View style={styles.photoBox}>
-                  <ReportPhoto url={entry.photo.url} images={images} />
-                </View>
-              </View>
-            ))}
+            ) : (
+              <View style={styles.emptyBox} />
+            )}
+          </View>
+        ))}
       </View>
       <View style={styles.comentario}>
         <Text style={styles.comentarioLabel}>Comentario:</Text>
-        <Text style={styles.comentarioText}>{cuadro.label}</Text>
+        <Text style={styles.comentarioText}>{cuadro.comment}</Text>
       </View>
     </View>
   )
 }
 
-function DayPages({ day, companyName, images }: { day: ReportDay; companyName: string; images: ReportImages }) {
-  const cuadros = buildCuadros(day)
-  const pages = chunk(cuadros, CUADROS_PER_PAGE)
+function DayPages({ day, companyName, images }: { day: LayoutDay; companyName: string; images: ReportImages }) {
   return (
     <>
-      {pages.map((pageCuadros, idx) => (
+      {paginateDay(day).map((pageCuadros, idx) => (
         <Page key={`${day.date}-${idx}`} size="A4" orientation="landscape" style={styles.page}>
           <PageHeader />
           <MetaBar companyName={companyName} fecha={day.date} />
           <View style={styles.cuadrosWrap}>
-            {pageCuadros.map((c, i) => (
-              <CuadroView key={`${day.date}-${idx}-${i}`} cuadro={c} images={images} />
+            {pageCuadros.map((c) => (
+              <CuadroView key={c.id} cuadro={c} images={images} />
             ))}
           </View>
           <Text
@@ -305,19 +269,23 @@ function DayPages({ day, companyName, images }: { day: ReportDay; companyName: s
 }
 
 interface Props {
+  /** Empresa y rango (encabezados y nota de reporte vacío). */
   data: PhotographicReportData
+  /** Qué foto va en cada recuadro: la automática o la editada. */
+  layout: ReportLayout
   /** Fotos ya descargadas y reducidas (ver `prepareReportImages`). */
   images: ReportImages
 }
 
-export function PhotographicReportDocument({ data, images }: Props) {
-  const { company, days, meta } = data
+export function PhotographicReportDocument({ data, layout, images }: Props) {
+  const { company } = data
+  const empty = layout.days.every((d) => d.cuadros.length === 0)
   return (
     <Document title={`${APP_NAME} — Registro Fotográfico — ${company.name}`}>
-      {days.map((day) => (
+      {layout.days.map((day) => (
         <DayPages key={day.date} day={day} companyName={company.name} images={images} />
       ))}
-      {meta.totalPhotos === 0 && (
+      {empty && (
         <Page size="A4" orientation="landscape" style={styles.page}>
           <PageHeader />
           <View style={styles.empty}>
