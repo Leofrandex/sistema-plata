@@ -97,13 +97,30 @@ export type DragRef =
   | ({ type: 'slot' } & SlotRef)
   | { type: 'browser'; photo: Photo }
 
-function updateCuadro(layout: ReportLayout, cuadroId: string, fn: (c: LayoutCuadro) => LayoutCuadro): ReportLayout {
-  return {
-    days: layout.days.map((d) => ({
-      ...d,
-      cuadros: d.cuadros.map((c) => (c.id === cuadroId ? fn(c) : c)),
-    })),
+function isValidSlotRef(layout: ReportLayout, ref: SlotRef): boolean {
+  for (const day of layout.days) {
+    const cuadro = day.cuadros.find((c) => c.id === ref.cuadroId)
+    if (cuadro && ref.slot >= 0 && ref.slot < cuadro.slots.length) return true
   }
+  return false
+}
+
+function updateCuadro(layout: ReportLayout, cuadroId: string, fn: (c: LayoutCuadro) => LayoutCuadro): ReportLayout {
+  let found = false
+  let changed = false
+  const newDays = layout.days.map((d) => ({
+    ...d,
+    cuadros: d.cuadros.map((c) => {
+      if (c.id === cuadroId) {
+        found = true
+        const newC = fn(c)
+        if (newC !== c) changed = true
+        return newC
+      }
+      return c
+    }),
+  }))
+  return found && changed ? { days: newDays } : layout
 }
 
 export function photoAt(layout: ReportLayout, ref: SlotRef): Photo | null {
@@ -115,10 +132,16 @@ export function photoAt(layout: ReportLayout, ref: SlotRef): Photo | null {
 }
 
 function setSlot(layout: ReportLayout, ref: SlotRef, photo: Photo | null): ReportLayout {
-  return updateCuadro(layout, ref.cuadroId, (c) => ({
-    ...c,
-    slots: c.slots.map((p, i) => (i === ref.slot ? photo : p)),
-  }))
+  if (!isValidSlotRef(layout, ref)) return layout
+  return updateCuadro(layout, ref.cuadroId, (c) => {
+    const current = c.slots[ref.slot]
+    const isSamePhoto = current === photo || (current !== null && photo !== null && current.id === photo.id)
+    if (isSamePhoto) return c
+    return {
+      ...c,
+      slots: c.slots.map((p, i) => (i === ref.slot ? photo : p)),
+    }
+  })
 }
 
 /** Lleva el cuadro a la posición de `overCuadroId`. Solo dentro del mismo día. */
@@ -142,6 +165,7 @@ export function dropPhoto(layout: ReportLayout, ref: SlotRef, photo: Photo): Rep
 /** Intercambia dos recuadros; si el destino está vacío, equivale a mover. */
 export function swapSlots(layout: ReportLayout, a: SlotRef, b: SlotRef): ReportLayout {
   if (a.cuadroId === b.cuadroId && a.slot === b.slot) return layout
+  if (!isValidSlotRef(layout, a) || !isValidSlotRef(layout, b)) return layout
   const pa = photoAt(layout, a)
   const pb = photoAt(layout, b)
   return setSlot(setSlot(layout, a, pb), b, pa)
@@ -152,19 +176,23 @@ export function clearSlot(layout: ReportLayout, ref: SlotRef): ReportLayout {
 }
 
 export function setComment(layout: ReportLayout, cuadroId: string, comment: string): ReportLayout {
-  return updateCuadro(layout, cuadroId, (c) => ({ ...c, comment }))
+  return updateCuadro(layout, cuadroId, (c) => (c.comment === comment ? c : { ...c, comment }))
 }
 
 let newCuadroSeq = 0
 
 /** Cuadro vacío al final del día. */
 export function addCuadro(layout: ReportLayout, date: string): ReportLayout {
+  const dayExists = layout.days.some((d) => d.date === date)
+  if (!dayExists) return layout
   newCuadroSeq += 1
   const cuadro: LayoutCuadro = { id: `nuevo-${newCuadroSeq}`, label: 'Pesaje', comment: 'Pesaje', slots: emptySlots() }
   return { days: layout.days.map((d) => (d.date === date ? { ...d, cuadros: [...d.cuadros, cuadro] } : d)) }
 }
 
 export function removeCuadro(layout: ReportLayout, cuadroId: string): ReportLayout {
+  const found = layout.days.some((d) => d.cuadros.some((c) => c.id === cuadroId))
+  if (!found) return layout
   return { days: layout.days.map((d) => ({ ...d, cuadros: d.cuadros.filter((c) => c.id !== cuadroId) })) }
 }
 

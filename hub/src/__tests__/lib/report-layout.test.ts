@@ -169,4 +169,40 @@ describe('acciones del editor', () => {
       expect(applyDragEnd(l, { type: 'browser', photo: ph('9') }, null)).toBe(l)
     })
   })
+
+  describe('contrato no-op: misma referencia cuando no cambia nada', () => {
+    it('clearSlot en un recuadro vacío devuelve la misma maqueta', () => {
+      const l = base()
+      expect(clearSlot(l, { cuadroId: 'c', slot: 0 })).toBe(l)
+    })
+    it('setComment con el mismo texto devuelve la misma maqueta', () => {
+      const l = base()
+      expect(setComment(l, 'a', 'A')).toBe(l)
+    })
+    it('setComment con id desconocido devuelve la misma maqueta', () => {
+      const l = base()
+      expect(setComment(l, 'unknown', 'algo')).toBe(l)
+    })
+    it('dropPhoto de la misma foto ya presente devuelve la misma maqueta', () => {
+      const l = base()
+      expect(dropPhoto(l, { cuadroId: 'a', slot: 0 }, ph('1'))).toBe(l)
+    })
+    it('swapSlots de dos recuadros vacíos devuelve la misma maqueta', () => {
+      const l = base()
+      expect(swapSlots(l, { cuadroId: 'c', slot: 0 }, { cuadroId: 'c', slot: 1 })).toBe(l)
+    })
+    it('swapSlots con b = cuadro desconocido devuelve la misma maqueta y preserva la foto de a', () => {
+      const l = base()
+      expect(swapSlots(l, { cuadroId: 'a', slot: 0 }, { cuadroId: 'unknown', slot: 0 })).toBe(l)
+      expect(photoAt(l, { cuadroId: 'a', slot: 0 })?.id).toBe('1')
+    })
+    it('removeCuadro con id desconocido devuelve la misma maqueta', () => {
+      const l = base()
+      expect(removeCuadro(l, 'unknown')).toBe(l)
+    })
+    it('addCuadro con fecha desconocida devuelve la misma maqueta', () => {
+      const l = base()
+      expect(addCuadro(l, 'unknown-date')).toBe(l)
+    })
+  })
 })
