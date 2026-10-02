@@ -347,6 +347,26 @@ describe('buildPhotographicReportData (por empresa)', () => {
     expect(urls).toEqual(expect.arrayContaining(['u-t', 'u-s']))
   })
 
+  it('excluye anatomopatológicos y citotóxicos del registro', () => {
+    const rec = ionStore.receptions[0]
+    const store = {
+      ...ionStore,
+      receptions: [
+        ...ionStore.receptions,
+        { ...rec, id: 'rec-anato', container_id: null, waste_type: 'anatomopathological' as const, photo_ids: ['ph-a'] },
+        { ...rec, id: 'rec-cito', container_id: null, waste_type: 'cytotoxic' as const, photo_ids: ['ph-c'] },
+      ],
+      photos: [
+        ...ionStore.photos,
+        { id: 'ph-a', url: 'u-a', event_type: 'weighing' as const, event_id: 'rec-anato', taken_at: rec.arrived_at, label: '' },
+        { id: 'ph-c', url: 'u-c', event_type: 'weighing' as const, event_id: 'rec-cito', taken_at: rec.arrived_at, label: '' },
+      ],
+    }
+    const urls = reportPhotoUrls(buildPhotographicReportData('company-ion', store, range)!)
+    expect(urls).not.toContain('u-a')
+    expect(urls).not.toContain('u-c')
+  })
+
   it('junta las urls de recorrido y de los pares de pesaje, sin repetir', () => {
     const data = buildPhotographicReportData('company-ion', ionStore, range)!
     const urls = reportPhotoUrls(data)

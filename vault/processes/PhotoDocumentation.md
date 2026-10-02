@@ -5,7 +5,7 @@ tags:
   - domain
   - reports
   - regulatory
-updated: 2026-05-17
+updated: 2026-10-01
 ---
 
 # Memoria Fotográfica (Informe Fotográfico)
@@ -36,6 +36,8 @@ Layout replicado de los reportes históricos del cliente:
 - **Body**: grid de 2 columnas × N filas de fotos. Cada foto con caja "Comentario:" debajo (número de envase, hora, y texto libre opcional).
 - **Orden**: por etapa (recorrido → pesaje) y dentro de cada etapa, por empresa (ION → Airkem). Cada cambio de etapa o empresa empieza página nueva.
 - **Rango**: lunes 00:00 → hoy 23:59 (el viernes cubre la semana completa).
+- **Fotos completas, nunca recortadas** (2026-10-01): cada foto se encaja entera en su recuadro, sea vertical u horizontal, para que se vea el sello de fecha/hora de la esquina inferior derecha. Antes se recortaban para llenar el recuadro y las fotos verticales del tacho perdían la fecha.
+- **Sin anatomopatológicos ni citotóxicos** (2026-10-01, pedido del cliente): sus pesajes no aparecen en el registro. Morgue sí.
 
 ## Nomenclatura en las fotos
 

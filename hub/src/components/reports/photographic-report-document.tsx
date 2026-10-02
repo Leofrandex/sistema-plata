@@ -103,8 +103,12 @@ const styles = StyleSheet.create({
     width: '25%',
     padding: 1,
   },
+  // Alto fijo casi cuadrado + objectFit 'contain': la foto entra completa sea
+  // vertical u horizontal, con el sello de fecha/hora de la esquina inferior
+  // derecha visible. Con 'cover' en un recuadro 4:3 se cortaban las verticales
+  // (las del tacho). 96 pt es lo máximo que deja 2 filas de cuadros por hoja.
   photoBox: {
-    aspectRatio: 4 / 3,
+    height: 96,
     width: '100%',
     backgroundColor: '#f8fafc',
     overflow: 'hidden',
@@ -112,7 +116,7 @@ const styles = StyleSheet.create({
   photo: {
     width: '100%',
     height: '100%',
-    objectFit: 'cover',
+    objectFit: 'contain',
   },
   comentario: {
     flexDirection: 'row',

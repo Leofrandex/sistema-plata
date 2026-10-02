@@ -7,8 +7,12 @@ import type {
   ContainerReception,
   Photo,
   RouteSlot,
+  WasteType,
 } from '@hospiwaste/shared/lib/types'
 import { getRouteSlotDefinition } from '@hospiwaste/shared/lib/constants'
+
+/** Anatomopatológicos y citotóxicos no van al registro fotográfico (pedido del cliente). */
+const EXCLUDED_WASTE_TYPES: readonly WasteType[] = ['anatomopathological', 'cytotoxic']
 
 /** Una foto enriquecida con metadatos del contexto. */
 export interface ReportPhotoEntry {
@@ -152,7 +156,11 @@ export function buildPhotographicReportData(
     (r) => !r.voided_at && r.kind === 'anden' && withinRange(r.started_at, start, end) && routeBelongs(r),
   )
   const receptions = store.receptions.filter(
-    (r) => !r.voided_at && withinRange(r.arrived_at, start, end) && recBelongs(r),
+    (r) =>
+      !r.voided_at &&
+      !EXCLUDED_WASTE_TYPES.includes(r.waste_type as WasteType) &&
+      withinRange(r.arrived_at, start, end) &&
+      recBelongs(r),
   )
 
   // Universo de tachos relevantes (para mapear fotos de ruta y datos del tacho)
