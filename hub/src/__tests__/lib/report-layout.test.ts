@@ -5,6 +5,15 @@ import {
   paginateDay,
   layoutPhotoUrls,
   usedPhotoIds,
+  photoAt,
+  moveCuadro,
+  dropPhoto,
+  swapSlots,
+  clearSlot,
+  setComment,
+  addCuadro,
+  removeCuadro,
+  applyDragEnd,
   type ReportLayout,
 } from '@/lib/data/report-layout'
 
@@ -78,5 +87,86 @@ describe('layoutPhotoUrls / usedPhotoIds', () => {
   })
   it('fotos en uso por id', () => {
     expect([...usedPhotoIds(layout)].sort()).toEqual(['x', 'y'])
+  })
+})
+
+describe('acciones del editor', () => {
+  const base = (): ReportLayout => ({ days: [
+    { date: 'd1', cuadros: [
+      { id: 'a', label: 'A', comment: 'A', slots: [ph('1'), ph('2'), null, null, null, null, null, null] },
+      { id: 'b', label: 'B', comment: 'B', slots: [ph('3'), null, null, null, null, null, null, null] },
+      { id: 'c', label: 'C', comment: 'C', slots: Array(8).fill(null) },
+    ] },
+    { date: 'd2', cuadros: [{ id: 'z', label: 'Z', comment: 'Z', slots: Array(8).fill(null) }] },
+  ] })
+  const ids = (l: ReportLayout, day = 0) => l.days[day].cuadros.map((c) => c.id)
+
+  it('moveCuadro reordena dentro del día', () => {
+    expect(ids(moveCuadro(base(), 'a', 'c'))).toEqual(['b', 'c', 'a'])
+    expect(ids(moveCuadro(base(), 'c', 'a'))).toEqual(['c', 'a', 'b'])
+  })
+
+  it('moveCuadro no cruza días', () => {
+    const l = base()
+    expect(moveCuadro(l, 'a', 'z')).toBe(l)
+  })
+
+  it('dropPhoto reemplaza lo que había', () => {
+    const l = dropPhoto(base(), { cuadroId: 'a', slot: 0 }, ph('9'))
+    expect(photoAt(l, { cuadroId: 'a', slot: 0 })?.id).toBe('9')
+  })
+
+  it('swapSlots intercambia entre cuadros y mueve si el destino está vacío', () => {
+    const l = swapSlots(base(), { cuadroId: 'a', slot: 0 }, { cuadroId: 'b', slot: 0 })
+    expect(photoAt(l, { cuadroId: 'a', slot: 0 })?.id).toBe('3')
+    expect(photoAt(l, { cuadroId: 'b', slot: 0 })?.id).toBe('1')
+    const m = swapSlots(base(), { cuadroId: 'a', slot: 1 }, { cuadroId: 'c', slot: 5 })
+    expect(photoAt(m, { cuadroId: 'a', slot: 1 })).toBeNull()
+    expect(photoAt(m, { cuadroId: 'c', slot: 5 })?.id).toBe('2')
+  })
+
+  it('clearSlot vacía; setComment edita', () => {
+    expect(photoAt(clearSlot(base(), { cuadroId: 'a', slot: 0 }), { cuadroId: 'a', slot: 0 })).toBeNull()
+    expect(setComment(base(), 'b', 'Hola').days[0].cuadros[1].comment).toBe('Hola')
+  })
+
+  it('addCuadro agrega uno vacío al final del día, con id nuevo', () => {
+    const l = addCuadro(base(), 'd1')
+    const added = l.days[0].cuadros[3]
+    expect(added.label).toBe('Pesaje')
+    expect(added.comment).toBe('Pesaje')
+    expect(added.slots).toEqual(Array(8).fill(null))
+    expect(['a', 'b', 'c', 'z']).not.toContain(added.id)
+    expect(addCuadro(l, 'd1').days[0].cuadros[4].id).not.toBe(added.id)
+  })
+
+  it('removeCuadro elimina; el día puede quedar vacío', () => {
+    expect(ids(removeCuadro(base(), 'b'))).toEqual(['a', 'c'])
+    expect(removeCuadro(base(), 'z').days[1].cuadros).toEqual([])
+  })
+
+  describe('applyDragEnd', () => {
+    it('cuadro sobre cuadro del mismo día: reordena', () => {
+      const l = applyDragEnd(base(), { type: 'cuadro', cuadroId: 'a', date: 'd1' }, { type: 'cuadro', cuadroId: 'b', date: 'd1' })
+      expect(ids(l)).toEqual(['b', 'a', 'c'])
+    })
+    it('cuadro sobre cuadro de otro día: no cambia nada', () => {
+      const l = base()
+      expect(applyDragEnd(l, { type: 'cuadro', cuadroId: 'a', date: 'd1' }, { type: 'cuadro', cuadroId: 'z', date: 'd2' })).toBe(l)
+    })
+    it('foto del buscador sobre un recuadro: la suelta ahí', () => {
+      const l = applyDragEnd(base(), { type: 'browser', photo: ph('9') }, { type: 'slot', cuadroId: 'z', slot: 7 })
+      expect(photoAt(l, { cuadroId: 'z', slot: 7 })?.id).toBe('9')
+    })
+    it('foto del canvas sobre otro recuadro: intercambia', () => {
+      const l = applyDragEnd(base(), { type: 'slot', cuadroId: 'a', slot: 0 }, { type: 'slot', cuadroId: 'a', slot: 1 })
+      expect(photoAt(l, { cuadroId: 'a', slot: 0 })?.id).toBe('2')
+      expect(photoAt(l, { cuadroId: 'a', slot: 1 })?.id).toBe('1')
+    })
+    it('foto sobre su propio recuadro, o soltada fuera: no cambia nada', () => {
+      const l = base()
+      expect(applyDragEnd(l, { type: 'slot', cuadroId: 'a', slot: 0 }, { type: 'slot', cuadroId: 'a', slot: 0 })).toBe(l)
+      expect(applyDragEnd(l, { type: 'browser', photo: ph('9') }, null)).toBe(l)
+    })
   })
 })

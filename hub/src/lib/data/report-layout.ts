@@ -82,3 +82,99 @@ export function layoutPhotoUrls(layout: ReportLayout): string[] {
 export function usedPhotoIds(layout: ReportLayout): Set<string> {
   return new Set(layoutPhotos(layout).map((p) => p.id))
 }
+
+// ── Acciones del editor ────────────────────────────────────────────────────
+// Puras: devuelven una maqueta nueva, o la misma referencia si no cambia nada.
+
+export interface SlotRef {
+  cuadroId: string
+  slot: number
+}
+
+/** Lo que se arrastra o sobre lo que se suelta (va en `data` de dnd-kit). */
+export type DragRef =
+  | { type: 'cuadro'; cuadroId: string; date: string }
+  | ({ type: 'slot' } & SlotRef)
+  | { type: 'browser'; photo: Photo }
+
+function updateCuadro(layout: ReportLayout, cuadroId: string, fn: (c: LayoutCuadro) => LayoutCuadro): ReportLayout {
+  return {
+    days: layout.days.map((d) => ({
+      ...d,
+      cuadros: d.cuadros.map((c) => (c.id === cuadroId ? fn(c) : c)),
+    })),
+  }
+}
+
+export function photoAt(layout: ReportLayout, ref: SlotRef): Photo | null {
+  for (const day of layout.days) {
+    const cuadro = day.cuadros.find((c) => c.id === ref.cuadroId)
+    if (cuadro) return cuadro.slots[ref.slot] ?? null
+  }
+  return null
+}
+
+function setSlot(layout: ReportLayout, ref: SlotRef, photo: Photo | null): ReportLayout {
+  return updateCuadro(layout, ref.cuadroId, (c) => ({
+    ...c,
+    slots: c.slots.map((p, i) => (i === ref.slot ? photo : p)),
+  }))
+}
+
+/** Lleva el cuadro a la posición de `overCuadroId`. Solo dentro del mismo día. */
+export function moveCuadro(layout: ReportLayout, cuadroId: string, overCuadroId: string): ReportLayout {
+  if (cuadroId === overCuadroId) return layout
+  const day = layout.days.find((d) => d.cuadros.some((c) => c.id === cuadroId))
+  if (!day) return layout
+  const from = day.cuadros.findIndex((c) => c.id === cuadroId)
+  const to = day.cuadros.findIndex((c) => c.id === overCuadroId)
+  if (to === -1) return layout
+  const cuadros = [...day.cuadros]
+  const [moved] = cuadros.splice(from, 1)
+  cuadros.splice(to, 0, moved)
+  return { days: layout.days.map((d) => (d === day ? { ...d, cuadros } : d)) }
+}
+
+export function dropPhoto(layout: ReportLayout, ref: SlotRef, photo: Photo): ReportLayout {
+  return setSlot(layout, ref, photo)
+}
+
+/** Intercambia dos recuadros; si el destino está vacío, equivale a mover. */
+export function swapSlots(layout: ReportLayout, a: SlotRef, b: SlotRef): ReportLayout {
+  if (a.cuadroId === b.cuadroId && a.slot === b.slot) return layout
+  const pa = photoAt(layout, a)
+  const pb = photoAt(layout, b)
+  return setSlot(setSlot(layout, a, pb), b, pa)
+}
+
+export function clearSlot(layout: ReportLayout, ref: SlotRef): ReportLayout {
+  return setSlot(layout, ref, null)
+}
+
+export function setComment(layout: ReportLayout, cuadroId: string, comment: string): ReportLayout {
+  return updateCuadro(layout, cuadroId, (c) => ({ ...c, comment }))
+}
+
+let newCuadroSeq = 0
+
+/** Cuadro vacío al final del día. */
+export function addCuadro(layout: ReportLayout, date: string): ReportLayout {
+  newCuadroSeq += 1
+  const cuadro: LayoutCuadro = { id: `nuevo-${newCuadroSeq}`, label: 'Pesaje', comment: 'Pesaje', slots: emptySlots() }
+  return { days: layout.days.map((d) => (d.date === date ? { ...d, cuadros: [...d.cuadros, cuadro] } : d)) }
+}
+
+export function removeCuadro(layout: ReportLayout, cuadroId: string): ReportLayout {
+  return { days: layout.days.map((d) => ({ ...d, cuadros: d.cuadros.filter((c) => c.id !== cuadroId) })) }
+}
+
+/** Traduce el fin de un arrastre a una acción. Combinaciones sin sentido no cambian nada. */
+export function applyDragEnd(layout: ReportLayout, active: DragRef, over: DragRef | null): ReportLayout {
+  if (!over) return layout
+  if (active.type === 'cuadro') {
+    return over.type === 'cuadro' ? moveCuadro(layout, active.cuadroId, over.cuadroId) : layout
+  }
+  if (over.type !== 'slot') return layout
+  if (active.type === 'browser') return dropPhoto(layout, over, active.photo)
+  return swapSlots(layout, active, over)
+}
