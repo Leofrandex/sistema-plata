@@ -9,7 +9,7 @@ import type {
   RouteSlot,
   WasteType,
 } from '@hospiwaste/shared/lib/types'
-import { getRouteSlotDefinition } from '@hospiwaste/shared/lib/constants'
+import { APP_NAME, getRouteSlotDefinition } from '@hospiwaste/shared/lib/constants'
 
 /** Anatomopatológicos y citotóxicos no van al registro fotográfico (pedido del cliente). */
 const EXCLUDED_WASTE_TYPES: readonly WasteType[] = ['anatomopathological', 'cytotoxic']
@@ -98,6 +98,26 @@ export function isoDate(date: Date): string {
 export function withinRange(value: string, start: Date, end: Date): boolean {
   const t = new Date(value).getTime()
   return t >= start.getTime() && t <= end.getTime()
+}
+
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/
+
+/**
+ * Fechas `YYYY-MM-DD` (inputs de fecha o query string) → rango local
+ * [00:00, 23:59:59]. null si falta alguna, está mal escrita o Desde > Hasta.
+ */
+export function parseReportRange(start: string | null, end: string | null): ReportRange | null {
+  if (!start || !end || !ISO_DAY.test(start) || !ISO_DAY.test(end) || start > end) return null
+  const s = new Date(`${start}T00:00:00`)
+  const e = new Date(`${end}T23:59:59`)
+  if (isNaN(s.getTime()) || isNaN(e.getTime()) || isoDate(s) !== start || isoDate(e) !== end) return null
+  return { start: s, end: e }
+}
+
+/** Nombre del PDF del registro; el editor agrega `_editado`. */
+export function reportFilename(data: PhotographicReportData, suffix = ''): string {
+  const safeName = data.company.name.replace(/[^a-z0-9]/gi, '_')
+  return `${APP_NAME}_RegistroFotografico_${safeName}_${data.rangeStart}_${data.rangeEnd}${suffix}.pdf`
 }
 
 /**
