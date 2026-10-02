@@ -36,7 +36,7 @@ function formatTime(iso: string): string {
 
 function itemLabel(rec: ContainerReception): string {
   if (rec.container_id) return `Tacho ${rec.container_id}`
-  const tipo = rec.waste_type ? ` (${WASTE_TYPE_LABELS[rec.waste_type]})` : ''
+  const tipo = rec.waste_type ? ` (${WASTE_TYPE_LABELS[rec.waste_type] ?? rec.waste_type})` : ''
   return `Contenedor ${rec.container_ref || 's/n'}${tipo}`
 }
 

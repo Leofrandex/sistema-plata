@@ -32,6 +32,13 @@ export interface ReportLayout {
 
 const emptySlots = (): (Photo | null)[] => Array<Photo | null>(SLOTS_PER_CUADRO).fill(null)
 
+/** Marcador de "foto faltante" en un par de pesaje: el PDF imprime "Foto no disponible". */
+export function missingPhoto(cuadroId: string, slot: number): Photo {
+  return { id: `missing:${cuadroId}:${slot}`, url: '', event_type: 'weighing', event_id: '', taken_at: '', label: '' }
+}
+
+export const isMissingPhoto = (photo: Photo | null): boolean => photo !== null && photo.url === ''
+
 export function buildReportLayout(data: PhotographicReportData): ReportLayout {
   return {
     days: data.days.map((day) => {
@@ -43,9 +50,10 @@ export function buildReportLayout(data: PhotographicReportData): ReportLayout {
         if (group.stage === 'weighing' && group.pairs) {
           chunk(group.pairs, COLUMNS).forEach((pairs, i) => {
             const slots = emptySlots()
+            const cuadroId = `${day.date}-${cuadros.length}`
             pairs.forEach((pair, col) => {
-              slots[col] = pair.scale
-              slots[COLUMNS + col] = pair.tacho
+              slots[col] = pair.scale ?? missingPhoto(cuadroId, col)
+              slots[COLUMNS + col] = pair.tacho ?? missingPhoto(cuadroId, COLUMNS + col)
             })
             push(i === 0 ? group.label : `${group.label} (cont.)`, slots)
           })
@@ -80,7 +88,7 @@ export function layoutPhotoUrls(layout: ReportLayout): string[] {
 
 /** Ids de las fotos presentes en algún recuadro (marca "en uso" del buscador). */
 export function usedPhotoIds(layout: ReportLayout): Set<string> {
-  return new Set(layoutPhotos(layout).map((p) => p.id))
+  return new Set(layoutPhotos(layout).filter((p) => !isMissingPhoto(p)).map((p) => p.id))
 }
 
 // ── Acciones del editor ────────────────────────────────────────────────────

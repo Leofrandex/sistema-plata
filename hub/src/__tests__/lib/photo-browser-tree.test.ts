@@ -1,4 +1,4 @@
-import type { ContainerReception, Photo, WeighingSession } from '@hospiwaste/shared/lib/types'
+import type { ContainerReception, Photo, WasteType, WeighingSession } from '@hospiwaste/shared/lib/types'
 import { buildPhotoBrowserTree } from '@/lib/data/photo-browser-tree'
 
 const ph = (id: string): Photo => ({ id, url: `u-${id}`, event_type: 'weighing', event_id: 'e', taken_at: '', label: '' })
@@ -44,6 +44,15 @@ describe('buildPhotoBrowserTree', () => {
 
   it('contenedor descartable con su número y tipo', () => {
     expect(tree[0].sessions[2].items[0].label).toBe('Contenedor 5501 (Morgue)')
+  })
+
+  it('tipo de residuo desconocido: usa el valor crudo, no "undefined"', () => {
+    const t = buildPhotoBrowserTree(
+      [rec({ id: 'o', arrived_at: '2026-05-17T09:00:00-05:00', container_ref: '1', waste_type: 'otro' as WasteType })],
+      [],
+      photosFor('o'),
+    )
+    expect(t[0].sessions[0].items[0].label).toBe('Contenedor 1 (otro)')
   })
 
   it('una sesión que no está en el store cae en "Sin sesión"', () => {

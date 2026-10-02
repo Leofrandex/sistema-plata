@@ -81,7 +81,7 @@ export function ReportEditor() {
     return () => window.removeEventListener('beforeunload', warn)
   }, [dirty])
 
-  if (!range) return <EditorMessage text="Faltan la empresa o las fechas del reporte." />
+  if (!range || !companyId) return <EditorMessage text="Faltan la empresa o las fechas del reporte." />
   if (!data || !layout) {
     return <EditorMessage text={companies.length > 0 ? 'No se encontró la empresa del reporte.' : 'Cargando reporte…'} />
   }

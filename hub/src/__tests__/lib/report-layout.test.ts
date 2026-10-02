@@ -5,6 +5,7 @@ import {
   paginateDay,
   layoutPhotoUrls,
   usedPhotoIds,
+  isMissingPhoto,
   photoAt,
   moveCuadro,
   dropPhoto,
@@ -53,6 +54,18 @@ describe('buildReportLayout', () => {
     expect(a.slots.map((p) => p?.id)).toEqual(['s1', 's2', 's3', 's4', 't1', 't2', 't3', 't4'])
     expect(b.label).toBe('Pesaje — 1.ª ruta (cont.)')
     expect(b.slots.map((p) => p?.id ?? null)).toEqual(['s5', null, null, null, 't5', null, null, null])
+  })
+
+  it('pesaje: un par sin foto de balanza deja un marcador "Foto no disponible"; sin recorrido ni par, null', () => {
+    const noScale = { ...pair(1), scale: null }
+    const layout = buildReportLayout(data([{ date: '2026-05-17', groups: [{ label: 'P', stage: 'weighing', photos: [], pairs: [noScale] }] }]))
+    const [c] = layout.days[0].cuadros
+    expect(isMissingPhoto(c.slots[0])).toBe(true)
+    expect(c.slots[0]?.id).toBe(`missing:${c.id}:0`)
+    expect(c.slots[4]?.id).toBe('t1')
+    expect(c.slots[1]).toBeNull()
+    expect(usedPhotoIds(layout)).toEqual(new Set(['t1']))
+    expect(layoutPhotoUrls(layout)).toEqual(['u-t1'])
   })
 
   it('ids de cuadro únicos y estables entre llamadas', () => {

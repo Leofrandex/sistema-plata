@@ -8,7 +8,7 @@ import { GripVertical, Plus, Trash2, X } from 'lucide-react'
 import type { Photo } from '@hospiwaste/shared/lib/types'
 import { cn } from '@hospiwaste/shared/lib/utils'
 import {
-  addCuadro, clearSlot, paginateDay, removeCuadro, setComment,
+  addCuadro, clearSlot, isMissingPhoto, paginateDay, removeCuadro, setComment,
   type DragRef, type LayoutCuadro, type ReportLayout,
 } from '@/lib/data/report-layout'
 
@@ -135,7 +135,8 @@ function SlotBox({ cuadroId, slot, photo, onClear }: { cuadroId: string; slot: n
   const id = `slot:${cuadroId}:${slot}`
   const data: DragRef = { type: 'slot', cuadroId, slot }
   const { setNodeRef: setDropRef, isOver } = useDroppable({ id, data })
-  const { setNodeRef: setDragRef, attributes, listeners, isDragging } = useDraggable({ id, data, disabled: !photo })
+  const missing = isMissingPhoto(photo)
+  const { setNodeRef: setDragRef, attributes, listeners, isDragging } = useDraggable({ id, data, disabled: !photo || missing })
 
   return (
     <div
@@ -144,17 +145,23 @@ function SlotBox({ cuadroId, slot, photo, onClear }: { cuadroId: string; slot: n
     >
       {photo && (
         <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            ref={setDragRef}
-            {...attributes}
-            {...listeners}
-            src={photo.url}
-            alt=""
-            loading="lazy"
-            draggable={false}
-            className={cn('h-full w-full cursor-grab touch-none object-contain', isDragging && 'opacity-30')}
-          />
+          {missing ? (
+            <div className="flex h-full w-full items-center justify-center border border-dashed border-slate-300 text-center text-[10px] text-slate-400">
+              Foto no disponible
+            </div>
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              ref={setDragRef}
+              {...attributes}
+              {...listeners}
+              src={photo.url}
+              alt=""
+              loading="lazy"
+              draggable={false}
+              className={cn('h-full w-full cursor-grab touch-none object-contain', isDragging && 'opacity-30')}
+            />
+          )}
           <button
             type="button"
             aria-label="Vaciar recuadro"
